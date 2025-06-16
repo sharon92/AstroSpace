@@ -120,20 +120,14 @@ TITLE = "My AstroSpace Observatory"  # Customize your site name
 ```
 
 ```bash
+# 🚀 Initialize the Database
+flask --app AstroSpace init-db
+
 # 🚀 Launch the application
 flask --app AstroSpace run
 ```
 
 Your AstroSpace instance will be available at `http://localhost:5000` 🌐
-
-### 🐳 Docker Deployment
-
-For a quick containerized setup:
-
-```bash
-# 🏗️ Build and run with Docker
-docker-compose up -d
-```
 
 ---
 
