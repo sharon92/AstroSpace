@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{WebName}}</title>
+            
+    <!-- Custom Stylesheet and js-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+    <script>  
+        // This code should be added to <head>.
+        // It's used to prevent page load glitches.
+      const html = document.documentElement;
+      const theme = localStorage.getItem('hs_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      if (theme === 'dark' || (theme === 'auto' && prefersDark)) {
+        html.classList.add('dark');
+      } else {
+        html.classList.remove('dark');
+      }
+    </script>
+</head>
+<body class="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <header class="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-md">
+        <nav class="container mx-auto px-4 py-2 flex justify-between items-end">
+            <div class="flex items-end space-x-4">
+            <div>
+                <a href="{{ url_for('blog.home') }}" class="text-xl font-bold text-gray-800 dark:text-white">{{WebName}}</a>
+            </div>
+            <div class="hidden md:flex space-x-6">
+                <a href="{{ url_for('blog.collection') }}" class="nav-link">Collection</a> 
+                <a href="#equipment" class="nav-link">Equipment</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#blog" class="nav-link">Blog</a>
+            </div>
+            <div class="md:hidden">
+                <button id="menuBtn" class="text-gray-800 dark:text-white focus:outline-none">
+                    ☰
+                </button>
+            </div>
+            </div>
+
+            <div class="flex items-end space-x-4">
+            <button id="darkSwitch" type="button" class="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300 hover:bg-gray-300 dark:hover:bg-neutral-600">
+                <!-- Icon container -->
+                <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h1M4 12H3m15.364-6.364l.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+                </svg>
+                <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white hidden dark:inline-block" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M17.293 13.293A8 8 0 116.707 2.707a8.001 8.001 0 0010.586 10.586z"/>
+                </svg>
+            </button>
+
+            <div class="relative">
+            {% if g.user %}
+                <!-- Dropdown toggle -->
+                <button id="userMenuButton" class="nav-link flex items-center space-x-1 focus:outline-none">
+                <span>{{ g.user['username'] }}</span>
+                </button>
+
+                <!-- Dropdown menu -->
+                <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg hidden z-50">
+                <a href="{{ url_for('blog.new_image') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">New Post</a>
+                <a href="{{ url_for('blog.list_images') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit Post</a>
+                <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">Log Out</a>
+                </div>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="nav-link">Log In</a>
+            {% endif %}
+            </div>
+            </div>
+        </nav>
+    </header>
+
+  <main class="flex-1">
+    <div>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="bg-blue-100 border border-blue-300 text-blue-800 px-4 py-3 rounded mb-4">
+            {{ messages[0] }}
+        </div>
+        {% endif %}
+    {% endwith %}
+    
+    {% block content %}
+    {% endblock %}
+    </div>
+  </main>
+<!-- Footer -->
+<footer class="text-black bg-white py-6 text-center dark:bg-gray-800 dark:text-white shadow-md">
+    <p>&copy; 2025 {{WebName}}. All rights reserved.</p>
+</footer>
+
+</body>
+<script>
+const themeToggle = document.getElementById('darkSwitch');
+
+themeToggle.addEventListener('click', () => {
+    const html = document.documentElement;
+    const isDark = html.classList.toggle('dark');
+    localStorage.setItem('hs_theme', isDark ? 'dark' : 'light');
+});
+
+// Set initial theme from localStorage
+if (localStorage.getItem('hs_theme') === 'dark') {
+    document.documentElement.classList.add('dark');
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Mobile Menu Toggle
+    const menuBtn = document.getElementById('menuBtn');
+    const navLinks = document.querySelector('.md\\:flex'); // Escaping the colon for a valid selector
+
+    if (menuBtn && navLinks) { // Check if elements exist
+        menuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('hidden');
+        });
+    } else {
+        console.error('Menu button or nav links not found');
+    }
+});
+
+const navLinksStyle = document.querySelectorAll('.nav-link');
+navLinksStyle.forEach(link => {
+    link.className = 'text-white-900 dark:text-gray-200 hover:text-blue-500 transition-colors duration-300';
+});
+
+document.addEventListener('click', function (event) {
+  const button = document.getElementById('userMenuButton');
+  const dropdown = document.getElementById('userDropdown');
+
+  if (dropdown && button && button.contains(event.target)) {
+      dropdown.classList.toggle('hidden');
+  } else if (dropdown) {
+      dropdown.classList.add('hidden');
+  }
+});
+</script>
+</html>

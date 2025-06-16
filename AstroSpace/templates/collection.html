@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mt-6 ml-6 text-2xl font-bold mb-6 dark:text-white">Image Collection</h1>
+
+<div class="ml-6 mr-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+  {% for img in images %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <a href="{{ url_for('blog.image_detail', image_id=img.id, image_name=img.slug) }}">
+        <img src="{{ url_for('blog.upload', filename=img.image_thumbnail|replace('\\', '/') or img.image_path|replace('\\', '/')) }}"
+             alt="{{ img.title }}"
+             class="w-full h-48 object-cover">
+      </a>
+      <div class="p-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">{{ img.title }}</h5>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

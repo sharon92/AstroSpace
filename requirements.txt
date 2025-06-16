@@ -1,0 +1,13 @@
+Flask
+flask-login
+psycopg2-binary
+numpy
+pandas
+requests
+ephem
+bokeh
+astroquery
+astropy
+photoutils
+pillow
+

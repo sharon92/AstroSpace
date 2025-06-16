@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Hero Section -->
+<section id="home" class="bg-cover bg-center h-screen relative flex items-center justify-center text-white" style="background-image: url('{{ url_for('static', filename='assets/images/Main_Image.jpg') }}');">
+    <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-black opacity-50"></div>
+    <div class="text-center">
+        <h1 class="text-4xl font-bold mb-6">Welcome to AstroSpace</h1>
+        <p class="mb-8 text-lg">Explore the beauty of the cosmos through my telescopes.</p>
+        <a href="#gallery" class="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors duration-300">View Gallery</a>
+    </div>
+</section>
+
+<!-- About Section -->
+<section id="about" class="container mx-auto px-4 py-12">
+    <h2 class="text-3xl font-bold mb-8 text-center  text-gray-700 dark:text-gray-200"">About</h2>
+    <p class="text-lg leading-relaxed text-gray-700 dark:text-gray-200">Ever caught yourself lost in the beauty of a starry night? This page is all about peeking into the vastness of space through the lenses of my amateur telescopes. From distant galaxies to the craters on the moon, every image you see here is a snapshot of the wonders of the universe. Feel free to explore these high-resolution images and dive deeper into the techniques and equipment I use to capture the wonders of the cosmos. Let’s journey beyond the stars together!</p>
+</section>
+
+<!-- Collection Section -->
+<section id="collection" class="container mx-auto px-4 py-12">
+    <h2 class="text-3xl font-bold mb-8 text-center text-gray-700 dark:text-gray-200">Collection</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for image in top_images %}
+            <a href="{{ url_for('blog.image_detail', image_id=image.id, image_name=image.slug) }}" target="_blank">
+                <img src="{{ url_for('blog.upload', filename=image.image_thumbnail|replace('\\', '/') or image.image_path|replace('\\', '/')) }}" alt="{{ image.title }}" class="rounded-lg shadow-md hover:scale-105 transition-transform duration-300">
+                <p class="mt-2 font-semibold  dark:text-white">{{ image.title }}</p>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+{# <!-- Blog Section -->
+<section id="blog" class="container mx-auto px-4 py-12">
+    <h2 class="text-3xl font-bold mb-8 text-center">Blog</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <article class="bg-white dark:bg-gray-700 rounded-lg shadow-md p-4">
+            <h3 class="text-xl font-bold mb-4">Space Odyssey</h3>
+            <p class="text-gray-700 dark:text-gray-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+        </article>
+        <article class="bg-white dark:bg-gray-700 rounded-lg shadow-md p-4">
+            <h3 class="text-xl font-bold mb-4">Galactic Wonders</h3>
+            <p class="text-gray-700 dark:text-gray-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+        </article>
+        <article class="bg-white dark:bg-gray-700 rounded-lg shadow-md p-4">
+            <h3 class="text-xl font-bold mb-4">Nebula Tales</h3>
+            <p class="text-gray-700 dark:text-gray-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+        </article>
+    </div>
+</section> #}
+
+
+{%endblock%}
