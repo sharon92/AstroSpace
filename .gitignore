@@ -12,7 +12,9 @@ postgres/
 **/node_modules/
 **/uploads/
 **/watch.bat
-
+serve.bat 
+cmd.txt 
+.vscode/
 # Distribution / packaging
 .Python
 build/
