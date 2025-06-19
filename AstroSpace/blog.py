@@ -49,6 +49,16 @@ def get_elevation():
         return str(round(r.json()["results"][0]["elevation"]))
     else:
         return "0"
+    
+@bp.route("/blog")
+@login_required
+def new_blog():
+    return "Not yet Implemented"
+
+@bp.route("/equipment")
+@login_required
+def add_equipment():
+    return "Not yet Implemented"
 
 @bp.route("/image/<int:image_id>/<string:image_name>")
 def image_detail(image_id, image_name):
@@ -78,46 +88,16 @@ def image_detail(image_id, image_name):
     )
 
 # List view
-@bp.route("/images")
+@bp.route("/posts")
 @login_required
 def list_images():
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, title, created_at FROM images ORDER BY created_at DESC")
-    posts = cur.fetchall()
-    cur.close()
-    rows = []
-    for p in posts:
-        rows.append(
-            "<tr class='border-b hover:bg-gray-50'>"
-            f"<td class='px-4 py-2 font-medium text-gray-800'>{p['title']}</td>"
-            f"<td class='px-4 py-2 text-gray-600'>{p['created_at'].strftime('%Y-%m-%d')}</td>"
-            "<td class='px-4 py-2 space-x-2'>"
-            f'<a href="{url_for("blog.edit_image", image_id=p["id"])}" '
-            'class="inline-block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">Edit</a>'
-            f'<a href="{url_for("blog.delete_image", image_id=p["id"])}" '
-            'class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700" '
-            'onclick="return confirm(\'Delete?\');">Delete</a>'
-            "</td>"
-            "</tr>"
-        )
-
-    table = (
-        '<div class="p-6"><h1 class="text-2xl font-semibold mb-4 dark:text-white">Collection</h1>'
-        '<div class="overflow-x-auto rounded shadow">'
-        '<table class="min-w-full bg-white border border-gray-200 text-sm text-left text-gray-700">'
-        '<thead class="bg-gray-100 border-b">'
-        '<tr>'
-        '<th scope="col" class="px-4 py-3 text-sm font-semibold text-gray-700">Title</th>'
-        '<th scope="col" class="px-4 py-3 text-sm font-semibold text-gray-700">Date</th>'
-        '<th scope="col" class="px-4 py-3 text-sm font-semibold text-gray-700">Actions</th>'
-        '</tr>'
-        '</thead>'
-        '<tbody>'
-        + "".join(rows) +
-        '</tbody></table></div></div>'
-    )
-    return render_template("list_images.html", table=table, WebName = current_app.config["TITLE"])
+    db = get_conn()
+    with db.cursor() as cur:
+        cur.execute("SELECT id, title, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
+        (g.user["username"],))
+        posts = cur.fetchall()
+    
+    return render_template("user_posts.html", posts=posts, WebName = current_app.config["TITLE"])
 
 
 # New post form

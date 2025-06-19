@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="py-20 px-10">
+    <h1 class="text-2xl font-semibold mb-4 dark:text-white">Collection</h1>
+    <div class="overflow-x-auto rounded shadow">
+        <table
+            class="min-w-full bg-white dark:bg-gray-700 border border-gray-200 text-sm text-left text-gray-700 dark:text-white">
+            <thead class="bg-gray-100 dark:bg-gray-900 border-b">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-sm font-semibold">Title</th>
+                    <th scope="col" class="px-4 py-3 text-sm font-semibold">Date</th>
+                    <th scope="col" class="px-4 py-3 text-sm font-semibold">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in posts %}
+                <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{{ p['title'] }}</td>
+                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ p['created_at'].strftime('%Y-%m-%d') }}
+                    </td>
+                    <td class="px-4 py-2 space-x-2">
+                        <a href="{{ url_for('blog.edit_image', image_id=p['id']) }}"
+                            class="inline-block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
+                            Edit
+                        </a>
+                        <a href="{{ url_for('blog.delete_image', image_id=p['id']) }}"
+                            class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                            onclick="return confirm('Delete?');">
+                            Delete
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{%endblock%}
