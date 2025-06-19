@@ -4,35 +4,35 @@
 <script src="https://cdn.jsdelivr.net/npm/@headlessui/react@1.7.15/dist/headlessui.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
 
-<div class="relative flex flex-col items-center justify-center">
-  <div class="absolute inset-0 bg-cover bg-center blur-sm -z-10 "
-       style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
-  </div>
+<div class="relative flex flex-col items-center justify-center bg-cover bg-center"
+  style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
+
+  <div class="absolute w-full h-full backdrop-blur-md"></div>
 
   <!-- Timeline container -->
-  <div class="relative border-l-2 border-gray-300 dark:border-gray-600 pl-10 space-y-12 w-full max-w-7xl mt-10">
+  <div class="relative border-l-2 border-gray-300 dark:border-gray-600 pl-3.5 space-y-8 w-full max-w-7xl mt-22 ml-10">
 
-
-  {% for il in images %}
-    <div class="flex items-center space-x-4 relative">
+    {% for il in images %}
+    <div class="flex items-center space-x-2 relative">
       <!-- Timeline Dot -->
-      <div class="absolute -left-[18px] top-1/2 -translate-y-1/2 w-5 h-5 bg-blue-600 rounded-full border-5 border-gray-800 shadow-md"></div>
+      <div class="absolute -top-2 -left-6.25 w-5 h-5 bg-blue-600 rounded-full border-5 border-gray-800 shadow-md">
+      </div>
 
-    <!-- Date next to the dot -->
-      <span class="text-gray-500 dark:text-gray-400 font-semibold tracking-wide text-sm select-none">
+      <!-- Date next to the dot -->
+      <span class="absolute -top-2 text-gray-200 font-semibold tracking-wide text-sm select-none">
         {{ il.image.created_at.strftime('%b %Y')|default('No date available') }}
       </span>
       <!-- Your content here (like title or other info) can go next to date -->
-      <h2 class="text-lg font-semibold text-white">{{ il.image.title }}</h2>
+      <h2 class="absolute -top-3 left-17 text-lg font-semibold text-white">{{ il.image.title }}</h2>
     </div>
 
-
     <!-- Main Card Container -->
-    <div x-data="{ tab: 'image', showObjects: false }" class="max-w-6xl mx-auto rounded-2xl shadow-xl overflow-hidden bg-white/80 dark:bg-gray-800/80">
+    <div x-data="{ tab: 'image', showObjects: false }"
+      class="max-w-6xl mx-auto rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
       <!-- Tabs -->
-      <div class="flex border-b border-gray-200 justify-center items-center dark:border-gray-700">
-      {% set tabs = [
+      <div class="flex border-b overflow-auto border-gray-200 justify-center items-center dark:border-gray-700">
+        {% set tabs = [
         ('image', 'Image'),
         ('lights', 'Lights'),
         ('nights', 'Nights'),
@@ -42,29 +42,30 @@
         ('calibration', 'Calibration')
       ] %}
 
-      {% for tab_id, tab_label in tabs %}
-        <button 
-          @click="tab = '{{ tab_id }}'" 
-          :class="tab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600  dark:text-gray-300'" 
-          class="px-4 py-2 text-sm font-medium"
-        >
+        {% for tab_id, tab_label in tabs %}
+        <button @click="tab = '{{ tab_id }}'"
+          :class="tab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600  dark:text-gray-300'"
+          class="px-4 py-2 text-sm font-medium">
           {{ tab_label }}
         </button>
-      {% endfor %}
+        {% endfor %}
       </div>
 
       <!-- Image Tab -->
       <div x-show="tab === 'image'" class="p-4 space-y-2">
-        <div id="zoom-container-{{il.image.id}}" class="relative mx-auto overflow-hidden rounded-[10px] bg-white dark:bg-gray-800 flex items-center justify-center group touch-none">
+        <div id="zoom-container-{{il.image.id}}"
+          class="relative mx-auto overflow-auto rounded-[10px] flex items-center justify-center group touch-none">
 
-          <div class="relative transition-transform duration-100 ease-in-out origin-center w-full h-full" id="zoom-wrapper-{{il.image.id}}">
-            <img 
-              class="object-contain block origin-center transition-transform duration-100 ease-in-out cursor-grab select-none" 
-              id="zoomable-image-{{il.image.id}}" 
-              src="{{ url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) }}" 
-              alt="{{ il.image.title }}"
-            >
-            <div id="svg-overlay-{{il.image.id}}" class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative transition-transform duration-100 ease-in-out origin-center w-full h-full"
+            id="zoom-wrapper-{{il.image.id}}">
+            <img
+              class="object-contain block origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
+              id="zoomable-image-{{il.image.id}}"
+              src="{{ url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) }}"
+              alt="{{ il.image.title }}">
+            <div id="svg-overlay-{{il.image.id}}"
+              class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            </div>
           </div>
         </div>
 
@@ -74,23 +75,25 @@
           <div class="gap-x-4 flex">
             <span>Identify Objects</span>
             <div class="relative inline-block w-9 h-3 align-middle select-none transition duration-200 ease-in">
-              <input checked id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer appearance-none w-9 h-2 bg-gray-100 rounded-full checked:bg-green-800 cursor-pointer transition-colors duration-300" >
-              <label for="overlay-toggle-{{il.image.id}}" class="absolute top-0 left-0 w-6 h-6 bg-white rounded-full align-middle border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-slate-800 cursor-pointer">
+              <input checked id="overlay-toggle-{{il.image.id}}" type="checkbox"
+                class="peer appearance-none w-9 h-2 bg-gray-100 rounded-full checked:bg-green-800 cursor-pointer transition-colors duration-300">
+              <label for="overlay-toggle-{{il.image.id}}"
+                class="absolute top-0 left-0 w-6 h-6 bg-white rounded-full align-middle border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-slate-800 cursor-pointer">
               </label>
             </div>
-            <button id="reset-btn-{{il.image.id}}" 
-            class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
+            <button id="reset-btn-{{il.image.id}}"
+              class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
               Reset
             </button>
           </div>
         </div>
 
-          <p class="mt-4 text-gray-700 dark:text-gray-200">{{ il.image.description }}</p>
+        <p class="mt-4 text-gray-700 dark:text-gray-200">{{ il.image.description }}</p>
 
       </div>
 
       <!-- Acquisition Details Tab -->
-      <div x-show="tab === 'lights'" class="p-6 dark:bg-gray-900 dark:text-white">
+      <div x-show="tab === 'lights'" class="p-6 dark:text-white">
         <div class="flex border-b mb-4 w-full overflow-x-auto">
           <table class="table-auto w-full text-left border-collapse">
             <tbody>
@@ -99,12 +102,12 @@
               <tr class="border-b dark:border-gray-700">
                 <td class="p-2 font-semibold capitalize">Filter</td>
                 {% for light in il.lights %}
-                  <td class="p-2">
-                    <a href="{{ light.filter_link }}" target="_blank"
-                      class="text-blue-600 dark:text-blue-400 hover:underline">
-                      {{ light.filter|replace("Filter", "") }}
-                    </a>
-                  </td>
+                <td class="p-2">
+                  <a href="{{ light.filter_link }}" target="_blank"
+                    class="text-blue-600 dark:text-blue-400 hover:underline">
+                    {{ light.filter|replace("Filter", "") }}
+                  </a>
+                </td>
                 {% endfor %}
               </tr>
 
@@ -119,12 +122,12 @@
               } %}
 
               {% for label, field in rows.items() %}
-                <tr class="border-b dark:border-gray-700">
-                  <td class="p-2 font-semibold capitalize">{{ label }}</td>
-                  {% for light in il.lights %}
-                    <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
-                  {% endfor %}
-                </tr>
+              <tr class="border-b dark:border-gray-700">
+                <td class="p-2 font-semibold capitalize">{{ label }}</td>
+                {% for light in il.lights %}
+                <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
+                {% endfor %}
+              </tr>
               {% endfor %}
 
             </tbody>
@@ -132,18 +135,18 @@
         </div>
       </div>
 
-      <div x-show="tab === 'nights'" class="p-6 dark:bg-gray-900 dark:text-white">
+      <div x-show="tab === 'nights'" class="p-6 dark:text-white">
         <div class="flex border-b mb-4">
           <table class="table-auto w-full text-left border-collapse">
             <tbody>
-            <tr class="border-b dark:border-gray-700">
-              <td class="p-2 font-semibold capitalize">Capture Dates</td>
-              <td class="p-2 font-semibold capitalize">Moon Illumination</td>
-            </tr>
-            {% for date in il.dates %}
-            <tr class="border-b dark:border-gray-700">
-              <td class="p-2 font-semibold capitalize">{{ date.capture_date }}</td>
-              <td class="p-2 text-blue-600 dark:text-blue-400"">{{ date.moon_phase }} ({{ date.moon_illumination }}%)</td>
+              <tr class="border-b dark:border-gray-700">
+                <td class="p-2 font-semibold capitalize">Capture Dates</td>
+                <td class="p-2 font-semibold capitalize">Moon Illumination</td>
+              </tr>
+              {% for date in il.dates %}
+              <tr class="border-b dark:border-gray-700">
+                <td class="p-2 font-semibold capitalize">{{ date.capture_date }}</td>
+                <td class="p-2 text-blue-600 dark:text-blue-400"">{{ date.moon_phase }} ({{ date.moon_illumination }}%)</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -151,189 +154,192 @@
         </div>
       </div>
 
-      <div x-show="tab === 'equipment'" class="p-6 dark:bg-gray-900 dark:text-white">
-        <div class="flex border-b mb-4">
-          <table class="table-auto w-full text-left border-collapse">
-            <tbody>
-              {% for equipment in il.equipment_list %}
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">
-                  {{ equipment.table|replace('_', ' ') + ":" }}
-                </td>
-                <td class="p-2">
-                  <a href="{{ equipment.link }}" target="_blank"
-                    class="text-blue-600 dark:text-blue-400 hover:underline">
-                    {{ equipment.brand | default('') + " " + equipment.name|replace(equipment.brand | default(''), '') }}
-                  </a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <div x-show=" tab==='equipment'" class=" p-6 dark:text-white">
+                  <div class="flex border-b mb-4">
+                    <table class="table-auto w-full text-left border-collapse">
+                      <tbody>
+                        {% for equipment in il.equipment_list %}
+                        <tr class="border-b dark:border-gray-700">
+                          <td class="p-2 font-semibold capitalize">
+                            {{ equipment.table|replace('_', ' ') + ":" }}
+                          </td>
+                          <td class="p-2">
+                            <a href="{{ equipment.link }}" target="_blank"
+                              class="text-blue-600 dark:text-blue-400 hover:underline">
+                              {{ equipment.brand | default('') + " " + equipment.name|replace(equipment.brand | default(''), '') }}
+                            </a>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
         </div>
-      </div>
 
-      <div x-show="tab === 'software'" class="p-6 dark:bg-gray-900 dark:text-white">
-        <div class="flex border-b mb-4">
-          <table class="table-auto w-full text-left border-collapse">
-            <tbody>
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">Acquisition</td>
-                <td class= "p-2 text-blue-600 dark:text-blue-400">
-                  {% for software in il.software_list %}
-                  {% if software.type == 'acquisition' %}
+        <div x-show="tab === 'software'" class="p-6 dark:text-white">
+          <div class="flex border-b mb-4">
+            <table class="table-auto w-full text-left border-collapse">
+              <tbody>
+                <tr class="border-b dark:border-gray-700">
+                  <td class="p-2 font-semibold capitalize">Acquisition</td>
+                  <td class="p-2 text-blue-600 dark:text-blue-400">
+                    {% for software in il.software_list %}
+                    {% if software.type == 'acquisition' %}
                     <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a>
                     </p>
-                  {% endif %}
-                {% endfor %}
-                </td>
-              </tr>
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">Processing</td>
-                <td class= "p-2 text-blue-600 dark:text-blue-400">
-                {% for software in il.software_list %}
-                  {% if software.type == 'processing' %}
-                    {% if software.metadata %}
-                      <p>{{ software.metadata | safe}}</p>
-                    {% else %}
-                      <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
                     {% endif %}
-                  {% endif %}
-                {% endfor %}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    {% endfor %}
+                  </td>
+                </tr>
+                <tr class="border-b dark:border-gray-700">
+                  <td class="p-2 font-semibold capitalize">Processing</td>
+                  <td class="p-2 text-blue-600 dark:text-blue-400">
+                    {% for software in il.software_list %}
+                    {% if software.type == 'processing' %}
+                    {% if software.metadata %}
+                    <p>{{ software.metadata | safe}}</p>
+                    {% else %}
+                    <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
+                    {% endif %}
+                    {% endif %}
+                    {% endfor %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        <!-- Guiding Tab -->
+        <div x-show="tab === 'guiding'" class="p-6">
+          <!-- Bokeh Graph Embed -->
+          <div class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6">
+
+            {{il.guiding_html | safe}}
+
+          </div>
+        </div>
+
+        <div x-show="tab === 'calibration'" class="p-6">
+          <!-- Bokeh Graph Embed -->
+          <div class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6">
+
+            {{il.calibration_html | safe}}
+
+          </div>
+        </div>
+
       </div>
 
-      <!-- Guiding Tab -->
-      <div x-show="tab === 'guiding'" class="p-6">
-        <!-- Bokeh Graph Embed -->
-        <div class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6">
-          
-          {{il.guiding_html | safe}}
 
-        </div>
-      </div>
-
-      <div x-show="tab === 'calibration'" class="p-6">
-        <!-- Bokeh Graph Embed -->
-        <div class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6">
-          
-          {{il.calibration_html | safe}}
-
-        </div>
-      </div>
-
-  </div>
-
- 
-<style>
-  [x-cloak] { display: none; }
-</style>
-
-  <script>
-  (function() {
-    const img = document.getElementById('zoomable-image-{{il.image.id}}');
-    const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
-
-    let scale = 1;
-    let originX = 0;
-    let originY = 0;
-    let isPanning = false;
-    let startX, startY;
-
-    // Desktop Zoom (scroll)
-    wrapper.addEventListener('wheel', e => {
-      e.preventDefault();
-      const scaleAmount = e.deltaY > 0 ? 0.9 : 1.1;
-      scale *= scaleAmount;
-      updateTransform();
-    });
-
-    // Desktop Pan (mouse)
-    wrapper.addEventListener('mousedown', e => {
-      isPanning = true;
-      startX = e.clientX - originX;
-      startY = e.clientY - originY;
-      img.style.cursor = 'grabbing';
-    });
-
-    document.addEventListener('mousemove', e => {
-      if (!isPanning) return;
-      originX = e.clientX - startX;
-      originY = e.clientY - startY;
-      updateTransform();
-    });
-
-    document.addEventListener('mouseup', () => {
-      isPanning = false;
-      img.style.cursor = 'grab';
-    });
-
-    // Mobile: Pan and Pinch
-    let lastDist = null;
-    wrapper.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        startX = e.touches[0].clientX - originX;
-        startY = e.touches[0].clientY - originY;
-      }
-    });
-
-    wrapper.addEventListener('touchmove', e => {
-      if (e.touches.length === 1) {
-        originX = e.touches[0].clientX - startX;
-        originY = e.touches[0].clientY - startY;
-      } else if (e.touches.length === 2) {
-        const [a, b] = e.touches;
-        const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
-        if (lastDist) {
-          const scaleFactor = dist / lastDist;
-          scale *= scaleFactor;
+      <style>
+        [x-cloak] {
+          display: none;
         }
-        lastDist = dist;
-      }
-      updateTransform();
-    });
+      </style>
 
-    wrapper.addEventListener('touchend', e => {
-      if (e.touches.length < 2) {
-        lastDist = null;
-      }
-    });
+      <script>
+        (function () {
+          const img = document.getElementById('zoomable-image-{{il.image.id}}');
+          const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
 
-    function updateTransform() {
-      wrapper.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
-    }
+          let scale = 1;
+          let originX = 0;
+          let originY = 0;
+          let isPanning = false;
+          let startX, startY;
 
-    document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
-      scale = 1;
-      originX = 0;
-      originY = 0;
-      updateTransform();
-    });
+          // Desktop Zoom (scroll)
+          wrapper.addEventListener('wheel', e => {
+            e.preventDefault();
+            const scaleAmount = e.deltaY > 0 ? 0.9 : 1.1;
+            scale *= scaleAmount;
+            updateTransform();
+          });
 
-    const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
-    const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
+          // Desktop Pan (mouse)
+          wrapper.addEventListener('mousedown', e => {
+            isPanning = true;
+            startX = e.clientX - originX;
+            startY = e.clientY - originY;
+            img.style.cursor = 'grabbing';
+          });
 
-    let overlayData = {{ il.svg_image | tojson | safe }};
+          document.addEventListener('mousemove', e => {
+            if (!isPanning) return;
+            originX = e.clientX - startX;
+            originY = e.clientY - startY;
+            updateTransform();
+          });
 
-    function renderOverlay() {
-      if (!overlayToggle.checked) {
-        svgOverlay.innerHTML = "";
-        return;
-      }
+          document.addEventListener('mouseup', () => {
+            isPanning = false;
+            img.style.cursor = 'grab';
+          });
 
-      let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
+          // Mobile: Pan and Pinch
+          let lastDist = null;
+          wrapper.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+              startX = e.touches[0].clientX - originX;
+              startY = e.touches[0].clientY - originY;
+            }
+          });
 
-      for (let [otype, items] of Object.entries(overlayData.overlays)) {
-        for (let item of items) {
-          if (item.rx >= 10 && item.ry >= 10) {
-            const transform = item.angle && item.angle !== 32767
-              ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
-              : "";
-            svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+          wrapper.addEventListener('touchmove', e => {
+            if (e.touches.length === 1) {
+              originX = e.touches[0].clientX - startX;
+              originY = e.touches[0].clientY - startY;
+            } else if (e.touches.length === 2) {
+              const [a, b] = e.touches;
+              const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+              if (lastDist) {
+                const scaleFactor = dist / lastDist;
+                scale *= scaleFactor;
+              }
+              lastDist = dist;
+            }
+            updateTransform();
+          });
+
+          wrapper.addEventListener('touchend', e => {
+            if (e.touches.length < 2) {
+              lastDist = null;
+            }
+          });
+
+          function updateTransform() {
+            wrapper.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+          }
+
+          document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
+            scale = 1;
+            originX = 0;
+            originY = 0;
+            updateTransform();
+          });
+
+          const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
+          const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
+
+          let overlayData = {{ il.svg_image | tojson | safe
+        }};
+
+        function renderOverlay() {
+          if (!overlayToggle.checked) {
+            svgOverlay.innerHTML = "";
+            return;
+          }
+
+          let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
+
+          for (let [otype, items] of Object.entries(overlayData.overlays)) {
+            for (let item of items) {
+              if (item.rx >= 10 && item.ry >= 10) {
+                const transform = item.angle && item.angle !== 32767
+                  ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
+                  : "";
+                svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
                       rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
                       fill="none" stroke="${item.color}" stroke-opacity="0.9" stroke-width="8" style="pointer-events: all;"></ellipse>
                     <text x="${item.x.toFixed(2)}" y="${(item.y - item.ry - 10).toFixed(2)}"
@@ -341,35 +347,35 @@
                           text-anchor="middle" alignment-baseline="middle">
                       ${item.id}
                     </text>`;
+              }
+            }
           }
+          svg += "</svg>";
+          svgOverlay.innerHTML = svg;
         }
-      }
-      svg += "</svg>";
-      svgOverlay.innerHTML = svg;
-    }
 
-    // Handle overlay toggle
-    overlayToggle.addEventListener('change', () => {
-      renderOverlay();
-    });
+        // Handle overlay toggle
+        overlayToggle.addEventListener('change', () => {
+          renderOverlay();
+        });
 
-    renderOverlay();
+        renderOverlay();
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const zoomContainer = document.getElementById("zoom-container-{{il.image.id}}");
-      const svgOverlay = document.getElementById("svg-overlay-{{il.image.id}}");
+        document.addEventListener("DOMContentLoaded", () => {
+          const zoomContainer = document.getElementById("zoom-container-{{il.image.id}}");
+          const svgOverlay = document.getElementById("svg-overlay-{{il.image.id}}");
 
-      let overlayVisible = false;
+          let overlayVisible = false;
 
-      zoomContainer.addEventListener("touchstart", () => {
-        overlayVisible = !overlayVisible;
-        svgOverlay.classList.toggle("opacity-100", overlayVisible);
-        svgOverlay.classList.toggle("opacity-0", !overlayVisible);
-      });
-    });
-  })();
-</script>
-{% endfor %}
-</div>
-</div>
-{% endblock %}
+          zoomContainer.addEventListener("touchstart", () => {
+            overlayVisible = !overlayVisible;
+            svgOverlay.classList.toggle("opacity-100", overlayVisible);
+            svgOverlay.classList.toggle("opacity-0", !overlayVisible);
+          });
+        });
+  }) ();
+      </script>
+      {% endfor %}
+    </div>
+  </div>
+  {% endblock %}
