@@ -105,7 +105,7 @@ def get_overlays(wcs_header):
 
     radius = max(abs(ra_max - ra_min), abs(dec_max - dec_min)) / 2
     coord = SkyCoord(ra_center, dec_center, unit="deg")
-    Simbad.add_votable_fields("dimensions", "otype", "otype_txt", "flux")
+    Simbad.add_votable_fields("dimensions", "otype", "otype_txt")#, "flux")
     result = Simbad.query_region(coord, radius=radius * u.deg)
 
     ps_x,ps_y = wcs.proj_plane_pixel_scales()
@@ -125,11 +125,11 @@ def get_overlays(wcs_header):
             "galdim_angle": "max",
             "otype": "first",
             "otype_txt": "first",
-            "flux": "mean",
+            # "flux": "mean",
         }
     )
     df.sort_values(["galdim_majaxis", "galdim_minaxis"], ascending=False, inplace=True)
-    df.loc[pd.isna(df["flux"]), "flux"] = 0.0
+    # df.loc[pd.isna(df["flux"]), "flux"] = 0.0
 
     x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
     df["x"] = x
@@ -159,7 +159,7 @@ def get_overlays(wcs_header):
             "rx": rx,
             "ry": ry,
             "angle": angle,
-            "flux": row["flux"],
+            # "flux": row["flux"],
             "otype": obj,
             "color": otype_to_color(row["otype_txt"]),
         }

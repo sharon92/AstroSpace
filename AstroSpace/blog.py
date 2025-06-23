@@ -1,43 +1,77 @@
 import os
 import requests
 import json
+from datetime import datetime
 from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, current_app, g, send_from_directory
+    Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+    current_app,
+    g,
+    send_from_directory,
 )
+
 # from werkzeug.exceptions import abort
 from astroquery.simbad import Simbad
-from datetime import datetime
-
 from AstroSpace.auth import login_required
 from AstroSpace.db import get_conn
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import bokeh_phd2
 from AstroSpace.utils.platesolve import platesolve
-from AstroSpace.utils.queries import get_image_tables, get_all_images, get_image_by_id, fetch_options
-from AstroSpace.utils.utils import  geocode,slugify
+from AstroSpace.utils.queries import (
+    get_image_tables,
+    get_all_images,
+    get_image_by_id,
+    fetch_options,
+)
+from AstroSpace.utils.utils import geocode, slugify
+from AstroSpace.utils.blog_form import BlogForm
+
 from werkzeug.utils import secure_filename
 
-bp = Blueprint('blog', __name__)
+bp = Blueprint("blog", __name__)
 
-ALLOWED_IMG_EXTENSIONS = { 'jpg', 'jpeg'}
-ALLOWED_TXT_EXTENSIONS = { 'txt' }
+ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
+ALLOWED_TXT_EXTENSIONS = {"txt"}
 
 
-@bp.route('/uploads/<path:filename>')
+@bp.context_processor
+def inject_now():
+    return {"now": datetime.now}
+
+
+@bp.route("/uploads/<path:filename>")
 def upload(filename):
     return send_from_directory(current_app.config["UPLOAD_PATH"], filename)
+
 
 # List view
 @bp.route("/")
 @bp.route("/home")
 def home():
     top_images = get_all_images(unique=True, limit=10)
-    return render_template("home.html", WebName = current_app.config["TITLE"], top_images=top_images)
+    for img in top_images:
+        # If you want thumbnails, use `image_thumbnail` instead
+        img["blog_url"] = url_for(
+            "blog.image_detail", image_id=img["id"], image_name=img["slug"]
+        )
+        img["url"] = url_for("blog.upload", filename=img["image_path"])
+    print("Top images:", top_images)
+    return render_template(
+        "home.html", WebName=current_app.config["TITLE"], top_images=top_images
+    )
+
 
 @bp.route("/collection")
 def collection():
     images = get_all_images(unique=True)
-    return render_template("collection.html", images=images, WebName = current_app.config["TITLE"])
+    return render_template(
+        "collection.html", images=images, WebName=current_app.config["TITLE"]
+    )
+
 
 @bp.route("/get_elevation")
 def get_elevation():
@@ -49,16 +83,39 @@ def get_elevation():
         return str(round(r.json()["results"][0]["elevation"]))
     else:
         return "0"
-    
-@bp.route("/blog")
+
+
+@bp.route("/blog", methods=["GET", "POST"])
 @login_required
 def new_blog():
-    return "Not yet Implemented"
+    form = BlogForm()
+    if form.validate_on_submit():
+        title = form.title.data
+        content = request.form.get("content")  # This is from Quill's hidden input
+        image = form.image.data
+
+        image_path = None
+        if image:
+            filename = secure_filename(image.filename)
+            image_path = os.path.join(current_app.config["UPLOAD_PATH"], filename)
+            image.save(image_path)
+
+        # Save blog post (in database, for example)
+        # Blog(title=title, content=content, image_path=image_path).save()
+
+        flash("Blog post created successfully!")
+        return redirect(url_for("your_blog_listing_view"))
+
+    return render_template(
+        "create_blog.html", form=form, WebName=current_app.config["TITLE"]
+    )
+
 
 @bp.route("/equipment")
 @login_required
 def add_equipment():
     return "Not yet Implemented"
+
 
 @bp.route("/image/<int:image_id>/<string:image_name>")
 def image_detail(image_id, image_name):
@@ -66,26 +123,38 @@ def image_detail(image_id, image_name):
     if len(tables) == 1:
         return tables
     background_image = tables[0]["image_path"]
-    table_names = ["image", "equipment_list", "dates", "lights", "software_list", "guiding_html", "calibration_html","svg_image"]
+    table_names = [
+        "image",
+        "equipment_list",
+        "dates",
+        "lights",
+        "software_list",
+        "guiding_html",
+        "calibration_html",
+        "svg_image",
+    ]
     # image, equipment_list, dates, lights, software_list, guiding_html, calibration_html,svg_image = tables
-    images = [dict(zip(table_names,tables))]
-
+    images = [dict(zip(table_names, tables))]
 
     db = get_conn()
     with db.cursor() as cur:
-        cur.execute("SELECT id FROM images WHERE slug = %s ORDER BY created_at DESC", (image_name,))
+        cur.execute(
+            "SELECT id FROM images WHERE slug = %s ORDER BY created_at DESC",
+            (image_name,),
+        )
         prev_images = cur.fetchall()
 
     for i in prev_images:
         if i["id"] != image_id:
-            images += [dict(zip(table_names,get_image_tables(i["id"])))]
-
+            images += [dict(zip(table_names, get_image_tables(i["id"])))]
 
     return render_template(
         "image_detail.html",
         background_image=background_image,
-        images=images, WebName = current_app.config["TITLE"]
+        images=images,
+        WebName=current_app.config["TITLE"],
     )
+
 
 # List view
 @bp.route("/posts")
@@ -93,11 +162,15 @@ def image_detail(image_id, image_name):
 def list_images():
     db = get_conn()
     with db.cursor() as cur:
-        cur.execute("SELECT id, title, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
-        (g.user["username"],))
+        cur.execute(
+            "SELECT id, title, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
+            (g.user["username"],),
+        )
         posts = cur.fetchall()
-    
-    return render_template("user_posts.html", posts=posts, WebName = current_app.config["TITLE"])
+
+    return render_template(
+        "user_posts.html", posts=posts, WebName=current_app.config["TITLE"]
+    )
 
 
 # New post form
@@ -122,7 +195,8 @@ def render_image_form(title, **kwargs):
     option_none = '<option value="0">None</option>'
 
     return render_template(
-        "create.html", WebName = current_app.config["TITLE"],
+        "create.html",
+        WebName=current_app.config["TITLE"],
         title=title,
         cameras=cameras,
         telescopes=telescopes,
@@ -137,13 +211,22 @@ def render_image_form(title, **kwargs):
         softwares=softwares,
         filter_options=filter_options,
         option_none=option_none,
-        **kwargs
+        **kwargs,
     )
+
 
 @bp.route("/new")
 @login_required
 def new_image():
-    return render_image_form("New Post",  equipment={}, capture_dates=[], software_list=[], lights_json=json.dumps([]), is_edit=False)
+    return render_image_form(
+        "New Post",
+        equipment={},
+        capture_dates=[],
+        software_list=[],
+        lights_json=json.dumps([]),
+        is_edit=False,
+    )
+
 
 @bp.route("/edit/<int:image_id>")
 @login_required
@@ -151,16 +234,24 @@ def edit_image(image_id):
     tables = get_image_tables(image_id, keep_original=True)
     if len(tables) == 1:
         return tables
-    
-    image, equipment_list, dates, lights, software_list, _,_,_ = tables
 
-    capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates] 
-    
+    image, equipment_list, dates, lights, software_list, _, _, _ = tables
+
+    capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates]
+
     equipment = {}
     for eq in equipment_list:
         equipment[eq["table"]] = eq["id"]
 
-    return render_image_form("Edit Post", image=image, equipment=equipment, capture_dates=capture_dates, software_list = software_list, lights_json =json.dumps(lights),  is_edit=True)
+    return render_image_form(
+        "Edit Post",
+        image=image,
+        equipment=equipment,
+        capture_dates=capture_dates,
+        software_list=software_list,
+        lights_json=json.dumps(lights),
+        is_edit=True,
+    )
 
 
 @bp.route("/delete")
@@ -172,18 +263,19 @@ def delete_image(img_id):
     cur.execute("DELETE FROM images WHERE id = %s", (img_id,))
     cur.execute("DELETE FROM image_views WHERE image_id = %s", (img_id,))
     cur.execute("DELETE FROM image_likes WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM image_comments WHERE image_id = %s", (img_id,)) 
+    cur.execute("DELETE FROM image_comments WHERE image_id = %s", (img_id,))
     cur.execute("DELETE FROM capture_dates WHERE image_id = %s", (img_id,))
     cur.execute("DELETE FROM image_lights WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM image_software WHERE image_id = %s", (img_id,)) 
+    cur.execute("DELETE FROM image_software WHERE image_id = %s", (img_id,))
     conn.commit()
     cur.close()
     flash("Post deleted successfully!")
     return redirect(url_for("blog.list_images"))
 
+
 def allowed_file(filename, allowed_extensions=ALLOWED_IMG_EXTENSIONS):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in allowed_extensions
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
+
 
 @bp.route("/create", methods=["POST"])
 @login_required
@@ -217,44 +309,55 @@ def save_image():
         image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
         img_path_upload = f"{user_id}/{filename}"
         file.save(image_path)
-        header_json, svg_image, thumbnail_path = platesolve(image_path,user_id)
+        header_json, svg_image, thumbnail_path = platesolve(image_path, user_id)
     elif img_id:
         img_path_upload = form.get("prev_img")
         if form.get("redo_plate_solve") == "on":
-            full_img_path = os.path.join(current_app.config["UPLOAD_PATH"], img_path_upload.replace("/","\\"))
-            header_json, svg_image, thumbnail_path = platesolve(full_img_path,user_id)
+            full_img_path = os.path.join(
+                current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
+            )
+            header_json, svg_image, thumbnail_path = platesolve(full_img_path, user_id)
         else:
-            header_json = tmp_img["header_json"]   
+            header_json = tmp_img["header_json"]
             svg_image = tmp_img["overlays_json"]
             thumbnail_path = tmp_img["image_thumbnail"]
 
-    guide_logs = request.files.getlist('guide_logs')
+    guide_logs = request.files.getlist("guide_logs")
     new_guide_logs = any(i.filename for i in guide_logs)
     if new_guide_logs:
         print("Generating guide log plot...")
-        iguide_logs = []   
-        iguide_logs_upload = []     
+        iguide_logs = []
+        iguide_logs_upload = []
         for file in guide_logs:
             if file and allowed_file(file.filename, ALLOWED_TXT_EXTENSIONS):
                 filename = secure_filename(file.filename)
-                guide_log_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
+                guide_log_path = os.path.join(
+                    current_app.config["UPLOAD_PATH"], user_id, filename
+                )
                 file.save(guide_log_path)
                 iguide_logs.append(guide_log_path)
                 iguide_logs_upload.append(f"{user_id}/{filename}")
-        guide_logs = ','.join(iguide_logs)
-        guiding_html,calibration_html = bokeh_phd2(guide_logs)
-        guide_logs = ','.join(iguide_logs_upload)
+        guide_logs = ",".join(iguide_logs)
+        guiding_html, calibration_html = bokeh_phd2(guide_logs)
+        guide_logs = ",".join(iguide_logs_upload)
         print("Done.")
     elif img_id:
         guide_logs = form.get("prev_guide_logs")
         if form.get("redo_graphs") == "on":
-            full_guide_logs = ','.join([os.path.join(current_app.config["UPLOAD_PATH"],i.replace("/","\\")) for i in guide_logs.split(",")])
-            guiding_html,calibration_html = bokeh_phd2(full_guide_logs)
+            full_guide_logs = ",".join(
+                [
+                    os.path.join(
+                        current_app.config["UPLOAD_PATH"], i.replace("/", "\\")
+                    )
+                    for i in guide_logs.split(",")
+                ]
+            )
+            guiding_html, calibration_html = bokeh_phd2(full_guide_logs)
         else:
             guiding_html = tmp_img["guiding_html"]
             calibration_html = tmp_img["calibration_html"]
     else:
-         guiding_html,calibration_html = "",""
+        guiding_html, calibration_html = "", ""
 
     table_ids = []
     for table in [
@@ -268,52 +371,90 @@ def save_image():
         "dew_heater",
         "guide_camera",
         "oag",
+        "flat_panel",
     ]:
         if form.get(f"{table}_id") == "0":
             table_ids.append(None)
         else:
             table_ids.append(form.get(f"{table}_id"))
 
+    created_at = form.get("created_at")
+    edited_at = datetime.now().strftime("%Y-%m-%d")
+
     conn = get_conn()
     cur = conn.cursor()
 
-    if img_id:
-        #editing updating
-        cur.execute(
-            """
-            UPDATE images SET
-                title=%s, description=%s, author=%s, slug=%s, image_path=%s, image_thumbnail=%s, object_type=%s,
-                header_json=%s, overlays_json=%s, location=%s, location_latitude=%s,
-                location_longitude=%s, location_elevation=%s, guide_log=%s, guiding_html=%s,calibration_html=%s,
-                camera_id=%s, telescope_id=%s, reducer_id=%s, mount_id=%s, tripod_id=%s,
-                filter_wheel_id=%s, eaf_id=%s, dew_heater_id=%s, guide_camera_id=%s, oag_id=%s
-            WHERE id=%s
-            """,
-            (
-                title, form.get("description"), user, slugify(title),img_path_upload, thumbnail_path, object_type, header_json,
-                svg_image, form.get("location"), lat, lon, form.get("location_elevation"),
-                guide_logs, guiding_html, calibration_html, *table_ids, img_id
-            ),
-        )
-        # Clear and reinsert related tables
-        cur.execute("DELETE FROM image_views WHERE image_id = %s", (img_id,))
-        cur.execute("DELETE FROM image_likes WHERE image_id = %s", (img_id,))
-        cur.execute("DELETE FROM image_comments WHERE image_id = %s", (img_id,)) 
-        cur.execute("DELETE FROM capture_dates WHERE image_id = %s", (img_id,))
-        cur.execute("DELETE FROM image_lights WHERE image_id = %s", (img_id,))
-        cur.execute("DELETE FROM image_software WHERE image_id = %s", (img_id,)) 
+    columns = """
+        title, short_description, description, author, slug,
+        created_at, edited_at,
+        image_path, image_thumbnail, object_type,
+        header_json, overlays_json, location,
+        location_latitude, location_longitude, location_elevation,
+        guide_log, guiding_html, calibration_html,
+        camera_id, telescope_id, reducer_id, mount_id, tripod_id,
+        filter_wheel_id, eaf_id, dew_heater_id, guide_camera_id, oag_id, flat_panel_id
+    """.strip()
+    placeholders = ", ".join(["%s"] * len(columns.split(",")))
 
-    else:
+    if img_id:
+        # editing updating
+        column_list = [col.strip() for col in columns.split(",") if col.strip()]
+        set_clause = ", ".join([f"{col} = %s" for col in column_list])
+
+        query = f"""
+            UPDATE images
+            SET {set_clause}
+            WHERE id = %s
+        """
         cur.execute(
-            """
-            INSERT INTO images (title, description, author, slug, image_path, image_thumbnail, object_type, header_json, overlays_json, location, location_latitude, location_longitude, location_elevation, guide_log,guiding_html,calibration_html,camera_id, telescope_id, reducer_id, mount_id, tripod_id, filter_wheel_id, eaf_id, dew_heater_id, guide_camera_id, oag_id)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s) RETURNING id
-            """,
+            query,
             (
                 title,
+                form.get("short_description"),
                 form.get("description"),
                 user,
                 slugify(title),
+                created_at,
+                edited_at,
+                img_path_upload,
+                thumbnail_path,
+                object_type,
+                header_json,
+                svg_image,
+                form.get("location"),
+                lat,
+                lon,
+                form.get("location_elevation"),
+                guide_logs,
+                guiding_html,
+                calibration_html,
+                *table_ids,
+                img_id,
+            ),
+        )
+        # Clear and reinsert related tables
+        for table in [
+            "image_views",
+            "image_likes",
+            "image_comments",
+            "capture_dates",
+            "image_lights",
+            "image_software",
+        ]:
+            cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
+
+    else:
+        query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
+        cur.execute(
+            query,
+            (
+                title,
+                form.get("short_description"),
+                form.get("description"),
+                user,
+                slugify(title),
+                created_at,
+                edited_at,
                 img_path_upload,
                 thumbnail_path,
                 object_type,
@@ -329,7 +470,7 @@ def save_image():
                 *table_ids,
             ),
         )
-        
+
         img_id = cur.fetchone()["id"]
 
     # Caputre dates

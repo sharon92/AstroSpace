@@ -1,60 +1,71 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- Hero Section -->
-<section id="home" class="bg-cover bg-center h-screen relative flex items-center justify-center text-white"
-    style="background-image: url('{{ url_for('static', filename='assets/images/Main_Image.jpg') }}');">
-    <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-black opacity-50"></div>
-    <div class="text-center">
-        <h1 class="text-4xl font-bold mb-6">Welcome to {{ WebName }}</h1>
-        <p class="mb-8 text-lg">Explore the beauty of the cosmos through my telescopes.</p>
-        <a href="#gallery"
-            class="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors duration-300">View
-            Gallery</a>
+<script src="//unpkg.com/alpinejs" defer></script>
+
+<!-- Safely embed image JSON -->
+<script type="application/json" id="topImagesData">
+{{ top_images | tojson }}
+</script>
+
+<div class="h-screen w-full overflow-hidden relative" x-data="{
+         images: [],
+         currentIndex: 0,
+         get currentImage() {
+             return this.images[this.currentIndex]?.url || '';
+         },
+         cycleImages() {
+             setInterval(() => {
+                 this.currentIndex = (this.currentIndex + 1) % this.images.length;
+             }, 5000);
+         }
+     }" x-init="
+         images = JSON.parse(document.getElementById('topImagesData').textContent);
+         cycleImages();
+     ">
+
+    <!-- Slideshow Progress Dots -->
+    <div class="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
+        <template x-for="(image, index) in images" :key="index">
+            <div class="w-4 h-4 rounded-full border border-white"
+                :class="{ 'bg-white': index === currentIndex, 'bg-white/30': index !== currentIndex }"></div>
+        </template>
     </div>
-</section>
 
-<!-- About Section -->
-<section id="about" class="container mx-auto px-4 py-12">
-    <h2 class="text-3xl font-bold mb-8 text-center  text-gray-700 dark:text-gray-200"">About</h2>
-    <p class=" text-lg leading-relaxed text-gray-700 dark:text-gray-200">Ever caught yourself lost in the beauty of a
-        starry night? This page is all about peeking into the vastness of space through the lenses of an amateur
-        astronomer. From distant galaxies to the craters on the moon, every image you see here is a snapshot of the
-        wonders of the universe. Feel free to explore these high-resolution images and dive deeper into the techniques
-        and equipment I use to capture the wonders of the cosmos. Let’s journey beyond the stars together!</p>
-</section>
+    <!-- Slideshow Background -->
+    <div class="absolute inset-0 z-0 transition-all duration-1000 bg-cover bg-center"
+        :style="`background-image: url('${currentImage}')`"></div>
 
-<!-- Collection Section -->
-<section id="collection" class="container mx-auto px-4 py-12">
-    <h2 class="text-3xl font-bold mb-8 text-center text-gray-700 dark:text-gray-200">Collection</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for image in top_images %}
-        <a href="{{ url_for('blog.image_detail', image_id=image.id, image_name=image.slug) }}" target="_blank">
-            <img src="{{ url_for('blog.upload', filename=image.image_thumbnail|replace('\\', '/') or image.image_path|replace('\\', '/')) }}"
-                alt="{{ image.title }}" class="rounded-lg shadow-md hover:scale-105 transition-transform duration-300">
-            <p class="mt-2 font-semibold  dark:text-white">{{ image.title }}</p>
-        </a>
-        {% endfor %}
+    <!-- Dark Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/80 z-10"></div>
+
+    <!-- Intro -->
+    <div
+        class="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 px-4 max-w-lg w-[90%] shadow-lg text-white text-center">
+
+        <p class="leading-relaxed text-gray-200 font-lato-hairline">
+            Ever caught yourself lost in the beauty of a starry night?
+            <a href="{{ url_for('blog.home') }}"
+                class="font-scribble text-3xl text-white hover:text-amber-400  transition-colors duration-200">
+                {{ WebName }}
+            </a>
+            is all about peeking into the vastness of space through the lenses of an amateur astronomer.
+            Feel free to
+            <a href="{{ url_for('blog.collection') }}"
+                class="text-white hover:text-blue-200 font-lato-hairline transition-colors duration-200">
+                explore
+            </a>
+            these high-resolution images and dive deeper into the techniques and equipment I use to capture the wonders
+            of the
+            cosmos.
+        </p>
     </div>
-</section>
 
-{# <!-- Blog Section -->
-<section id="blog" class="container mx-auto px-4 py-12">
-    <h2 class="text-3xl font-bold mb-8 text-center">Blog</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <article class="bg-white dark:bg-gray-700 rounded-lg shadow-md p-4">
-            <h3 class="text-xl font-bold mb-4">Space Odyssey</h3>
-            <p class="text-gray-700 dark:text-gray-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-        </article>
-        <article class="bg-white dark:bg-gray-700 rounded-lg shadow-md p-4">
-            <h3 class="text-xl font-bold mb-4">Galactic Wonders</h3>
-            <p class="text-gray-700 dark:text-gray-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-        </article>
-        <article class="bg-white dark:bg-gray-700 rounded-lg shadow-md p-4">
-            <h3 class="text-xl font-bold mb-4">Nebula Tales</h3>
-            <p class="text-gray-700 dark:text-gray-200">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-        </article>
+
+    <!-- Signature -->
+    <div
+        class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 px-4 max-w-lg w-[90%] shadow-lg text-white text-center">
+        <p class=" text-5xl leading-relaxed text-gray-200 font-scribble"> Sharons AstroSpace</p>
     </div>
-</section> #}
+</div>
 
-
-{%endblock%}
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- Include stylesheet -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+
+<h2 class="text-3xl text-black dark:text-white mt-15 px-2 py-6">New Blog</h2>
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <label class="text-2xl text-black dark:text-white p-2">Title:</label> {{ form.title(size=40) }}<br><br>
+    <label class="text-2xl text-black dark:text-white p-2">Image:</label>{{ form.image() }}<br><br>
+    <label class="text-2xl text-black dark:text-white p-2 py-4">Content:</label>
+    <div id="editor" style="height: 300px;"></div>
+    <input type="hidden" name="content" id="hidden-content">
+    <br>
+    <button type="submit" class="border-2 p-2 rounded-2xl ml-2 bg-emerald-600 hover:bg-emerald-400">Post Blog</button>
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
+<script>
+    const quill = new Quill('#editor', { theme: 'snow' });
+    document.querySelector('form').onsubmit = function () {
+        document.querySelector('#hidden-content').value = quill.root.innerHTML;
+    };
+</script>
+
+{% endblock %}

@@ -132,8 +132,8 @@
 
         </header>
 
-        <main class="flex-1">
-            <div>
+        <main class="flex-grow">
+            <div class="bg-cover bg-center">
                 {% with messages = get_flashed_messages() %}
                 {% if messages %}
                 <div class="bg-blue-100 border border-blue-300 text-blue-800 px-4 py-3 rounded mb-4">
@@ -147,7 +147,7 @@
             </div>
         </main>
         <!-- Footer -->
-        <footer class="text-black bg-white py-6 text-center dark:bg-gray-800 dark:text-white shadow-md">
+        <footer class="text-black bg-white py-3 text-center dark:bg-gray-800 dark:text-white shadow-md">
             <p>&copy; 2025 {{WebName}}. All rights reserved.</p>
         </footer>
 

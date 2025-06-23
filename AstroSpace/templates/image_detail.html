@@ -341,9 +341,9 @@
                   : "";
                 svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
                       rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
-                      fill="none" stroke="${item.color}" stroke-opacity="0.9" stroke-width="8" style="pointer-events: all;"></ellipse>
-                    <text x="${item.x.toFixed(2)}" y="${(item.y - item.ry - 10).toFixed(2)}"
-                          font-size="72" fill="${item.color}" stroke="black" stroke-width="1"
+                      fill="none" stroke="white" stroke-opacity="0.9" stroke-width="10" style="pointer-events: all;"></ellipse>
+                    <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
+                          font-size="72" fill="white" stroke="black" stroke-width="2"
                           text-anchor="middle" alignment-baseline="middle">
                       ${item.id}
                     </text>`;

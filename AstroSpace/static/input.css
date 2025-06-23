@@ -2,236 +2,26 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Hero Section Background Overlay */
-.hero-overlay {
-    background: linear-gradient(to bottom, transparent, black);
-    opacity: 0.5;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+@font-face {
+  font-family: scribble;
+  src: url('/static/fonts/Scribble.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
 }
 
-/* Gallery Image Hover Effect */
-.gallery-img {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s;
+@font-face {
+  font-family: lato-hairline;
+  src: url('/static/fonts/Lato-Hairline.ttf') format('ttf');
+  font-weight: normal;
+  font-style: normal;
 }
 
-.gallery-img:hover {
-    transform: scale(1.05);
-}
+@layer utilities {
+  .font-scribble {
+    font-family: scribble, lato-hairline, sans-serif;
+  }
 
-.resizable-frame {
-  overflow: hidden;
-  border: 2px solid #ffffff22;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  width: 600px;
-  height: 400px;
-  position: relative;
-  background-color: #000;
-  touch-action: none;
-}
-
-img#nebulaImage {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transition: transform 0.2s ease;
-  transform-origin: center;
-  cursor: grab;
-}
-
-.buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-  justify-content: center;
-  align-items: center;
-}
-
-.button {
-  padding: 10px 15px;
-  background-color: #4fc3f7;
-  color: #000;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.button:hover {
-  background-color: #29b6f6;
-}
-
-input[type="number"] {
-  width: 80px;
-  padding: 6px;
-  border-radius: 4px;
-  border: none;
-  text-align: center;
-}
-
-.zoom-label {
-  font-weight: bold;
-  margin-right: 5px;
-}
-
-.radio-group {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.radio-group label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.image-container {
-  margin: 1rem 0;
-  padding: 1rem;
-  background-color: #2e2e2e;
-  /* border: 1px solid #ccc; */
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  font-family: system-ui, sans-serif;
-}
-
-.image-details {
-  margin: 1rem 0;
-  padding: 1rem;
-  background-color: #f4f4f6;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  font-family: system-ui, sans-serif;
-}
-
-.checkbox-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.otype-filters {
-  display: none;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.flux-control {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-input[type="range"] {
-  flex: 1;
-}
-
-.geolocation-tag {
-  display: flex;
-  margin-left: auto;
-  text-align: right;
-  margin-top: 0.2rem;
-  color: #888; /* Softer gray */
-  font-size: 0.9rem;
-  font-style: italic;
-}
-
-.table-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Wider min width */
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.table-wrapper {
-  background-color: #f9f9f9;
-  padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden; /* Ensure it doesn’t force scroll */
-  box-sizing: border-box;
-}
-
-.styled-table {
-  border-collapse: collapse;
-  width: 100%;
-  /* table-layout: fixed; Prevents the table from exceeding width */
-}
-
-.styled-table caption {
-  color: #444648; 
-  caption-side: top;
-  font-weight: bold;
-  font-size: 1rem;
-  text-align: left;
-  margin-bottom: 0.5rem;
-}
-
-.styled-table th,
-.styled-table td {
-  padding: 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap; /* Keep in one line */
-}
-
-.styled-table th {
-  background-color: #e0e0e0;
-  color: #333;
-}
-  
-.expandable-button {
-  background-color: #2c3e50;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-.expandable-button:hover {
-  background-color: #1a242f;
-}
-
-.expandable-container {
-  background-color: #f4f4f6;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  margin: 1rem 0;
-  padding: 1rem;
-  max-height: 70px; /* initially collapsed */
-  transition: max-height 0.6s ease, padding 0.3s ease;
-}
-
-.expandable-container.expanded {
-  max-height: 2000px; /* large enough to show full plot */
-  padding: 1rem;
-}
-
-.expandable-container h2 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #2c3e50;
+  .font-lato-hairline {
+    font-family: lato-hairline, sans-serif;
+  }
 }

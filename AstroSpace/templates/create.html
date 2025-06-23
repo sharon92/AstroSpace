@@ -4,33 +4,42 @@
 <script src="//unpkg.com/alpinejs" defer></script>
 
 <div class="max-w-5xl mx-auto px-4">
-  <form method="post" action="{{ url_for('blog.save_image') }}" id="postForm" class="space-y-6" enctype="multipart/form-data">
+    <form method="post" action="{{ url_for('blog.save_image') }}" id="postForm" class="space-y-6"
+        enctype="multipart/form-data">
 
-    <h1 class="text-2xl font-bold mb-6 dark:text-white">{{ 'Edit' if is_edit else 'New' }} Post</h1>
-    <!-- Title -->
-    <div>
-      <label class="label">Title</label>
-      <input name="title" type="text" value="{{ image.title if is_edit else '' }}" required
-             class="input_container" />
-    </div>
+        <h1 class="text-2xl font-bold mb-6 dark:text-white">{{ 'Edit' if is_edit else 'New' }} Post</h1>
+        <!-- Title -->
+        <div>
+            <label class="label">Title (use searchable Object Name like M100, etc.)</label>
+            <input name="title" type="text" value="{{ image.title if is_edit else '' }}" required
+                class="input_container" />
+        </div>
 
-    {% if is_edit %}
-    <input type="hidden" name="image_id" value="{{ image.id }}">
-    {% endif %}
-
-    <!-- Description -->
-    <div>
-      <label class="label">Description</label>
-      <textarea name="description" required
-                class="input_container">{{ image.description if is_edit else '' }}</textarea>
-    </div>
-
-<!-- Image Path -->
-    <div x-data="{ imagePath: '{{ image.image_path if is_edit and image.image_path else '' }}' }" class="space-y-2">
         {% if is_edit %}
+        <input type="hidden" name="image_id" value="{{ image.id }}">
+        {% endif %}
+
+        <!-- Short Description -->
+        <div>
+            <label class="label">Short Description (Will be displayed next to the title...)</label>
+            <input name="short_description" type="text" value="{{ image.short_description if is_edit else '' }}"
+                required class="input_container" />
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label class="label">Description (longer paragraph if required...)</label>
+            <textarea name="description" required
+                class="input_container">{{ image.description if is_edit else '' }}</textarea>
+        </div>
+
+        <!-- Image Path -->
+        <div x-data="{ imagePath: '{{ image.image_path if is_edit and image.image_path else '' }}' }" class="space-y-2">
+            {% if is_edit %}
             <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Current Image</label>
             <template x-if="imagePath">
-                <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm text-gray-700 dark:text-gray-300">
+                <div
+                    class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm text-gray-700 dark:text-gray-300">
                     <input type="text" x-model="imagePath" name="prev_img" class="w-full truncate" readonly />
                 </div>
             </template>
@@ -40,270 +49,277 @@
                 <input type="checkbox" name="redo_plate_solve" class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
                 Redo Plate Solving
             </label>
-        {% endif %}
-    
+            {% endif %}
 
-    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Upload Image</label>
-    <input name="image_path" type="file" accept=".png,.jpg,.jpeg" 
-        class="block w-full text-sm text-gray-500
+
+            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Upload Image</label>
+            <input name="image_path" type="file" accept=".png,.jpg,.jpeg" class="block w-full text-sm text-gray-500
         file:mr-4 file:py-2 file:px-4
         file:rounded-full file:border-0
         file:text-sm file:font-semibold
         file:bg-blue-50 file:text-blue-700
-        hover:file:bg-blue-100" {% if not is_edit %} required {% endif %}/>
-    </div>
+        hover:file:bg-blue-100" {% if not is_edit %} required {% endif %} />
+        </div>
 
-    <!-- Location Row -->
-    <div class="mb-6">
-        <div class="gap-4 flex flex-wrap ...">
-            <div class="w-64 flex-auto ...">
-            <label class="label">Location</label>
-            <input
-                name="location"
-                id="locationInput"
-                class="input_container"
-                value="{{ image.location if is_edit else '' }}"
-                required
-            />
-            </div>
+        <!-- Location Row -->
+        <div class="mb-6">
+            <div class="gap-4 flex flex-wrap ...">
+                <div class="w-64 flex-auto ...">
+                    <label class="label">Location</label>
+                    <input name="location" id="locationInput" class="input_container"
+                        value="{{ image.location if is_edit else '' }}" required />
+                </div>
 
-            <div class="w-36 flex-none ...">
-            <label class="label">Latitude</label>
-            <input
-                name="location_latitude"
-                id="location_lat"
-                class="input_container"
-                value="{{ image.location_latitude if is_edit else '' }}"
-                readonly
-            />
-            </div>
+                <div class="w-36 flex-none ...">
+                    <label class="label">Latitude</label>
+                    <input name="location_latitude" id="location_lat" class="input_container"
+                        value="{{ image.location_latitude if is_edit else '' }}" readonly />
+                </div>
 
-            <div class="w-36 flex-none ...">
-            <label class="label">Longitude</label>
-            <input
-                name="location_longitude"
-                id="location_lng"
-                class="input_container"
-                value="{{ image.location_longitude if is_edit else '' }}"
-                readonly
-            />
-            </div>
+                <div class="w-36 flex-none ...">
+                    <label class="label">Longitude</label>
+                    <input name="location_longitude" id="location_lng" class="input_container"
+                        value="{{ image.location_longitude if is_edit else '' }}" readonly />
+                </div>
 
-            <div class="w-36 flex-none ...">
-            <label class="label">Elevation</label>
-            <input
-                name="location_elevation"
-                id="location_elev"
-                class="input_container"
-                value="{{ image.location_elevation if is_edit else '' }}"
-                readonly
-            />
+                <div class="w-36 flex-none ...">
+                    <label class="label">Elevation</label>
+                    <input name="location_elevation" id="location_elev" class="input_container"
+                        value="{{ image.location_elevation if is_edit else '' }}" readonly />
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Guide Log -->
-    <div x-data="{ logs: '{{ image.guide_log if is_edit and image.guide_log else '' }}' }" class="space-y-2">
-    {% if is_edit %}
-        <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Current Guide Logs</label>
+        <!-- Guide Log -->
+        <div x-data="{ logs: '{{ image.guide_log if is_edit and image.guide_log else '' }}' }" class="space-y-2">
+            {% if is_edit %}
+            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Current Guide Logs</label>
 
-        <template x-if="logs">
-            <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm text-gray-700 dark:text-gray-300">
-                <input type="text" x-model="logs" name="prev_guide_logs" class="w-full truncate" readonly />
-            </div>
-        </template>
+            <template x-if="logs">
+                <div
+                    class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm text-gray-700 dark:text-gray-300">
+                    <input type="text" x-model="logs" name="prev_guide_logs" class="w-full truncate" readonly />
+                </div>
+            </template>
 
-        <!-- Redo Graphs -->
-        <label class="inline-flex items-center mt-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" name="redo_graphs" class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
-            Redo Guiding Graphs
-        </label>
-    {% endif %}
+            <!-- Redo Graphs -->
+            <label class="inline-flex items-center mt-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" name="redo_graphs" class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
+                Redo Guiding Graphs
+            </label>
+            {% endif %}
 
-    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Upload Guide Logs</label>
-    <input name="guide_logs" type="file" multiple accept=".txt"
-        class="block w-full text-sm text-gray-500
+            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Upload Guide
+                Logs</label>
+            <input name="guide_logs" type="file" multiple accept=".txt" class="block w-full text-sm text-gray-500
         file:mr-4 file:py-2 file:px-4
         file:rounded-full file:border-0
         file:text-sm file:font-semibold
         file:bg-blue-50 file:text-blue-700
         hover:file:bg-blue-100" />
-    </div>
-
-    <h5 class="label">Capture Dates</h5>
-    <div class="gap-4 flex ...">
-        <input type="date" id="datePicker" class="input_container"  {% if not is_edit %} required {% endif %}>
-        <button type="button" class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700" id="addDateBtn">Add</button>
-    </div>
-
-    <ul id="dateList" ></ul>
-    <input type="hidden" name="capture_dates" id="captureDates">
-
-    <h5 class="label">Image Lights</h5>
-    <div id="lightsContainer" class="mb-3"  {% if not is_edit %} required {% endif %}></div>
-    <button type="button" class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700" id="addLightBtn">Add Light</button>
-
-    <div class="gap-4 flex ...">
-        <div class="w-64 flex-auto ...">
-        <label class="label">Camera</label>
-        <select name="camera_id" class="input_container">
-            {% for c in cameras %}
-            <option value="{{ c.id }}" {{'selected' if c.id == equipment.get('camera') else '' }}>{{ c.name }}</option>
-            {% endfor %}
-        </select>
         </div>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">Guide Camera</label>
-        <select name="guide_camera_id" class="input_container">
-            {% for c in cameras if c.id > 1 %}
-            <option value="{{ c.id }}" {{'selected' if c.id == equipment.get('guide_camera') else '' }}>{{ c.name }}</option>
-            {% endfor %}
-        </select>
-        </div>
-    </div>
-
-    <div class="gap-4 flex ...">
-        <div class="w-64 flex-auto ...">
-        <label class="label">Telescope</label>
-        <select name="telescope_id" class="input_container">
-            {% for t in telescopes %}
-            <option value="{{ t.id }}" {{'selected' if t.id == equipment.get('telescope') else '' }}>{{ t.name }}</option>
-            {% endfor %}
-        </select>
+        <h5 class="label">Created On</h5>
+        <div class="gap-4 flex">
+            <input type="date" class="input_container" name="created_at"
+                value="{% if is_edit %}{{ image.created_at }}{% else %}{{ now().date() }}{% endif %}">
         </div>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">Reducer</label>
-        <select name="reducer_id" class="input_container">
-            {% for r in reducer %}
-            <option value="{{ r.id }}" {{'selected' if r.id == equipment.get('reducer') else '' }}>{{ r.name }}</option>
-            {% endfor %}
-            {{option_none | safe}}
-        </select>
+        <h5 class="label">Capture Dates</h5>
+        <div class="gap-4 flex">
+            <input type="date" id="datePicker" class="input_container" {% if not is_edit %} required {% endif %}>
+            <button type="button"
+                class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                id="addDateBtn">Add</button>
         </div>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">Guider</label>
-        <select name="oag_id" class="input_container">
-            {% for o in oag %}
-            <option value="{{ o.id }}" {{'selected' if o.id == equipment.get('Guider') else '' }}>{{ o.name }}</option>
-            {% endfor %}
-            {{option_none | safe}}
-        </select>
-        </div>
-    </div>
+        <ul id="dateList"></ul>
+        <input type="hidden" name="capture_dates" id="captureDates">
 
-    <div class="gap-4 flex ...">
-        <div class="w-64 flex-auto ...">
-        <label class="label">Mount</label>
-        <select name="mount_id" class="input_container">
-            {% for m in mount %}
-            <option value="{{ m.id }}" {{'selected' if m.id == equipment.get('mount') else '' }}>{{ m.name }}</option>
-            {% endfor %}
-        </select>
-        </div>
+        <h5 class="label">Image Lights</h5>
+        <div id="lightsContainer" class="mb-3" {% if not is_edit %} required {% endif %}></div>
+        <button type="button"
+            class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
+            id="addLightBtn">Add Light</button>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">Tripod</label>
-        <select name="tripod_id" class="input_container">
-            {% for t in tripod %}
-            <option value="{{ t.id }}" {{'selected' if t.id == equipment.get('tripod') else '' }}>{{ t.name }}</option>
-            {% endfor %}
-        </select>
-        </div>
+        <div class="gap-4 flex ...">
+            <div class="w-64 flex-auto ...">
+                <label class="label">Camera</label>
+                <select name="camera_id" class="input_container">
+                    {% for c in cameras %}
+                    <option value="{{ c.id }}" {{'selected' if c.id == equipment.get('camera') else '' }}>{{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">Flat Panel</label>
-        <select name="flat_panel_id" class="input_container">
-            {% for p in flat_panel %}
-            <option value="{{ p.id }}" {{'selected' if p.id == equipment.get('flat_panel') else '' }}>{{ p.name }}</option>
-            {% endfor %}
-            {{option_none | safe}}
-        </select>
-        </div>
-    </div>
-
-    <div class="gap-4 flex ...">
-        <div class="w-64 flex-auto ...">
-        <label class="label">Filter Wheel</label>
-        <select name="filter_wheel_id" class="input_container">
-            {% for f in filter_wheel %}
-            <option value="{{ f.id }}" {{'selected' if f.id == equipment.get('filter_wheel') else '' }}>{{ f.name }}</option>
-            {% endfor %}
-            {{option_none | safe}}
-        </select>
+            <div class="w-64 flex-auto ...">
+                <label class="label">Guide Camera</label>
+                <select name="guide_camera_id" class="input_container">
+                    {% for c in cameras if c.id > 1 %}
+                    <option value="{{ c.id }}" {{'selected' if c.id == equipment.get('guide_camera') else '' }}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">EAF</label>
-        <select name="eaf_id" class="input_container">
-            {% for e in eaf %}
-            <option value="{{ e.id }}" {{'selected' if e.id == equipment.get('eaf') else '' }}>{{ e.name }} </option>
-            {% endfor %}
-            {{option_none | safe}}
-        </select>
+        <div class="gap-4 flex ...">
+            <div class="w-64 flex-auto ...">
+                <label class="label">Telescope</label>
+                <select name="telescope_id" class="input_container">
+                    {% for t in telescopes %}
+                    <option value="{{ t.id }}" {{'selected' if t.id == equipment.get('telescope') else '' }}>
+                        {{ t.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="w-64 flex-auto ...">
+                <label class="label">Reducer</label>
+                <select name="reducer_id" class="input_container">
+                    {% for r in reducer %}
+                    <option value="{{ r.id }}" {{'selected' if r.id == equipment.get('reducer') else '' }}>{{ r.name }}
+                    </option>
+                    {% endfor %}
+                    {{option_none | safe}}
+                </select>
+            </div>
+
+            <div class="w-64 flex-auto ...">
+                <label class="label">Guider</label>
+                <select name="oag_id" class="input_container">
+                    {% for o in oag %}
+                    <option value="{{ o.id }}" {{'selected' if o.id == equipment.get('Guider') else '' }}>{{ o.name }}
+                    </option>
+                    {% endfor %}
+                    {{option_none | safe}}
+                </select>
+            </div>
         </div>
 
-        <div class="w-64 flex-auto ...">
-        <label class="label">Dew Heater</label>
-        <select name="dew_heater_id" class="input_container">
-            {% for d in dew_heater %}
-            <option value="{{ d.id }}" {{'selected' if d.id == equipment.get('dew_heater') else '' }}>{{ d.name }}</option>
-            {% endfor %}
-            {{option_none | safe}}
-        </select>
+        <div class="gap-4 flex ...">
+            <div class="w-64 flex-auto ...">
+                <label class="label">Mount</label>
+                <select name="mount_id" class="input_container">
+                    {% for m in mount %}
+                    <option value="{{ m.id }}" {{'selected' if m.id == equipment.get('mount') else '' }}>{{ m.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="w-64 flex-auto ...">
+                <label class="label">Tripod</label>
+                <select name="tripod_id" class="input_container">
+                    {% for t in tripod %}
+                    <option value="{{ t.id }}" {{'selected' if t.id == equipment.get('tripod') else '' }}>{{ t.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="w-64 flex-auto ...">
+                <label class="label">Flat Panel</label>
+                <select name="flat_panel_id" class="input_container">
+                    {% for p in flat_panel %}
+                    <option value="{{ p.id }}" {{'selected' if p.id == equipment.get('flat_panel') else '' }}>
+                        {{ p.name }}
+                    </option>
+                    {% endfor %}
+                    {{option_none | safe}}
+                </select>
+            </div>
         </div>
-    </div>
 
-    <label class="label">Software</label>
-    <div class="flex ...">
-        <select name="software_ids" multiple class="input_container">
-        {% for s in softwares %}
-            <option value="{{ s.id }}" {{'selected' if s.id in software_list else '' }}>{{ s.name }}</option>
-        {% endfor %}
-        </select>
-    </div>
+        <div class="gap-4 flex ...">
+            <div class="w-64 flex-auto ...">
+                <label class="label">Filter Wheel</label>
+                <select name="filter_wheel_id" class="input_container">
+                    {% for f in filter_wheel %}
+                    <option value="{{ f.id }}" {{'selected' if f.id == equipment.get('filter_wheel') else '' }}>
+                        {{ f.name }}
+                    </option>
+                    {% endfor %}
+                    {{option_none | safe}}
+                </select>
+            </div>
+
+            <div class="w-64 flex-auto ...">
+                <label class="label">EAF</label>
+                <select name="eaf_id" class="input_container">
+                    {% for e in eaf %}
+                    <option value="{{ e.id }}" {{'selected' if e.id == equipment.get('eaf') else '' }}>{{ e.name }}
+                    </option>
+                    {% endfor %}
+                    {{option_none | safe}}
+                </select>
+            </div>
+
+            <div class="w-64 flex-auto ...">
+                <label class="label">Dew Heater</label>
+                <select name="dew_heater_id" class="input_container">
+                    {% for d in dew_heater %}
+                    <option value="{{ d.id }}" {{'selected' if d.id == equipment.get('dew_heater') else '' }}>
+                        {{ d.name }}
+                    </option>
+                    {% endfor %}
+                    {{option_none | safe}}
+                </select>
+            </div>
+        </div>
+
+        <label class="label">Software</label>
+        <div class="flex ...">
+            <select name="software_ids" multiple class="input_container">
+                {% for s in softwares %}
+                <option value="{{ s.id }}" {{'selected' if s.id in software_list else '' }}>{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
 
-    <button class="inline-block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-800" type="submit">{{ "Edit" if is_edit else "Create" }}</button>
-  </form>
+        <button class="inline-block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-800"
+            type="submit">{{ "Edit" if is_edit else "Create" }}</button>
+    </form>
 
     <script>
         const input_container_style = `w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
         const locInput = document.getElementById('locationInput');
         locInput.addEventListener('change', async () => {
-        const q = locInput.value;
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-        const data = await res.json();
+            const q = locInput.value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+            const data = await res.json();
 
-        if (data[0]) {
-            const lat = data[0].lat;
-            const lon = data[0].lon;
+            if (data[0]) {
+                const lat = data[0].lat;
+                const lon = data[0].lon;
 
-            document.getElementById('location_lat').value = lat;
-            document.getElementById('location_lng').value = lon;
+                document.getElementById('location_lat').value = lat;
+                document.getElementById('location_lng').value = lon;
 
-            // Now get elevation from Open-Elevation API
-            const elevRes = await fetch(`/get_elevation?lat=${lat}&lon=${lon}`);
-            const elevData = await elevRes.text();
+                // Now get elevation from Open-Elevation API
+                const elevRes = await fetch(`/get_elevation?lat=${lat}&lon=${lon}`);
+                const elevData = await elevRes.text();
 
-            if (elevData) {
-            document.getElementById('location_elev').value = elevData;
+                if (elevData) {
+                    document.getElementById('location_elev').value = elevData;
+                }
             }
-        }
         });
 
-        let dates = {{ capture_dates|safe }};
+        let dates = {{ capture_dates| safe }};
 
         function renderDateList() {
-        const list = document.getElementById('dateList');
-        list.innerHTML = '';
-        dates.forEach((date, index) => {
-            const li = document.createElement('li');
-            li.className = input_container_style
-            li.innerHTML = `
+            const list = document.getElementById('dateList');
+            list.innerHTML = '';
+            dates.forEach((date, index) => {
+                const li = document.createElement('li');
+                li.className = input_container_style
+                li.innerHTML = `
             <div class="flex justify-between items-center w-full">
                 <span>${date}</span>
                 <button 
@@ -314,30 +330,30 @@
                 </button>
             </div>
             `;
-            list.appendChild(li);
-        });
+                list.appendChild(li);
+            });
 
-        // Update hidden input with JSON string
-        document.getElementById('captureDates').value = JSON.stringify(dates);
+            // Update hidden input with JSON string
+            document.getElementById('captureDates').value = JSON.stringify(dates);
         }
 
         document.getElementById('addDateBtn').onclick = () => {
-        const d = document.getElementById('datePicker').value;
-        if (d && !dates.includes(d)) {
-            dates.push(d);
-            renderDateList();
-        }
+            const d = document.getElementById('datePicker').value;
+            if (d && !dates.includes(d)) {
+                dates.push(d);
+                renderDateList();
+            }
         };
 
         // Remove date handler using event delegation
         document.getElementById('dateList').addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-date')) {
-            const index = parseInt(e.target.dataset.index);
-            if (!isNaN(index)) {
-            dates.splice(index, 1);
-            renderDateList();
+            if (e.target.classList.contains('remove-date')) {
+                const index = parseInt(e.target.dataset.index);
+                if (!isNaN(index)) {
+                    dates.splice(index, 1);
+                    renderDateList();
+                }
             }
-        }
         });
 
         let idx = 0;
@@ -357,13 +373,13 @@
 
             div.innerHTML = `
             <div class="gap-4 flex ...">
-                <div class="flex-1 ...">${select.outerHTML.replace('<select', `<select name="filter_${idx}" class="${input_container_style}"`).replace(light.filter+'">', light.filter + '" selected>')}</div>
-                <div class="w32 flex-none"><input name="count_${idx}" type="number" step="1" placeholder="Subs" class="${input_container_style}" value="${light.light_count || ''}" required></div>
-                <div class="w32 flex-none"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || ''}" required></div>
-                <div class="w32 flex-none"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" class="${input_container_style}" value="${light.gain || ''}"></div>
-                <div class="w32 flex-none"><input name="offset_${idx}" type="number" step="1" placeholder="Offset" class="${input_container_style}" value="${light.offset_cam || ''}"></div>
-                <div class="w32 flex-none"><input name="temperature_${idx}" type="number" step="1" placeholder="Temp (°C)" class="${input_container_style}" value="${light.temperature || ''}"></div>
-                <div class="w32 flex-none"><button type="button" class="remove-light ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded">Remove</button></div>
+                <div class="w32 flex-none">${select.outerHTML.replace('<select', `<select name="filter_${idx}" class="${input_container_style}"`).replace(light.filter + '">', light.filter + '" selected>')}</div>
+                <div class="w32 flex-1"><input name="count_${idx}" type="number" step="1" placeholder="Subs" class="${input_container_style}" value="${light.light_count || ''}" required></div>
+                <div class="w32 flex-1"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || ''}" required></div>
+                <div class="w32 flex-1"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" class="${input_container_style}" value="${light.gain || ''}"></div>
+                <div class="w32 flex-1"><input name="offset_${idx}" type="number" step="1" placeholder="Offset" class="${input_container_style}" value="${light.offset_cam || ''}"></div>
+                <div class="w32 flex-1"><input name="temperature_${idx}" type="number" step="1" placeholder="Temp (°C)" class="${input_container_style}" value="${light.temperature || ''}"></div>
+                <div class="w32 flex-1"><button type="button" class="remove-light ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded">Remove</button></div>
             </div>
             `;
             container.appendChild(div);
@@ -371,12 +387,12 @@
         }
 
         document.getElementById('addLightBtn').onclick = () => addLight();
-        
+
         // Remove row handler using event delegation
         document.getElementById('lightsContainer').addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-light')) {
-            e.target.closest('.row').remove();
-        }
+            if (e.target.classList.contains('remove-light')) {
+                e.target.closest('.row').remove();
+            }
         });
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -384,9 +400,9 @@
             existingLights.forEach(addLight); // prefill
 
             const labelStyle = document.querySelectorAll('.label');
-           labelStyle.forEach(link => {
-            link.className = 'block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200';
-        });
+            labelStyle.forEach(link => {
+                link.className = 'block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200';
+            });
 
             const inputStyle = document.querySelectorAll('.input_container');
             inputStyle.forEach(link => {
@@ -395,5 +411,5 @@
         });
 
     </script>
-    </div>
+</div>
 {%endblock%}
