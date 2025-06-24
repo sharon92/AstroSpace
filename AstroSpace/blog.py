@@ -22,6 +22,7 @@ from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import bokeh_phd2
 from AstroSpace.utils.platesolve import platesolve
 from AstroSpace.utils.queries import (
+    DB_TABLES,
     get_image_tables,
     get_all_images,
     get_image_by_id,
@@ -59,11 +60,10 @@ def home():
             "blog.image_detail", image_id=img["id"], image_name=img["slug"]
         )
         img["url"] = url_for("blog.upload", filename=img["image_path"])
-    print("Top images:", top_images)
+    # print("Top images:", top_images)
     return render_template(
         "home.html", WebName=current_app.config["TITLE"], top_images=top_images
     )
-
 
 @bp.route("/collection")
 def collection():
@@ -71,7 +71,6 @@ def collection():
     return render_template(
         "collection.html", images=images, WebName=current_app.config["TITLE"]
     )
-
 
 @bp.route("/get_elevation")
 def get_elevation():
@@ -175,21 +174,12 @@ def list_images():
 
 # New post form
 def render_image_form(title, **kwargs):
-    cameras = fetch_options("camera")
-    telescopes = fetch_options("telescope")
-    reducer = fetch_options("reducer")
-    mount = fetch_options("mount")
-    tripod = fetch_options("tripod")
-    filter_wheel = fetch_options("filter_wheel")
-    eaf = fetch_options("eaf")
-    dew_heater = fetch_options("dew_heater")
-    flat_panel = fetch_options("flat_panel")
-    oag = fetch_options("off_axis_guider")
+    kwargs.update({t:fetch_options(t) for t in DB_TABLES if t not in ["guide_camera"]})
+    kwargs.update({"softwares":fetch_options("software")})
+    kwargs.update({"filters":fetch_options("cam_filter")})
 
-    softwares = fetch_options("software")
-    filters = fetch_options("filter")
     filter_options = "".join(
-        [f'<option value="{f["name"]}">{f["name"]}</option>' for f in filters]
+        [f'<option value="{f["name"]}">{f["name"]}</option>' for f in kwargs["filters"]]
     )
 
     option_none = '<option value="0">None</option>'
@@ -198,17 +188,6 @@ def render_image_form(title, **kwargs):
         "create.html",
         WebName=current_app.config["TITLE"],
         title=title,
-        cameras=cameras,
-        telescopes=telescopes,
-        reducer=reducer,
-        mount=mount,
-        tripod=tripod,
-        filter_wheel=filter_wheel,
-        eaf=eaf,
-        dew_heater=dew_heater,
-        flat_panel=flat_panel,
-        oag=oag,
-        softwares=softwares,
         filter_options=filter_options,
         option_none=option_none,
         **kwargs,
@@ -259,14 +238,18 @@ def edit_image(image_id):
 def delete_image(img_id):
     conn = get_conn()
     cur = conn.cursor()
-    # Clear and reinsert related tables
-    cur.execute("DELETE FROM images WHERE id = %s", (img_id,))
-    cur.execute("DELETE FROM image_views WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM image_likes WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM image_comments WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM capture_dates WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM image_lights WHERE image_id = %s", (img_id,))
-    cur.execute("DELETE FROM image_software WHERE image_id = %s", (img_id,))
+            # Clear and reinsert related tables
+    for table in [
+        "images",
+        "image_views",
+        "image_likes",
+        "image_comments",
+        "capture_dates",
+        "image_lights",
+        "image_software",
+    ]:
+        cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
+
     conn.commit()
     cur.close()
     flash("Post deleted successfully!")
@@ -324,6 +307,7 @@ def save_image():
 
     guide_logs = request.files.getlist("guide_logs")
     new_guide_logs = any(i.filename for i in guide_logs)
+    
     if new_guide_logs:
         print("Generating guide log plot...")
         iguide_logs = []
@@ -357,22 +341,11 @@ def save_image():
             guiding_html = tmp_img["guiding_html"]
             calibration_html = tmp_img["calibration_html"]
     else:
+        guide_logs = ""
         guiding_html, calibration_html = "", ""
 
     table_ids = []
-    for table in [
-        "camera",
-        "telescope",
-        "reducer",
-        "mount",
-        "tripod",
-        "filter_wheel",
-        "eaf",
-        "dew_heater",
-        "guide_camera",
-        "oag",
-        "flat_panel",
-    ]:
+    for table in DB_TABLES:
         if form.get(f"{table}_id") == "0":
             table_ids.append(None)
         else:
@@ -391,9 +364,9 @@ def save_image():
         header_json, overlays_json, location,
         location_latitude, location_longitude, location_elevation,
         guide_log, guiding_html, calibration_html,
-        camera_id, telescope_id, reducer_id, mount_id, tripod_id,
-        filter_wheel_id, eaf_id, dew_heater_id, guide_camera_id, oag_id, flat_panel_id
     """.strip()
+    columns += ",".join([f"{i}_id" for i in DB_TABLES])
+
     placeholders = ", ".join(["%s"] * len(columns.split(",")))
 
     if img_id:
@@ -496,7 +469,7 @@ def save_image():
         if not filt:
             break
         cur.execute(
-            "INSERT INTO image_lights (image_id, filter, light_count, exposure_time, gain, offset_cam, temperature) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+            "INSERT INTO image_lights (image_id, cam_filter, light_count, exposure_time, gain, offset_cam, temperature) VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (img_id, filt, cnt, exp, gain, offset, temp),
         )
         idx += 1

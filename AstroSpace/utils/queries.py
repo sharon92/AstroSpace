@@ -6,6 +6,23 @@ from AstroSpace.utils.utils import  print_time
 from AstroSpace.db import get_conn
 from flask import current_app
 
+#except software and cam_filter
+DB_TABLES = [
+        "camera",
+        "telescope",
+        "reducer",
+        "guide_camera",
+        "guider",
+        "mount",
+        "tripod",
+        "filter_wheel",
+        "eaf",
+        "dew_heater",
+        "flat_panel",
+        "rotator"
+    ]
+
+
 def get_all_images(unique=False, limit=None):
     conn = get_conn()
     cur = conn.cursor()
@@ -53,27 +70,13 @@ def get_image_tables(image_id, keep_original=False,bokeh_testing=False, testing=
         return "Image not found!, 404"
     conn = get_conn()
     equipment_list = []
-    for table in [
-        "camera",
-        "telescope",
-        "reducer",
-        "guide_camera",
-        "oag",
-        "mount",
-        "tripod",
-        "filter_wheel",
-        "eaf",
-        "dew_heater",
-    ]:
+    for table in DB_TABLES:
         if image[f"{table}_id"]:
             iid = image[f"{table}_id"]
             cur = conn.cursor()
             original_table = table
             if table == "guide_camera":
                 table = "camera"
-            elif table == "oag":
-                original_table = "Guider"
-                table = "off_axis_guider"
             cur.execute(f"SELECT * FROM {table} WHERE id = %s", (iid,))
             equipment = cur.fetchone()
             if equipment:
@@ -102,8 +105,8 @@ def get_image_tables(image_id, keep_original=False,bokeh_testing=False, testing=
             light["temperature"] = f"{light['temperature']:.1f} °C"
             light["total_time"] = print_time(light["light_count"] * light["exposure_time"])
             light["exposure_time"] = f"{light['exposure_time']:.0f} sec"
-            filter_name = light["filter"]
-            cur.execute(f"SELECT * FROM filter WHERE name = '{filter_name}'")
+            filter_name = light["cam_filter"]
+            cur.execute(f"SELECT * FROM cam_filter WHERE name = '{filter_name}'")
             filter_row = cur.fetchone()
             if filter_row:
                 light["filter_link"] = filter_row["link"]

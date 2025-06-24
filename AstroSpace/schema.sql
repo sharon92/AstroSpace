@@ -3,8 +3,10 @@ DROP TABLE IF EXISTS
     capture_dates,
     dew_heater,
     eaf,
-    filter,
+    cam_filter,
     filter_wheel,
+    rotator,
+    flat_panel,
     image_lights,
     image_software,
     images,
@@ -12,7 +14,7 @@ DROP TABLE IF EXISTS
     image_likes,
     image_comments,
     mount,
-    off_axis_guider,
+    guider,
     reducer,
     software,
     telescope,
@@ -21,8 +23,7 @@ DROP TABLE IF EXISTS
     blogs,
     blog_views,
     blog_likes,
-    blog_comments,
-    flat_panel
+    blog_comments
 CASCADE;
 
 
@@ -86,7 +87,7 @@ CREATE TABLE tripod(
     link TEXT
 );
 
-CREATE TABLE filter(
+CREATE TABLE cam_filter(
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     type TEXT , -- e.g., L, R, G, B, Ha, OIII, SII
@@ -116,7 +117,7 @@ CREATE TABLE flat_panel(
     link TEXT
 );
 
-CREATE TABLE off_axis_guider(
+CREATE TABLE guider(
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     link TEXT
@@ -127,6 +128,14 @@ CREATE TABLE filter_wheel (
     name TEXT NOT NULL,
     type TEXT CHECK (type IN ('manual', 'motorized')), -- e.g., manual, motorized
     filter_count INT, -- number of filters
+    brand TEXT,
+    link TEXT
+);
+
+CREATE TABLE rotator (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT CHECK (type IN ('manual', 'motorized')), -- e.g., manual, motorized
     brand TEXT,
     link TEXT
 );
@@ -176,7 +185,8 @@ CREATE TABLE images (
     dew_heater_id INT REFERENCES dew_heater(id),
     flat_panel_id INT REFERENCES flat_panel(id),
     guide_camera_id INT REFERENCES camera(id),
-    oag_id INT REFERENCES off_axis_guider(id)
+    guider_id INT REFERENCES off_axis_guider(id),
+    rotator_id INT REFERENCES rotator(id) -- assuming rotator uses the same EAF table
 );
 
 CREATE TABLE image_views (
@@ -213,14 +223,13 @@ CREATE TABLE capture_dates (
     mean_humidity FLOAT, -- in percentage (0-100)
     mean_wind_speed FLOAT, -- in km/h
     mean_seeing_quality TEXT -- e.g., excellent, good, fair, poor
-
 );
 
 -- Lights per filter for each image
 CREATE TABLE image_lights (
     id SERIAL PRIMARY KEY,
     image_id INT REFERENCES images(id) ON DELETE CASCADE,
-    filter TEXT NOT NULL,           -- e.g., L, R, G, B, Ha
+    cam_filter TEXT NOT NULL,           -- e.g., L, R, G, B, Ha
     light_count INT NOT NULL,       -- number of subs
     exposure_time INT,            -- in seconds
     gain INT,                     -- in e-/ADU
@@ -306,7 +315,7 @@ VALUES ('Carbon Fiber Tripod TC40', 50.0, 'ZWO', 'https://www.astroshop.de/stati
 ('Steel Tripod', 45.0, 'Skywatcher', 'https://www.teleskop-haus.de/p/sky-watcher-stativ-edelstahl-fuer-eq5-heq5-skytee');
 
 --Filters
-INSERT INTO filter (name, type, bandpass, brand, link)
+INSERT INTO cam_filter (name, type, bandpass, brand, link)
 VALUES 
 ('NO FILTER','',0.0,'', ''),
 ('UHC LightPollution Filter', 'Broadband', 0.0, 'Svbony', 'https://www.amazon.de/-/en/dp/B07G943LQ3?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_4&th=1'),
@@ -329,8 +338,13 @@ INSERT INTO flat_panel (name, brand, link)
 VALUES 
 ('A3 Light Pad', 'WELZK', 'https://amzn.eu/d/dPR02xD');
 
+-- Rotator
+INSERT INTO rotator (name, type, brand, link)
+VALUES 
+('ZWO Rotator CAA', 'motorized', 'ZWO', 'https://www.astroshop.eu/rotators/zwo-rotator-caa/p,85387');
+
 -- Off Axis Guider
-INSERT INTO off_axis_guider (name, link)
+INSERT INTO guider (name, link)
 VALUES 
 ('Askar Off-Axis-Guider', 'https://www.astroshop.de/off-axis-guider/askar-off-axis-guider-t2-m48-m54/p,77132'),
 ('Svbony SV165',  'https://www.amazon.de/-/en/dp/B0BR5JBRPK?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_3&th=1');

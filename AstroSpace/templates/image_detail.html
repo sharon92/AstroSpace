@@ -23,7 +23,10 @@
         {{ il.image.created_at.strftime('%b %Y')|default('No date available') }}
       </span>
       <!-- Your content here (like title or other info) can go next to date -->
-      <h2 class="absolute -top-3 left-17 text-lg font-semibold text-white">{{ il.image.title }}</h2>
+      <h2 class="absolute -top-3 left-17 text-lg font-semibold text-white">
+        {{ il.image.title }}
+        {% if il.image.short_description %} - {{ il.image.short_description }}{% endif %}
+      </h2>
     </div>
 
     <!-- Main Card Container -->
@@ -33,14 +36,19 @@
       <!-- Tabs -->
       <div class="flex border-b overflow-auto border-gray-200 justify-center items-center dark:border-gray-700">
         {% set tabs = [
-        ('image', 'Image'),
-        ('lights', 'Lights'),
-        ('nights', 'Nights'),
-        ('equipment', 'Equipment'),
-        ('software', 'Software'),
-        ('guiding', 'Guiding'),
-        ('calibration', 'Calibration')
-      ] %}
+            ('image', 'Image'),
+            ('lights', 'Lights'),
+            ('nights', 'Nights'),
+            ('equipment', 'Equipment'),
+            ('software', 'Software')
+          ] %}
+
+        {% if il.guiding_html %}
+        {% set tabs = tabs + [('guiding', 'Guiding')] %}
+        {% endif %}
+        {% if il.calibration_html %}
+        {% set tabs = tabs + [('calibration', 'Calibration')] %}
+        {% endif %}
 
         {% for tab_id, tab_label in tabs %}
         <button @click="tab = '{{ tab_id }}'"

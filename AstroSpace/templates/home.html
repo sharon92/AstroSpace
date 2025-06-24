@@ -23,12 +23,19 @@
          cycleImages();
      ">
 
-    <!-- Slideshow Progress Dots -->
-    <div class="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
-        <template x-for="(image, index) in images" :key="index">
-            <div class="w-4 h-4 rounded-full border border-white"
-                :class="{ 'bg-white': index === currentIndex, 'bg-white/30': index !== currentIndex }"></div>
-        </template>
+    <!-- Slideshow Progress Dots + Title -->
+    <div class="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+        <!-- Dots row -->
+        <div class="flex gap-2">
+            <template x-for="(image, index) in images" :key="index">
+                <div class="w-2 h-2 rounded-full border border-white"
+                    :class="{ 'bg-white': index === currentIndex, 'bg-white/30': index !== currentIndex }"></div>
+            </template>
+        </div>
+
+        <!-- Title below dots, centered -->
+        <a :href="images[currentIndex]?.blog_url" class="text-white text-5xl font-patung hover:text-amber-500"
+            x-text="images[currentIndex]?.title"></a>
     </div>
 
     <!-- Slideshow Background -->
@@ -42,7 +49,7 @@
     <div
         class="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 px-4 max-w-lg w-[90%] shadow-lg text-white text-center">
 
-        <p class="leading-relaxed text-gray-200 font-lato-hairline">
+        <p class="leading-relaxed text-gray-200 font-lato font-light text-xl">
             Ever caught yourself lost in the beauty of a starry night?
             <a href="{{ url_for('blog.home') }}"
                 class="font-scribble text-3xl text-white hover:text-amber-400  transition-colors duration-200">
@@ -51,7 +58,7 @@
             is all about peeking into the vastness of space through the lenses of an amateur astronomer.
             Feel free to
             <a href="{{ url_for('blog.collection') }}"
-                class="text-white hover:text-blue-200 font-lato-hairline transition-colors duration-200">
+                class="text-blue-200 hover:text-blue-400 font-lato-Medium transition-colors duration-200">
                 explore
             </a>
             these high-resolution images and dive deeper into the techniques and equipment I use to capture the wonders

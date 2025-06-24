@@ -122,7 +122,7 @@
         <h5 class="label">Created On</h5>
         <div class="gap-4 flex">
             <input type="date" class="input_container" name="created_at"
-                value="{% if is_edit %}{{ image.created_at }}{% else %}{{ now().date() }}{% endif %}">
+                value="{% if is_edit %}{{ image.created_at.strftime('%Y-%m-%d') }}{% else %}{{ now().date() }}{% endif %}">
         </div>
 
         <h5 class="label">Capture Dates</h5>
@@ -142,34 +142,46 @@
             class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
             id="addLightBtn">Add Light</button>
 
-        <div class="gap-4 flex ...">
-            <div class="w-64 flex-auto ...">
+        <div class="gap-4 flex ">
+            <div class="w-64 flex-auto ">
                 <label class="label">Camera</label>
                 <select name="camera_id" class="input_container">
-                    {% for c in cameras %}
+                    {% for c in camera %}
                     <option value="{{ c.id }}" {{'selected' if c.id == equipment.get('camera') else '' }}>{{ c.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div class="w-64 flex-auto ...">
+            <div class="w-64 flex-auto ">
                 <label class="label">Guide Camera</label>
                 <select name="guide_camera_id" class="input_container">
-                    {% for c in cameras if c.id > 1 %}
+                    {% for c in camera if c.id > 1 %}
                     <option value="{{ c.id }}" {{'selected' if c.id == equipment.get('guide_camera') else '' }}>
                         {{ c.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="w-64 flex-auto ">
+                <label class="label">Rotator</label>
+                <select name="rotator_id" class="input_container">
+                    {{option_none | safe}}
+                    {% for r in rotator %}
+                    <option value="{{ r.id }}" {{'selected' if r.id == equipment.get('rotator') else '' }}>
+                        {{ r.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
-        <div class="gap-4 flex ...">
-            <div class="w-64 flex-auto ...">
+        <div class="gap-4 flex ">
+            <div class="w-64 flex-auto ">
                 <label class="label">Telescope</label>
                 <select name="telescope_id" class="input_container">
-                    {% for t in telescopes %}
+                    {% for t in telescope %}
                     <option value="{{ t.id }}" {{'selected' if t.id == equipment.get('telescope') else '' }}>
                         {{ t.name }}
                     </option>
@@ -188,11 +200,11 @@
                 </select>
             </div>
 
-            <div class="w-64 flex-auto ...">
+            <div class="w-64 flex-auto">
                 <label class="label">Guider</label>
-                <select name="oag_id" class="input_container">
-                    {% for o in oag %}
-                    <option value="{{ o.id }}" {{'selected' if o.id == equipment.get('Guider') else '' }}>{{ o.name }}
+                <select name="guider_id" class="input_container">
+                    {% for g in guider %}
+                    <option value="{{ g.id }}" {{'selected' if g.id == equipment.get('guider') else '' }}>{{ g.name }}
                     </option>
                     {% endfor %}
                     {{option_none | safe}}
@@ -200,8 +212,8 @@
             </div>
         </div>
 
-        <div class="gap-4 flex ...">
-            <div class="w-64 flex-auto ...">
+        <div class="gap-4 flex ">
+            <div class="w-64 flex-auto ">
                 <label class="label">Mount</label>
                 <select name="mount_id" class="input_container">
                     {% for m in mount %}
@@ -211,7 +223,7 @@
                 </select>
             </div>
 
-            <div class="w-64 flex-auto ...">
+            <div class="w-64 flex-auto">
                 <label class="label">Tripod</label>
                 <select name="tripod_id" class="input_container">
                     {% for t in tripod %}
@@ -221,7 +233,7 @@
                 </select>
             </div>
 
-            <div class="w-64 flex-auto ...">
+            <div class="w-64 flex-auto">
                 <label class="label">Flat Panel</label>
                 <select name="flat_panel_id" class="input_container">
                     {% for p in flat_panel %}
@@ -234,8 +246,8 @@
             </div>
         </div>
 
-        <div class="gap-4 flex ...">
-            <div class="w-64 flex-auto ...">
+        <div class="gap-4 flex">
+            <div class="w-64 flex-auto">
                 <label class="label">Filter Wheel</label>
                 <select name="filter_wheel_id" class="input_container">
                     {% for f in filter_wheel %}
@@ -288,9 +300,7 @@
     <script>
         const input_container_style = `w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
-        const locInput = document.getElementById('locationInput');
-        locInput.addEventListener('change', async () => {
-            const q = locInput.value;
+        async function updateLocationDetails(q) {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
             const data = await res.json();
 
@@ -301,7 +311,7 @@
                 document.getElementById('location_lat').value = lat;
                 document.getElementById('location_lng').value = lon;
 
-                // Now get elevation from Open-Elevation API
+                // Now get elevation from your API
                 const elevRes = await fetch(`/get_elevation?lat=${lat}&lon=${lon}`);
                 const elevData = await elevRes.text();
 
@@ -309,6 +319,20 @@
                     document.getElementById('location_elev').value = elevData;
                 }
             }
+        }
+
+        const locInput = document.getElementById('locationInput');
+
+        // Run when the user changes the input
+        locInput.addEventListener('change', () => {
+            const q = locInput.value;
+            if (q.trim()) updateLocationDetails(q);
+        });
+
+        // Also run on page load if value already exists
+        window.addEventListener('DOMContentLoaded', () => {
+            const q = locInput.value;
+            if (q.trim()) updateLocationDetails(q);
         });
 
         let dates = {{ capture_dates| safe }};

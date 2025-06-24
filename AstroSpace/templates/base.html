@@ -24,16 +24,17 @@
         </script>
     </head>
 
-    <body class="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <body
+        class="font-lato font-medium min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
         <header class="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-md">
             <nav
                 class="bg-white dark:bg-gray-800 fixed w-full z-20 top-0 start-0 border-b border-gray-200 dark:border-gray-600">
-                <div class="max-w-screen-xl flex flex-wrap items-end justify-between mx-auto p-3">
+                <div class="max-w-screen-xl flex flex-wrap items-end justify-between mx-auto p-2.5">
                     <!-- Logo and Desktop Nav -->
                     <div class="flex items-end space-x-4 rtl:space-x-reverse">
                         <a href="{{ url_for('blog.home') }}" class="flex items-center space-x-3 rtl:space-x-reverse">
                             <span
-                                class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">{{WebName}}</span>
+                                class="self-center text-2xl font-black whitespace-nowrap dark:text-white dark:hover:text-amber-400 hover:text-amber-900">{{WebName}}</span>
                         </a>
                         <!-- Desktop nav links -->
                         <ul class="hidden md:flex flex-row space-x-6 font-medium">
@@ -50,7 +51,7 @@
                     </div>
 
                     <!-- Right Side -->
-                    <div class="flex items-end space-x-4">
+                    <div class="flex items-center space-x-4">
                         <!-- Dark mode toggle -->
                         <button id="darkSwitch" type="button"
                             class="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300 hover:bg-gray-300 dark:hover:bg-neutral-600">
@@ -88,6 +89,7 @@
                                     stroke-width="2" d="M1 1h15M1 7h15M1 13h15" />
                             </svg>
                         </button>
+
                     </div>
 
                     <!-- Mobile dropdown -->
