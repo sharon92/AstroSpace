@@ -26,9 +26,9 @@
 
     <body
         class="font-lato font-medium min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-        <header class="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-md">
+        <header>
             <nav
-                class="bg-white dark:bg-gray-800 fixed w-full z-20 top-0 start-0 border-b border-gray-200 dark:border-gray-600">
+                class="bg-white/80 dark:bg-gray-800/60 backdrop-blur-md w-full z-20 top-0 start-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
                 <div class="max-w-screen-xl flex flex-wrap items-end justify-between mx-auto p-2.5">
                     <!-- Logo and Desktop Nav -->
                     <div class="flex items-end space-x-4 rtl:space-x-reverse">
@@ -130,11 +130,9 @@
 
                 </div>
             </nav>
-
-
         </header>
 
-        <main class="flex-grow">
+        <main class="flex-1">
             <div class="bg-cover bg-center">
                 {% with messages = get_flashed_messages() %}
                 {% if messages %}
@@ -149,7 +147,7 @@
             </div>
         </main>
         <!-- Footer -->
-        <footer class="text-black bg-white py-3 text-center dark:bg-gray-800 dark:text-white shadow-md">
+        <footer class="text-black bg-white/80 py-3 text-center dark:bg-gray-800/60 dark:text-white shrink-0 shadow-md">
             <p>&copy; 2025 {{WebName}}. All rights reserved.</p>
         </footer>
 

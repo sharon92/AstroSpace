@@ -4,26 +4,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@headlessui/react@1.7.15/dist/headlessui.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
 
-<div class="relative flex flex-col items-center justify-center bg-cover bg-center"
+<div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover"
   style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
 
   <div class="absolute w-full h-full backdrop-blur-md"></div>
 
   <!-- Timeline container -->
-  <div class="relative border-l-2 border-gray-300 dark:border-gray-600 pl-3.5 space-y-8 w-full max-w-7xl mt-22 ml-10">
+  <div
+    class="relative border-l-2 p-4 space-y-4 w-full max-w-4/5 md:max-w-7/12 ml-10 border-gray-200 dark:border-gray-400">
 
     {% for il in images %}
-    <div class="flex items-center space-x-2 relative">
+    <div class="flex items-center space-x-2">
       <!-- Timeline Dot -->
-      <div class="absolute -top-2 -left-6.25 w-5 h-5 bg-blue-600 rounded-full border-5 border-gray-800 shadow-md">
+      <div class="absolute  -left-2.75 w-5 h-5 bg-blue-600 rounded-full border-5 border-gray-800 shadow-md">
       </div>
 
       <!-- Date next to the dot -->
-      <span class="absolute -top-2 text-gray-200 font-semibold tracking-wide text-sm select-none">
+      <span class="text-gray-200 font-semibold tracking-wide text-sm select-none">
         {{ il.image.created_at.strftime('%b %Y')|default('No date available') }}
       </span>
       <!-- Your content here (like title or other info) can go next to date -->
-      <h2 class="absolute -top-3 left-17 text-lg font-semibold text-white">
+      <h2 class="text-lg font-semibold text-white">
         {{ il.image.title }}
         {% if il.image.short_description %} - {{ il.image.short_description }}{% endif %}
       </h2>
@@ -31,7 +32,7 @@
 
     <!-- Main Card Container -->
     <div x-data="{ tab: 'image', showObjects: false }"
-      class="max-w-6xl mx-auto rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
+      class=" mx-auto rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
       <!-- Tabs -->
       <div class="flex border-b overflow-auto border-gray-200 justify-center items-center dark:border-gray-700">
@@ -78,7 +79,10 @@
         </div>
 
         <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-          <span>@{{ il.image.author }}, <em>📍 {{ il.image.location }}</em> </span>
+          <span>
+            <span class="hover:text-amber-500 cursor-pointer">@{{ il.image.author }}</span>, <em>📍
+              {{ il.image.location }}</em>
+          </span>
 
           <div class="gap-x-4 flex">
             <span>Identify Objects</span>

@@ -24,6 +24,9 @@ export default {
         heavy: '800',
         black: '900',
       },
+      transitionDuration: {
+        '10000': '10000ms', // 10 seconds
+      },
     },
   },
   plugins: [],
