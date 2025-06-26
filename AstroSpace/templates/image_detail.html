@@ -9,33 +9,31 @@
 
   <div class="absolute w-full h-full backdrop-blur-md"></div>
 
-  <!-- Timeline container -->
-  <div
-    class="relative border-l-2 p-4 space-y-4 w-full max-w-4/5 md:max-w-7/12 ml-10 border-gray-200 dark:border-gray-400">
+  <div class="relative w-0 top-0 h-4 border-1 border-gray-200 dark:border-gray-400">
+  </div>
 
-    {% for il in images %}
-    <div class="flex items-center space-x-2">
-      <!-- Timeline Dot -->
-      <div class="absolute  -left-2.75 w-5 h-5 bg-blue-600 rounded-full border-5 border-gray-800 shadow-md">
-      </div>
+  {% for il in images %}
+  <div class="relative flex flex-col items-center justify-center w-full space-y-0">
+    <!-- Title under the date -->
+    <h2 class="text-xl text-white text-center">
+      {{ il.image.title }}
+      {% if il.image.short_description %} - {{ il.image.short_description }}{% endif %}
+    </h2>
 
-      <!-- Date next to the dot -->
-      <span class="text-gray-200 font-semibold tracking-wide text-sm select-none">
-        {{ il.image.created_at.strftime('%b %Y')|default('No date available') }}
-      </span>
-      <!-- Your content here (like title or other info) can go next to date -->
-      <h2 class="text-lg font-semibold text-white">
-        {{ il.image.title }}
-        {% if il.image.short_description %} - {{ il.image.short_description }}{% endif %}
-      </h2>
-    </div>
+    <!-- Date -->
+    <span class="text-gray-200 font-light text-md">
+      {{ il.image.created_at.strftime('%b %Y')|default('No date available') }}
+    </span>
+  </div>
 
+  <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-2 md:px-0 mx-auto">
     <!-- Main Card Container -->
     <div x-data="{ tab: 'image', showObjects: false }"
-      class=" mx-auto rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
+      class="rounded-xl md:rounded-2xl shadow-xl border-2 bg-white/80 dark:bg-gray-800/80 overflow-hidden">
 
       <!-- Tabs -->
-      <div class="flex border-b overflow-auto border-gray-200 justify-center items-center dark:border-gray-700">
+      <div
+        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-start md:justify-center items-center whitespace-nowrap">
         {% set tabs = [
             ('image', 'Image'),
             ('lights', 'Lights'),
@@ -61,14 +59,14 @@
       </div>
 
       <!-- Image Tab -->
-      <div x-show="tab === 'image'" class="p-4 space-y-2">
+      <div x-show="tab === 'image'" class="space-y-2 md:p-4">
         <div id="zoom-container-{{il.image.id}}"
-          class="relative mx-auto overflow-auto rounded-[10px] flex items-center justify-center group touch-none">
+          class="relative w-full max-w-full overflow-x-auto overflow-y-hidden md:rounded-[10px] flex items-center justify-center group touch-none">
 
           <div class="relative transition-transform duration-100 ease-in-out origin-center w-full h-full"
             id="zoom-wrapper-{{il.image.id}}">
             <img
-              class="object-contain block origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
+              class="object-contain block w-full h-auto origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
               id="zoomable-image-{{il.image.id}}"
               src="{{ url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) }}"
               alt="{{ il.image.title }}">
@@ -117,7 +115,7 @@
                 <td class="p-2">
                   <a href="{{ light.filter_link }}" target="_blank"
                     class="text-blue-600 dark:text-blue-400 hover:underline">
-                    {{ light.filter|replace("Filter", "") }}
+                    {{ light.cam_filter|replace("Filter", "") }}
                   </a>
                 </td>
                 {% endfor %}
@@ -243,6 +241,10 @@
 
       </div>
 
+      <div class="relative flex flex-col items-center justify-center">
+        <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
+        </div>
+      </div>
 
       <style>
         [x-cloak] {
@@ -387,7 +389,16 @@
         });
   }) ();
       </script>
-      {% endfor %}
+
+
+    </div>
+    {% endfor %}
+    <div class="relative min-h-[35vh] flex flex-col items-center justify-center shadow-5xl">
+      <div
+        class="flex-grow flex items-center justify-center border-1 border-gray-200 dark:border-gray-400   shadow-5xl">
+        <div class="w-0 top-0 h-full shadow-2xl">
+        </div>
+      </div>
     </div>
   </div>
   {% endblock %}
