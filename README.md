@@ -6,7 +6,7 @@ Perfect for amateur astronomers, astrophotographers, and stargazers who want to 
 
 check out my Instance at:
 
-www.astro.space-js.de
+[www.astro.space-js.de](https://astro.space-js.de/)
 ---
 
 ## 🚀 Key Features
