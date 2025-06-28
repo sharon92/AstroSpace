@@ -1,9 +1,12 @@
 # 🌌 AstroSpace
 
-**AstroSpace** is a powerful web application designed to host, organize, and showcase your astrophotography collection. 🔭 Sort celestial objects in timeline views, plate-solve your images with precision, and create a stunning digital observatory of your cosmic captures. ✨
+**AstroSpace** is a web application designed to host, organize, and showcase your astrophotography collection. 🔭 Sort celestial objects in timeline views, automatic annotation for your images (Plate Solving) and create a stunning digital observatory of your cosmic captures. ✨
 
 Perfect for amateur astronomers, astrophotographers, and stargazers who want to organize their night sky adventures! 🌟
 
+check out my Instance at:
+
+www.astro.space-js.de
 ---
 
 ## 🚀 Key Features
@@ -54,7 +57,6 @@ Create and share your astrophotography posts:
 - 🛠️ **Equipment Inventory System** - Track your telescopes, cameras, filters, and accessories
 - 📝 **Advanced Blogging Platform** - Enhanced tools for documenting observations and techniques
 - ☀️ **Solar Photography Support** - Extended functionality for solar observation and imaging
-- 📱 **Enhanced Mobile Experience** - Improved responsive design for mobile astrophotographers
 - 🌍 **Weather Integration** - Connect with weather APIs for observing conditions
 - 📈 **Advanced Analytics** - Detailed statistics about your imaging sessions and equipment performance
 
