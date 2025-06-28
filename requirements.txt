@@ -1,5 +1,6 @@
 Flask
 flask-login
+flask_wtf
 psycopg2-binary
 numpy
 pandas
@@ -10,4 +11,3 @@ astroquery
 astropy
 photoutils
 pillow
-
