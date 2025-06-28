@@ -13,7 +13,7 @@
   </div>
 
   {% for il in images %}
-  <div class="relative flex flex-col items-center justify-center w-full space-y-0">
+  <div class="relative flex flex-col items-center justify-center w-full space-y-0 p-2">
     <!-- Title under the date -->
     <h2 class="text-xl text-white text-center">
       {{ il.image.title }}
@@ -26,10 +26,10 @@
     </span>
   </div>
 
-  <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-2 md:px-0 mx-auto">
+  <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-1 mx-auto">
     <!-- Main Card Container -->
     <div x-data="{ tab: 'image', showObjects: false }"
-      class="rounded-xl md:rounded-2xl shadow-xl border-2 bg-white/80 dark:bg-gray-800/80 overflow-hidden">
+      class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80 overflow-hidden">
 
       <!-- Tabs -->
       <div
@@ -74,33 +74,54 @@
               class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             </div>
           </div>
+
+          <!-- Reset Button -->
+          <button id="reset-btn-{{il.image.id}}"
+            class="absolute bottom-2 right-2 p-1 border-2 opacity-15 border-white rounded-md z-20 bg-gray-200/15 hover:opacity-50 transition"
+            aria-label="Reset image zoom" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none"
+              stroke="white" stroke-width="6">
+              <!-- Arrows from center to corners -->
+              <line x1="36" y1="28" x2="60" y2="4" />
+              <polyline points="38 4 60 4 60 26" />
+
+              <line x1="28" y1="36" x2="4" y2="60" />
+              <polyline points="4 38 4 60 26 60 " />
+
+            </svg>
+          </button>
         </div>
 
-        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+        <div class="flex justify-between items-center text-sm p-1.5 text-gray-600 dark:text-gray-300">
           <span>
             <span class="hover:text-amber-500 cursor-pointer">@{{ il.image.author }}</span>, <em>📍
               {{ il.image.location }}</em>
           </span>
 
-          <div class="gap-x-4 flex">
-            <span>Identify Objects</span>
-            <div class="relative inline-block w-9 h-3 align-middle select-none transition duration-200 ease-in">
-              <input checked id="overlay-toggle-{{il.image.id}}" type="checkbox"
-                class="peer appearance-none w-9 h-2 bg-gray-100 rounded-full checked:bg-green-800 cursor-pointer transition-colors duration-300">
-              <label for="overlay-toggle-{{il.image.id}}"
-                class="absolute top-0 left-0 w-6 h-6 bg-white rounded-full align-middle border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-slate-800 cursor-pointer">
-              </label>
-            </div>
-            <button id="reset-btn-{{il.image.id}}"
-              class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
-              Reset
-            </button>
+          <div class="flex">
+
+            <input id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+            <label for="overlay-toggle-{{il.image.id}}" class="inline-block p-1.5 rounded-full cursor-pointer border shadow-sm text-sm font-medium 
+         transition-colors duration-300
+         bg-gray-300 text-gray-900 border-slate-300 
+         hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
+         peer-checked:hover:bg-green-700 peer-checked:hover:border-green-800
+         peer-checked:bg-green-800 peer-checked:text-white peer-checked:border-green-900
+         dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
+         dark:peer-checked:bg-green-500 dark:peer-checked:border-green-300 dark:peer-checked:text-black">
+              Annotate
+            </label>
+
           </div>
         </div>
 
-        <p class="mt-4 text-gray-700 dark:text-gray-200">{{ il.image.description }}</p>
+        <div class=" p-2 text-gray-700 dark:text-gray-200">
 
+          <p>{{ il.image.description }}</p>
+        </div>
       </div>
+
 
       <!-- Acquisition Details Tab -->
       <div x-show="tab === 'lights'" class="p-6 dark:text-white">
