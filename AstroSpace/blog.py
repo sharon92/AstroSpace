@@ -65,12 +65,14 @@ def home():
         "home.html", WebName=current_app.config["TITLE"], top_images=top_images
     )
 
+
 @bp.route("/collection")
 def collection():
     images = get_all_images(unique=True)
     return render_template(
         "collection.html", images=images, WebName=current_app.config["TITLE"]
     )
+
 
 @bp.route("/get_elevation")
 def get_elevation():
@@ -174,9 +176,9 @@ def list_images():
 
 # New post form
 def render_image_form(title, **kwargs):
-    kwargs.update({t:fetch_options(t) for t in DB_TABLES if t not in ["guide_camera"]})
-    kwargs.update({"softwares":fetch_options("software")})
-    kwargs.update({"filters":fetch_options("cam_filter")})
+    kwargs.update({t: fetch_options(t) for t in DB_TABLES if t not in ["guide_camera"]})
+    kwargs.update({"softwares": fetch_options("software")})
+    kwargs.update({"filters": fetch_options("cam_filter")})
 
     filter_options = "".join(
         [f'<option value="{f["name"]}">{f["name"]}</option>' for f in kwargs["filters"]]
@@ -238,7 +240,7 @@ def edit_image(image_id):
 def delete_image(img_id):
     conn = get_conn()
     cur = conn.cursor()
-            # Clear and reinsert related tables
+    # Clear and reinsert related tables
     for table in [
         "images",
         "image_views",
@@ -292,22 +294,27 @@ def save_image():
         image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
         img_path_upload = f"{user_id}/{filename}"
         file.save(image_path)
-        header_json, svg_image, thumbnail_path = platesolve(image_path, user_id)
+        header_json, svg_image, thumbnail_path, pixel_scale = platesolve(
+            image_path, user_id
+        )
     elif img_id:
         img_path_upload = form.get("prev_img")
         if form.get("redo_plate_solve") == "on":
             full_img_path = os.path.join(
                 current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
             )
-            header_json, svg_image, thumbnail_path = platesolve(full_img_path, user_id)
+            header_json, svg_image, thumbnail_path, pixel_scale = platesolve(
+                full_img_path, user_id
+            )
         else:
             header_json = tmp_img["header_json"]
             svg_image = tmp_img["overlays_json"]
             thumbnail_path = tmp_img["image_thumbnail"]
+            pixel_scale = tmp_img["pixel_scale"]
 
     guide_logs = request.files.getlist("guide_logs")
     new_guide_logs = any(i.filename for i in guide_logs)
-    
+
     if new_guide_logs:
         print("Generating guide log plot...")
         iguide_logs = []
@@ -360,7 +367,7 @@ def save_image():
     columns = """
         title, short_description, description, author, slug,
         created_at, edited_at,
-        image_path, image_thumbnail, object_type,
+        image_path, image_thumbnail, pixel_scale, object_type,
         header_json, overlays_json, location,
         location_latitude, location_longitude, location_elevation,
         guide_log, guiding_html, calibration_html,
@@ -368,6 +375,30 @@ def save_image():
     columns += ",".join([f"{i}_id" for i in DB_TABLES])
 
     placeholders = ", ".join(["%s"] * len(columns.split(",")))
+
+    values = [
+        title,
+        form.get("short_description"),
+        form.get("description"),
+        user,
+        slugify(title),
+        created_at,
+        edited_at,
+        img_path_upload,
+        thumbnail_path,
+        pixel_scale,
+        object_type,
+        header_json,
+        svg_image,
+        form.get("location"),
+        lat,
+        lon,
+        form.get("location_elevation"),
+        guide_logs,
+        guiding_html,
+        calibration_html,
+        *table_ids,
+    ]
 
     if img_id:
         # editing updating
@@ -382,26 +413,7 @@ def save_image():
         cur.execute(
             query,
             (
-                title,
-                form.get("short_description"),
-                form.get("description"),
-                user,
-                slugify(title),
-                created_at,
-                edited_at,
-                img_path_upload,
-                thumbnail_path,
-                object_type,
-                header_json,
-                svg_image,
-                form.get("location"),
-                lat,
-                lon,
-                form.get("location_elevation"),
-                guide_logs,
-                guiding_html,
-                calibration_html,
-                *table_ids,
+                *values,
                 img_id,
             ),
         )
@@ -420,28 +432,7 @@ def save_image():
         query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
         cur.execute(
             query,
-            (
-                title,
-                form.get("short_description"),
-                form.get("description"),
-                user,
-                slugify(title),
-                created_at,
-                edited_at,
-                img_path_upload,
-                thumbnail_path,
-                object_type,
-                header_json,
-                svg_image,
-                form.get("location"),
-                lat,
-                lon,
-                form.get("location_elevation"),
-                guide_logs,
-                guiding_html,
-                calibration_html,
-                *table_ids,
-            ),
+            (*values,),
         )
 
         img_id = cur.fetchone()["id"]

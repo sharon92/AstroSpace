@@ -19,6 +19,11 @@ def platesolve(image_path,user_id):
     ast = AstrometryNet()
     ast.api_key = current_app.config["ASTROMETRY_API_KEY"]
     wcs_header = ast.solve_from_image(image_path, solve_timeout=1800)
+
+    wcs = WCS(wcs_header)
+    ps_x,ps_y = wcs.proj_plane_pixel_scales()
+    pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
+
     header_json = wcs_header.tostring()
     svg_image = json.dumps(get_overlays(header_json))
     print("Plate solving done.")
@@ -27,7 +32,7 @@ def platesolve(image_path,user_id):
     thumbnail_path = path + "_thumbnail" + ext
     resize_image(image_path, thumbnail_path)
     thumbnail_path = f"{user_id}/{os.path.basename(thumbnail_path)}"
-    return header_json, svg_image, thumbnail_path
+    return header_json, svg_image, thumbnail_path, pixel_scale
 
 def otype_to_color(otype):
     """Generate a consistent hex color for a given otype string."""
@@ -88,6 +93,9 @@ def get_overlays(wcs_header):
     wcs_header = Header.fromstring(wcs_header)
     wcs = WCS(wcs_header)
 
+    ps_x,ps_y = wcs.proj_plane_pixel_scales()
+    pixel_scale = np.mean([ps_x.value, ps_y.value]) * 3600
+
     simbad_desc = os.path.join(current_app.config['root_path'], "utils", "simbad_object_description.json")    
     with open(simbad_desc) as f:
         otypes = pd.read_json(f, orient="index")
@@ -107,9 +115,6 @@ def get_overlays(wcs_header):
     coord = SkyCoord(ra_center, dec_center, unit="deg")
     Simbad.add_votable_fields("dimensions", "otype", "otype_txt")#, "flux")
     result = Simbad.query_region(coord, radius=radius * u.deg)
-
-    ps_x,ps_y = wcs.proj_plane_pixel_scales()
-    pixel_scale = np.mean([ps_x.value, ps_y.value]) * 3600
 
     df = result.to_pandas()
     df = df[df["otype"].isin(chosen_stars.keys())].copy()

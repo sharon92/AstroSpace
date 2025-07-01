@@ -397,7 +397,7 @@
 
             div.innerHTML = `
             <div class="gap-4 flex ...">
-                <div class="w32 flex-none">${select.outerHTML.replace('<select', `<select name="filter_${idx}" class="${input_container_style}"`).replace(light.filter + '">', light.filter + '" selected>')}</div>
+                <div class="w32 flex-none">${select.outerHTML.replace('<select', `<select name="filter_${idx}" class="${input_container_style}"`).replace(light.cam_filter + '">', light.cam_filter + '" selected>')}</div>
                 <div class="w32 flex-1"><input name="count_${idx}" type="number" step="1" placeholder="Subs" class="${input_container_style}" value="${light.light_count || ''}" required></div>
                 <div class="w32 flex-1"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || ''}" required></div>
                 <div class="w32 flex-1"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" class="${input_container_style}" value="${light.gain || ''}"></div>
