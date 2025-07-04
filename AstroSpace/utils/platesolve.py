@@ -113,7 +113,7 @@ def get_overlays(wcs_header):
 
     radius = max(abs(ra_max - ra_min), abs(dec_max - dec_min)) / 2
     coord = SkyCoord(ra_center, dec_center, unit="deg")
-    Simbad.add_votable_fields("dimensions", "otype", "otype_txt")#, "flux")
+    Simbad.add_votable_fields("dimensions", "otype", "otype_txt", "distance")#, "flux")
     result = Simbad.query_region(coord, radius=radius * u.deg)
 
     df = result.to_pandas()
@@ -130,6 +130,7 @@ def get_overlays(wcs_header):
             "galdim_angle": "max",
             "otype": "first",
             "otype_txt": "first",
+            "distance": "mean",
             # "flux": "mean",
         }
     )

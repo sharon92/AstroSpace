@@ -22,6 +22,12 @@
   }
 </script>
 
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+</style>
+
 <div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover"
   style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
 
@@ -46,38 +52,56 @@
 
   <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-1 mx-auto">
     <!-- Main Card Container -->
-    <div x-data="{ tab: 'image', showObjects: false }"
+    <div x-data="{ mainTab: 'image', detailTab: 'lights',showObjects: false }"
       class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
-      <!-- Tabs -->
-      <div
-        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-start md:justify-center items-center whitespace-nowrap">
-        {% set tabs = [
-            ('image', 'Image'),
-            ('lights', 'Lights'),
-            ('nights', 'Nights'),
-            ('equipment', 'Equipment'),
-            ('software', 'Software')
-          ] %}
+      <!-- Main Tabs -->
+      <div x-cloak
+        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-center items-center whitespace-nowrap">
+        {% set main_tabs = [
+        ('image', 'Image'),
+        ('details', 'Details'),
+        ('explore', 'Explore')
+      ] %}
 
-        {% if il.guiding_html %}
-        {% set tabs = tabs + [('guiding', 'Guiding')] %}
-        {% endif %}
-        {% if il.calibration_html %}
-        {% set tabs = tabs + [('calibration', 'Calibration')] %}
-        {% endif %}
-
-        {% for tab_id, tab_label in tabs %}
-        <button @click="tab = '{{ tab_id }}'"
-          :class="tab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600  dark:text-gray-300'"
+        {% for tab_id, tab_label in main_tabs %}
+        <button @click="mainTab = '{{ tab_id }}'; if('{{ tab_id }}' === 'details'){ detailTab = 'lights' }"
+          :class="mainTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
           class="px-4 py-2 text-sm font-medium">
           {{ tab_label }}
         </button>
         {% endfor %}
       </div>
 
+      <!-- Sub Tabs for Details -->
+      <div x-show="mainTab === 'details'" x-cloak
+        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-start md:justify-center items-center whitespace-nowrap mt-2">
+
+        {% set detail_tabs = [
+          ('lights', 'Lights'),
+          ('nights', 'Nights'),
+          ('equipment', 'Equipment'),
+          ('software', 'Software')
+        ] %}
+        {% if il.guiding_html %}
+        {% set detail_tabs = detail_tabs + [('guiding', 'Guiding')] %}
+        {% endif %}
+        {% if il.calibration_html %}
+        {% set detail_tabs = detail_tabs + [('calibration', 'Calibration')] %}
+        {% endif %}
+
+        {% for tab_id, tab_label in detail_tabs %}
+        <button @click="detailTab = '{{ tab_id }}'"
+          :class="detailTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
+          class="px-4 py-2 text-sm font-medium">
+          {{ tab_label }}
+        </button>
+        {% endfor %}
+      </div>
+
+
       <!-- Image Tab -->
-      <div x-show="tab === 'image'" class="space-y-2 md:p-4">
+      <div x-show="mainTab === 'image'" class="space-y-2 md:p-4">
         <div id="zoom-container-{{il.image.id}}"
           class="relative w-full max-w-full overflow-x-auto overflow-y-hidden md:rounded-[10px] flex items-center justify-center group touch-none">
 
@@ -235,28 +259,29 @@
         </div>
       </div>
 
+      <template x-if="mainTab === 'details'">
+        <div>
+          <!-- Acquisition Details Tab -->
+          <div x-show="detailTab === 'lights'" class="p-6 dark:text-white">
+            <div class="flex border-b mb-4 w-full overflow-x-auto">
+              <table html-id="light-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
+                <tbody>
 
-      <!-- Acquisition Details Tab -->
-      <div x-show="tab === 'lights'" class="p-6 dark:text-white">
-        <div class="flex border-b mb-4 w-full overflow-x-auto">
-          <table html-id="light-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-            <tbody>
+                  <!-- Filter Row -->
+                  <tr class="border-b dark:border-gray-700">
+                    <td class="p-2 font-semibold capitalize">Filter</td>
+                    {% for light in il.lights %}
+                    <td class="p-2">
+                      <a href="{{ light.filter_link }}" target="_blank"
+                        class="text-blue-600 dark:text-blue-400 hover:underline">
+                        {{ light.cam_filter|replace("Filter", "") }}
+                      </a>
+                    </td>
+                    {% endfor %}
+                  </tr>
 
-              <!-- Filter Row -->
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">Filter</td>
-                {% for light in il.lights %}
-                <td class="p-2">
-                  <a href="{{ light.filter_link }}" target="_blank"
-                    class="text-blue-600 dark:text-blue-400 hover:underline">
-                    {{ light.cam_filter|replace("Filter", "") }}
-                  </a>
-                </td>
-                {% endfor %}
-              </tr>
-
-              <!-- Other Light Data Rows -->
-              {% set rows = {
+                  <!-- Other Light Data Rows -->
+                  {% set rows = {
                 'Lights': 'light_count',
                 'Single Exposure': 'exposure_time',
                 'Total Exposure': 'total_time',
@@ -265,32 +290,32 @@
                 'Temp (°C)': 'temperature'
               } %}
 
-              {% for label, field in rows.items() %}
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">{{ label }}</td>
-                {% for light in il.lights %}
-                <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
-                {% endfor %}
-              </tr>
-              {% endfor %}
+                  {% for label, field in rows.items() %}
+                  <tr class="border-b dark:border-gray-700">
+                    <td class="p-2 font-semibold capitalize">{{ label }}</td>
+                    {% for light in il.lights %}
+                    <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
+                    {% endfor %}
+                  </tr>
+                  {% endfor %}
 
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      <div x-show="tab === 'nights'" class="p-6 dark:text-white">
-        <div class="flex border-b mb-4">
-          <table html-id="night-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-            <tbody>
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">Capture Dates</td>
-                <td class="p-2 font-semibold capitalize">Moon Illumination</td>
-              </tr>
-              {% for date in il.dates %}
-              <tr class="border-b dark:border-gray-700">
-                <td class="p-2 font-semibold capitalize">{{ date.capture_date }}</td>
-                <td class="p-2 text-blue-600 dark:text-blue-400"">{{ date.moon_phase }} ({{ date.moon_illumination }}%)</td>
+          <div x-show="detailTab === 'nights'" class="p-6 dark:text-white">
+            <div class="flex border-b mb-4">
+              <table html-id="night-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
+                <tbody>
+                  <tr class="border-b dark:border-gray-700">
+                    <td class="p-2 font-semibold capitalize">Capture Dates</td>
+                    <td class="p-2 font-semibold capitalize">Moon Illumination</td>
+                  </tr>
+                  {% for date in il.dates %}
+                  <tr class="border-b dark:border-gray-700">
+                    <td class="p-2 font-semibold capitalize">{{ date.capture_date }}</td>
+                    <td class="p-2 text-blue-600 dark:text-blue-400"">{{ date.moon_phase }} ({{ date.moon_illumination }}%)</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -298,229 +323,233 @@
         </div>
       </div>
 
-      <div x-show=" tab==='equipment'" class=" p-6 dark:text-white">
-                  <div class="flex border-b mb-4">
-                    <table html-id="equipment-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-                      <tbody>
-                        {% for equipment in il.equipment_list %}
-                        <tr class="border-b dark:border-gray-700">
-                          <td class="p-2 font-semibold ">
-                            {{ equipment.table|replace('_', ' ')|title+ ":" }}
-                          </td>
-                          <td class="p-2">
-                            <a href="{{ equipment.link }}" target="_blank"
-                              class="text-blue-600 dark:text-blue-400 hover:underline">
-                              {{ equipment.brand | default('') + " " + equipment.name|replace(equipment.brand | default(''), '') }}
-                            </a>
-                          </td>
-                        </tr>
+      <div x-show=" detailTab==='equipment'" class=" p-6 dark:text-white">
+                      <div class="flex border-b mb-4">
+                        <table html-id="equipment-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
+                          <tbody>
+                            {% for equipment in il.equipment_list %}
+                            <tr class="border-b dark:border-gray-700">
+                              <td class="p-2 font-semibold ">
+                                {{ equipment.table|replace('_', ' ')|title+ ":" }}
+                              </td>
+                              <td class="p-2">
+                                <a href="{{ equipment.link }}" target="_blank"
+                                  class="text-blue-600 dark:text-blue-400 hover:underline">
+                                  {{ equipment.brand | default('') + " " + equipment.name|replace(equipment.brand | default(''), '') }}
+                                </a>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+            </div>
+
+            <div x-show="detailTab === 'software'" class="p-6 dark:text-white">
+              <div class="flex border-b mb-4">
+                <table html-id="software-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
+                  <tbody>
+                    <tr class="border-b dark:border-gray-700">
+                      <td class="p-2 font-semibold capitalize">Acquisition</td>
+                      <td class="p-2 text-blue-600 dark:text-blue-400">
+                        {% for software in il.software_list %}
+                        {% if software.type == 'acquisition' %}
+                        <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a>
+                        </p>
+                        {% endif %}
                         {% endfor %}
-                      </tbody>
-                    </table>
-                  </div>
-        </div>
+                      </td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                      <td class="p-2 font-semibold capitalize">Processing</td>
+                      <td class="p-2 text-blue-600 dark:text-blue-400">
+                        {% for software in il.software_list %}
+                        {% if software.type == 'processing' %}
+                        {% if software.metadata %}
+                        <p>{{ software.metadata | safe}}</p>
+                        {% else %}
+                        <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-        <div x-show="tab === 'software'" class="p-6 dark:text-white">
-          <div class="flex border-b mb-4">
-            <table html-id="software-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-              <tbody>
-                <tr class="border-b dark:border-gray-700">
-                  <td class="p-2 font-semibold capitalize">Acquisition</td>
-                  <td class="p-2 text-blue-600 dark:text-blue-400">
-                    {% for software in il.software_list %}
-                    {% if software.type == 'acquisition' %}
-                    <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a>
-                    </p>
-                    {% endif %}
-                    {% endfor %}
-                  </td>
-                </tr>
-                <tr class="border-b dark:border-gray-700">
-                  <td class="p-2 font-semibold capitalize">Processing</td>
-                  <td class="p-2 text-blue-600 dark:text-blue-400">
-                    {% for software in il.software_list %}
-                    {% if software.type == 'processing' %}
-                    {% if software.metadata %}
-                    <p>{{ software.metadata | safe}}</p>
-                    {% else %}
-                    <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
-                    {% endif %}
-                    {% endif %}
-                    {% endfor %}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <!-- Guiding Tab -->
+            <template x-if="detailTab === 'guiding'">
+              <div class="p-6">
+                <!-- Bokeh Graph Embed -->
+                <div class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6">
+
+                  {{il.guiding_html | safe}}
+
+                </div>
+              </div>
+            </template>
+
+            <template x-if="detailTab === 'calibration'">
+              <div class="p-6">
+                <!-- Bokeh Graph Embed -->
+                <div class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6">
+
+                  {{il.calibration_html | safe}}
+
+                </div>
+              </div>
+            </template>
           </div>
-        </div>
+      </template>
 
-        <!-- Guiding Tab -->
-        <div x-show="tab === 'guiding'" class="p-6">
-          <!-- Bokeh Graph Embed -->
-          <div class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6">
+      <template x-if="mainTab === 'explore'">
+        <div>Explore is empty for now</div>
+      </template>
 
-            {{il.guiding_html | safe}}
+    </div>
 
-          </div>
-        </div>
-
-        <div x-show="tab === 'calibration'" class="p-6">
-          <!-- Bokeh Graph Embed -->
-          <div class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6">
-
-            {{il.calibration_html | safe}}
-
-          </div>
-        </div>
-
+    <div class="relative flex flex-col items-center justify-center">
+      <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
       </div>
+    </div>
 
-      <div class="relative flex flex-col items-center justify-center">
-        <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
-        </div>
-      </div>
+    <script>
+      (function () {
+        const img = document.getElementById('zoomable-image-{{il.image.id}}');
+        const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
 
-      <style>
-        [x-cloak] {
-          display: none;
+        const panzoom = Panzoom(wrapper, {
+          maxScale: 50
+        })
+        wrapper.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+
+        document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
+          panzoom.reset();
+        });
+
+        function copyCurrentURL() {
+          const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+          navigator.clipboard.writeText(link)
+            .then(() => {
+              alert("Link copied to clipboard!");
+            })
+            .catch(err => {
+              alert("Failed to copy: " + err);
+            });
         }
-      </style>
 
-      <script>
-        (function () {
-          const img = document.getElementById('zoomable-image-{{il.image.id}}');
-          const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
+        document.getElementById("copy-link-{{il.image.id}}").addEventListener("click", copyCurrentURL);
 
-          const panzoom = Panzoom(wrapper, {
-            maxScale: 50
-          })
-          wrapper.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+        function copyCurrentURLwithDetails() {
+          const id = "{{il.image.id}}";  // use your actual id injection method here
+          const link = `${window.location.origin}${window.location.pathname}#uid-${id}`;
 
-          document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
-            panzoom.reset();
-          });
+          // Define tables and their section titles in the order you want
+          const tablesInfo = [
+            { selector: `table[html-id="light-${id}"]`, title: "Acquisition:\n------------" },
+            { selector: `table[html-id="night-${id}"]`, title: "" },
+            { selector: `table[html-id="equipment-${id}"]`, title: "Equipment:\n-----------" },
+            { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
+          ];
 
-          function copyCurrentURL() {
-            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
-            navigator.clipboard.writeText(link)
-              .then(() => {
-                alert("Link copied to clipboard!");
-              })
-              .catch(err => {
-                alert("Failed to copy: " + err);
+          let fullText = "{{il.image.title}} - {{il.image.short_description}}\n\n{{ il.image.description }}\n\nImage By: {{ il.image.author }}\n\n";
+
+          tablesInfo.forEach(({ selector, title }) => {
+            const table = document.querySelector(selector);
+            if (!table) return;  // skip if table not found
+
+            const rows = table.querySelectorAll("tr");
+            const tableData = [];
+
+            rows.forEach(row => {
+              const cells = Array.from(row.querySelectorAll("td"));
+              const rowText = cells.map(cell => {
+                const pElements = cell.querySelectorAll("p");
+                if (pElements.length > 0) {
+                  return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
+                } else {
+                  return cell.innerText.trim();
+                }
               });
-          }
-
-          document.getElementById("copy-link-{{il.image.id}}").addEventListener("click", copyCurrentURL);
-
-          function copyCurrentURLwithDetails() {
-            const id = "{{il.image.id}}";  // use your actual id injection method here
-            const link = `${window.location.origin}${window.location.pathname}#uid-${id}`;
-
-            // Define tables and their section titles in the order you want
-            const tablesInfo = [
-              { selector: `table[html-id="light-${id}"]`, title: "Acquisition:\n------------" },
-              { selector: `table[html-id="night-${id}"]`, title: "" },
-              { selector: `table[html-id="equipment-${id}"]`, title: "Equipment:\n-----------" },
-              { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
-            ];
-
-            let fullText = "{{il.image.title}} - {{il.image.short_description}}\n\n{{ il.image.description }}\n\nImage By: {{ il.image.author }}\n\n";
-
-            tablesInfo.forEach(({ selector, title }) => {
-              const table = document.querySelector(selector);
-              if (!table) return;  // skip if table not found
-
-              const rows = table.querySelectorAll("tr");
-              const tableData = [];
-
-              rows.forEach(row => {
-                const cells = Array.from(row.querySelectorAll("td"));
-                const rowText = cells.map(cell => {
-                  const pElements = cell.querySelectorAll("p");
-                  if (pElements.length > 0) {
-                    return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
-                  } else {
-                    return cell.innerText.trim();
-                  }
-                });
-                tableData.push(rowText);
-              });
-
-              const formattedTable = alignTable(tableData);
-
-              fullText += `${title}\n${formattedTable}\n\n`;
+              tableData.push(rowText);
             });
 
-            fullText += link;
+            const formattedTable = alignTable(tableData);
 
-            navigator.clipboard.writeText(fullText)
-              .then(() => {
-                alert("Link copied to clipboard!");
-              })
-              .catch(err => {
-                alert("Failed to copy: " + err);
-              });
-          }
+            fullText += `${title}\n${formattedTable}\n\n`;
+          });
 
-          document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
+          fullText += link;
+
+          navigator.clipboard.writeText(fullText)
+            .then(() => {
+              alert("Link copied to clipboard!");
+            })
+            .catch(err => {
+              alert("Failed to copy: " + err);
+            });
+        }
+
+        document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
 
 
-          function copyCurrentURLwithDetailsHTML() {
-            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
-            const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
+        function copyCurrentURLwithDetailsHTML() {
+          const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+          const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
 
-            //console.log(link);
-            // Clone the table to avoid modifying the DOM
-            const tableClone = lightTable.cloneNode(true);
+          //console.log(link);
+          // Clone the table to avoid modifying the DOM
+          const tableClone = lightTable.cloneNode(true);
 
-            // Optionally remove classes or inline styles
-            tableClone.removeAttribute("class");
+          // Optionally remove classes or inline styles
+          tableClone.removeAttribute("class");
 
-            // Create a full HTML snippet
-            const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
-            //console.log(htmlContent);
-            // Copy as HTML
-            const blobt = new Blob([htmlContent], { type: "text/plain" });
-            const blob = new Blob([htmlContent], { type: "text/html" });
-            const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
+          // Create a full HTML snippet
+          const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
+          //console.log(htmlContent);
+          // Copy as HTML
+          const blobt = new Blob([htmlContent], { type: "text/plain" });
+          const blob = new Blob([htmlContent], { type: "text/html" });
+          const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
 
-            navigator.clipboard.write([clipboardItem])
-              .then(() => {
-                alert("HTML table and link copied to clipboard!");
-              })
-              .catch(err => {
-                alert("Failed to copy HTML: " + err);
-              });
-          }
+          navigator.clipboard.write([clipboardItem])
+            .then(() => {
+              alert("HTML table and link copied to clipboard!");
+            })
+            .catch(err => {
+              alert("Failed to copy HTML: " + err);
+            });
+        }
 
-          // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
+        // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
 
-          const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
-          const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
+        const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
+        const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
 
-          let overlayData = {{ il.svg_image | tojson | safe
-        }};
+        let overlayData = {{ il.svg_image | tojson | safe
+      }};
 
-        const compareDiv = document.getElementById('compare-{{il.image.id}}');
-        let compSVG = `<svg id="comp-svg-{{il.image.id}}" viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" class="absolute top-0 left-0 pointer-events-auto"></svg>`;
-        compareDiv.innerHTML = compSVG;
+      const compareDiv = document.getElementById('compare-{{il.image.id}}');
+      let compSVG = `<svg id="comp-svg-{{il.image.id}}" viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" class="absolute top-0 left-0 pointer-events-auto"></svg>`;
+      compareDiv.innerHTML = compSVG;
 
-        function renderOverlay() {
-          if (!overlayToggle.checked) {
-            svgOverlay.innerHTML = "";
-            return;
-          }
+      function renderOverlay() {
+        if (!overlayToggle.checked) {
+          svgOverlay.innerHTML = "";
+          return;
+        }
 
-          let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
+        let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
 
-          for (let [otype, items] of Object.entries(overlayData.overlays)) {
-            for (let item of items) {
-              if (item.rx >= 10 && item.ry >= 10) {
-                const transform = item.angle && item.angle !== 32767
-                  ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
-                  : "";
-                svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+        for (let [otype, items] of Object.entries(overlayData.overlays)) {
+          for (let item of items) {
+            if (item.rx >= 10 && item.ry >= 10) {
+              const transform = item.angle && item.angle !== 32767
+                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
+                : "";
+              svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
                       rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
                       fill="none" stroke="white" stroke-opacity="0.9" stroke-width="10" style="pointer-events: all;"></ellipse>
                     <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
@@ -528,91 +557,90 @@
                           text-anchor="middle" alignment-baseline="middle">
                       ${item.id}
                     </text>`;
-              }
             }
           }
-          svg += "</svg>";
-          svgOverlay.innerHTML = svg;
         }
+        svg += "</svg>";
+        svgOverlay.innerHTML = svg;
+      }
 
-        // Handle overlay toggle
-        overlayToggle.addEventListener('change', () => {
-          renderOverlay();
+      // Handle overlay toggle
+      overlayToggle.addEventListener('change', () => {
+        renderOverlay();
+      });
+
+      renderOverlay();
+
+      const objectSizes = {
+        sun: 1920, // arcseconds
+        moon: 1800,
+        jupiter: 40
+      };
+
+      const objectColors = {
+        sun: "rgba(255, 255, 0, 0.8)",
+        moon: "rgba(255, 255, 255, 0.8)",
+        jupiter: "rgba(255, 200, 150, 0.8)"
+      };
+
+      const pixelScale = {{ il.image.pixel_scale }};
+
+      document.getElementById("compare-button-{{il.image.id}}").onclick = () => {
+        document.getElementById("compare-modal-{{il.image.id}}").classList.remove("hidden");
+      };
+
+      document.getElementById("modal-cancel-{{il.image.id}}").onclick = () => {
+        document.getElementById("compare-modal-{{il.image.id}}").classList.add("hidden");
+      };
+
+      document.getElementById("add-object-{{il.image.id}}").onclick = () => {
+        const object = document.getElementById("object-select-{{il.image.id}}").value;
+        const count = parseInt(document.getElementById("count-{{il.image.id}}").value);
+        const baseSize = objectSizes[object];
+        const size = baseSize * count / pixelScale;
+        const objectColor = objectColors[object];
+        addOverlay(objectColor, size);
+
+        // ✅ Close modal after adding
+        document.getElementById("compare-modal-{{il.image.id}}").classList.add("hidden");
+      }
+
+      function addOverlay(objectColor, size) {
+        const container = document.getElementById('comp-svg-{{il.image.id}}');
+        const uniqueId = `overlay-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("id", uniqueId);
+        circle.setAttribute("cx", size / 2);
+        circle.setAttribute("cy", size / 2);
+        circle.setAttribute("r", (size / 2) - 2);
+        circle.setAttribute("fill", objectColor);
+        circle.setAttribute("stroke", "black");
+        circle.setAttribute("stroke-width", "2");
+
+        container.appendChild(circle);
+
+        const panzoom = Panzoom(circle, {
+          cursor: 'grab',
+          disableZoom: true,
+        })
+
+        circle.addEventListener('dblclick', (e) => {
+          circle.remove();
         });
 
-        renderOverlay();
-
-        const objectSizes = {
-          sun: 1920, // arcseconds
-          moon: 1800,
-          jupiter: 40
-        };
-
-        const objectColors = {
-          sun: "rgba(255, 255, 0, 0.8)",
-          moon: "rgba(255, 255, 255, 0.8)",
-          jupiter: "rgba(255, 200, 150, 0.8)"
-        };
-
-        const pixelScale = {{ il.image.pixel_scale }};
-
-        document.getElementById("compare-button-{{il.image.id}}").onclick = () => {
-          document.getElementById("compare-modal-{{il.image.id}}").classList.remove("hidden");
-        };
-
-        document.getElementById("modal-cancel-{{il.image.id}}").onclick = () => {
-          document.getElementById("compare-modal-{{il.image.id}}").classList.add("hidden");
-        };
-
-        document.getElementById("add-object-{{il.image.id}}").onclick = () => {
-          const object = document.getElementById("object-select-{{il.image.id}}").value;
-          const count = parseInt(document.getElementById("count-{{il.image.id}}").value);
-          const baseSize = objectSizes[object];
-          const size = baseSize * count / pixelScale;
-          const objectColor = objectColors[object];
-          addOverlay(objectColor, size);
-
-          // ✅ Close modal after adding
-          document.getElementById("compare-modal-{{il.image.id}}").classList.add("hidden");
-        }
-
-        function addOverlay(objectColor, size) {
-          const container = document.getElementById('comp-svg-{{il.image.id}}');
-          const uniqueId = `overlay-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          circle.setAttribute("id", uniqueId);
-          circle.setAttribute("cx", size / 2);
-          circle.setAttribute("cy", size / 2);
-          circle.setAttribute("r", (size / 2) - 2);
-          circle.setAttribute("fill", objectColor);
-          circle.setAttribute("stroke", "black");
-          circle.setAttribute("stroke-width", "2");
-
-          container.appendChild(circle);
-
-          const panzoom = Panzoom(circle, {
-            cursor: 'grab',
-            disableZoom: true,
-          })
-
-          circle.addEventListener('dblclick', (e) => {
-            circle.remove();
-          });
-
-        }
+      }
   }) ();
-      </script>
+    </script>
 
 
-    </div>
-    {% endfor %}
-    <div class="relative min-h-[35vh] flex flex-col items-center justify-center shadow-5xl">
-      <div
-        class="flex-grow flex items-center justify-center border-1 border-gray-200 dark:border-gray-400   shadow-5xl">
-        <div class="w-0 top-0 h-full shadow-2xl">
-        </div>
+  </div>
+  {% endfor %}
+  <div class="relative min-h-[35vh] flex flex-col items-center justify-center shadow-5xl">
+    <div class="flex-grow flex items-center justify-center border-1 border-gray-200 dark:border-gray-400   shadow-5xl">
+      <div class="w-0 top-0 h-full shadow-2xl">
       </div>
     </div>
   </div>
-  {% endblock %}
+</div>
+{% endblock %}
