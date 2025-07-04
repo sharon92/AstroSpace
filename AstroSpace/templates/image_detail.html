@@ -4,6 +4,23 @@
 <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@headlessui/react@1.7.15/dist/headlessui.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+<script>
+  function alignTable(rows) {
+    const colWidths = [];
+
+    // Calculate max width for each column
+    rows.forEach(row => {
+      row.forEach((cell, i) => {
+        colWidths[i] = Math.max(colWidths[i] || 0, cell.length);
+      });
+    });
+
+    // Pad each cell and join with space
+    return rows.map(row =>
+      row.map((cell, i) => cell.padEnd(colWidths[i], ' ')).join('  ')
+    ).join('\n');
+  }
+</script>
 
 <div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover"
   style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
@@ -14,7 +31,7 @@
   </div>
 
   {% for il in images %}
-  <div class="relative flex flex-col items-center justify-center w-full space-y-0 p-2">
+  <div id="uid-{{il.image.id}}" class="relative flex flex-col items-center justify-center w-full space-y-0 p-2">
     <!-- Title under the date -->
     <h2 class="text-xl text-white text-center">
       {{ il.image.title }}
@@ -30,7 +47,7 @@
   <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-1 mx-auto">
     <!-- Main Card Container -->
     <div x-data="{ tab: 'image', showObjects: false }"
-      class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80 overflow-hidden">
+      class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
       <!-- Tabs -->
       <div
@@ -162,12 +179,17 @@
 
               <!-- Dropdown menu -->
               <div x-show="open" @click.outside="open = false"
-                class="absolute right-0 z-10 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 dark:bg-gray-800">
-                <div class="py-1 text-sm text-gray-700 dark:text-gray-100">
-                  <button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share
+                class="absolute right-0 z-300 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 dark:bg-gray-800 overflow-visible">
+                <div class="py-1 text-sm text-gray-700 dark:text-gray-100 overflow-visible">
+                  <button id="copy-link-{{il.image.id}}"
+                    class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ">Share
                     link</button>
-                  <button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
-                    details</button>
+                  <button id="copy-link-details-{{il.image.id}}"
+                    class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
+                    details </button>
+                  {# <button id="copy-html-details-{{il.image.id}}"
+                    class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
+                    details (HTML) </button> #}
                 </div>
               </div>
             </div>
@@ -217,7 +239,7 @@
       <!-- Acquisition Details Tab -->
       <div x-show="tab === 'lights'" class="p-6 dark:text-white">
         <div class="flex border-b mb-4 w-full overflow-x-auto">
-          <table class="table-auto w-full text-left border-collapse">
+          <table html-id="light-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
             <tbody>
 
               <!-- Filter Row -->
@@ -259,7 +281,7 @@
 
       <div x-show="tab === 'nights'" class="p-6 dark:text-white">
         <div class="flex border-b mb-4">
-          <table class="table-auto w-full text-left border-collapse">
+          <table html-id="night-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
             <tbody>
               <tr class="border-b dark:border-gray-700">
                 <td class="p-2 font-semibold capitalize">Capture Dates</td>
@@ -278,12 +300,12 @@
 
       <div x-show=" tab==='equipment'" class=" p-6 dark:text-white">
                   <div class="flex border-b mb-4">
-                    <table class="table-auto w-full text-left border-collapse">
+                    <table html-id="equipment-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
                       <tbody>
                         {% for equipment in il.equipment_list %}
                         <tr class="border-b dark:border-gray-700">
-                          <td class="p-2 font-semibold capitalize">
-                            {{ equipment.table|replace('_', ' ') + ":" }}
+                          <td class="p-2 font-semibold ">
+                            {{ equipment.table|replace('_', ' ')|title+ ":" }}
                           </td>
                           <td class="p-2">
                             <a href="{{ equipment.link }}" target="_blank"
@@ -300,7 +322,7 @@
 
         <div x-show="tab === 'software'" class="p-6 dark:text-white">
           <div class="flex border-b mb-4">
-            <table class="table-auto w-full text-left border-collapse">
+            <table html-id="software-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
               <tbody>
                 <tr class="border-b dark:border-gray-700">
                   <td class="p-2 font-semibold capitalize">Acquisition</td>
@@ -377,6 +399,102 @@
           document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
             panzoom.reset();
           });
+
+          function copyCurrentURL() {
+            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+            navigator.clipboard.writeText(link)
+              .then(() => {
+                alert("Link copied to clipboard!");
+              })
+              .catch(err => {
+                alert("Failed to copy: " + err);
+              });
+          }
+
+          document.getElementById("copy-link-{{il.image.id}}").addEventListener("click", copyCurrentURL);
+
+          function copyCurrentURLwithDetails() {
+            const id = "{{il.image.id}}";  // use your actual id injection method here
+            const link = `${window.location.origin}${window.location.pathname}#uid-${id}`;
+
+            // Define tables and their section titles in the order you want
+            const tablesInfo = [
+              { selector: `table[html-id="light-${id}"]`, title: "Acquisition:\n------------" },
+              { selector: `table[html-id="night-${id}"]`, title: "" },
+              { selector: `table[html-id="equipment-${id}"]`, title: "Equipment:\n-----------" },
+              { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
+            ];
+
+            let fullText = "{{il.image.title}} - {{il.image.short_description}}\n\n{{ il.image.description }}\n\nImage By: {{ il.image.author }}\n\n";
+
+            tablesInfo.forEach(({ selector, title }) => {
+              const table = document.querySelector(selector);
+              if (!table) return;  // skip if table not found
+
+              const rows = table.querySelectorAll("tr");
+              const tableData = [];
+
+              rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll("td"));
+                const rowText = cells.map(cell => {
+                  const pElements = cell.querySelectorAll("p");
+                  if (pElements.length > 0) {
+                    return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
+                  } else {
+                    return cell.innerText.trim();
+                  }
+                });
+                tableData.push(rowText);
+              });
+
+              const formattedTable = alignTable(tableData);
+
+              fullText += `${title}\n${formattedTable}\n\n`;
+            });
+
+            fullText += link;
+
+            navigator.clipboard.writeText(fullText)
+              .then(() => {
+                alert("Link copied to clipboard!");
+              })
+              .catch(err => {
+                alert("Failed to copy: " + err);
+              });
+          }
+
+          document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
+
+
+          function copyCurrentURLwithDetailsHTML() {
+            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+            const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
+
+            //console.log(link);
+            // Clone the table to avoid modifying the DOM
+            const tableClone = lightTable.cloneNode(true);
+
+            // Optionally remove classes or inline styles
+            tableClone.removeAttribute("class");
+
+            // Create a full HTML snippet
+            const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
+            //console.log(htmlContent);
+            // Copy as HTML
+            const blobt = new Blob([htmlContent], { type: "text/plain" });
+            const blob = new Blob([htmlContent], { type: "text/html" });
+            const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
+
+            navigator.clipboard.write([clipboardItem])
+              .then(() => {
+                alert("HTML table and link copied to clipboard!");
+              })
+              .catch(err => {
+                alert("Failed to copy HTML: " + err);
+              });
+          }
+
+          // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
 
           const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
           const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
