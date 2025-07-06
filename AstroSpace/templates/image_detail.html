@@ -525,8 +525,6 @@
 
         // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
 
-        const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
-        const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
 
         let overlayData = {{ il.svg_image | tojson | safe
       }};
@@ -534,6 +532,22 @@
       const compareDiv = document.getElementById('compare-{{il.image.id}}');
       let compSVG = `<svg id="comp-svg-{{il.image.id}}" viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" class="absolute top-0 left-0 pointer-events-auto"></svg>`;
       compareDiv.innerHTML = compSVG;
+
+      const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
+      const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
+
+      overlayData.overlays = JSON.parse(overlayData.overlays);
+
+      let overlays = overlayData.overlays.name.map((_, i) => ({
+        id: overlayData.overlays.name[i],
+        x: overlayData.overlays.x[i],
+        y: overlayData.overlays.y[i],
+        rx: overlayData.overlays.rx[i],
+        ry: overlayData.overlays.ry[i],
+        angle: overlayData.overlays.angle[i],
+        otype: overlayData.overlays.otype[i],
+        dist: overlayData.overlays.dist[i]
+      }));
 
       function renderOverlay() {
         if (!overlayToggle.checked) {
@@ -543,23 +557,22 @@
 
         let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
 
-        for (let [otype, items] of Object.entries(overlayData.overlays)) {
-          for (let item of items) {
-            if (item.rx >= 10 && item.ry >= 10) {
-              const transform = item.angle && item.angle !== 32767
-                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
-                : "";
-              svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
-                      rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
-                      fill="none" stroke="white" stroke-opacity="0.9" stroke-width="10" style="pointer-events: all;"></ellipse>
-                    <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
-                          font-size="72" fill="white" stroke="black" stroke-width="2"
-                          text-anchor="middle" alignment-baseline="middle">
-                      ${item.id}
-                    </text>`;
-            }
+        for (let item of overlays) {
+          if (item.rx >= 10 && item.ry >= 10) {
+            const transform = item.angle
+              ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
+              : "";
+            svg += `<ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+              rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
+              fill="none" stroke="white" stroke-opacity="0.9" stroke-width="10" style="pointer-events: all;"></ellipse>
+            <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
+                  font-size="72" fill="white" stroke="black" stroke-width="2"
+                  text-anchor="middle" alignment-baseline="middle">
+              ${item.id}
+            </text>`;
           }
         }
+
         svg += "</svg>";
         svgOverlay.innerHTML = svg;
       }

@@ -13,6 +13,8 @@ from astroquery.astrometry_net import AstrometryNet
 from AstroSpace.utils.utils import  resize_image
 import json 
 
+pc_to_ly = 3.26156 # 1 parsec = 3.26156 light years
+
 def platesolve(image_path,user_id):
     print("Plate solving image....")
     # Initialize AstrometryNet with your API key
@@ -88,7 +90,6 @@ favs = [
     "Y*O",
 ]
 
-
 def get_overlays(wcs_header):
     wcs_header = Header.fromstring(wcs_header)
     wcs = WCS(wcs_header)
@@ -100,7 +101,8 @@ def get_overlays(wcs_header):
     with open(simbad_desc) as f:
         otypes = pd.read_json(f, orient="index")
 
-    chosen_stars = otypes.query("index.isin(@favs)").to_dict()[0]
+    # chosen_stars = otypes.query("index.isin(@favs)").to_dict()[0]
+    chosen_stars = otypes.to_dict()[0]
 
     nx, ny = wcs_header.get("IMAGEW", 0), wcs_header.get("IMAGEH", 0)
 
@@ -113,11 +115,11 @@ def get_overlays(wcs_header):
 
     radius = max(abs(ra_max - ra_min), abs(dec_max - dec_min)) / 2
     coord = SkyCoord(ra_center, dec_center, unit="deg")
-    Simbad.add_votable_fields("dimensions", "otype", "otype_txt", "distance")#, "flux")
+    Simbad.add_votable_fields("dimensions", "otype", "otype_txt", "mesdistance","parallax")#, "flux")
     result = Simbad.query_region(coord, radius=radius * u.deg)
 
     df = result.to_pandas()
-    df = df[df["otype"].isin(chosen_stars.keys())].copy()
+    #df = df[df["otype"].isin(chosen_stars.keys())].copy()
     df = df.dropna(subset=["ra", "dec"])
 
     group = df.groupby("main_id", as_index=False, dropna=False)
@@ -129,50 +131,40 @@ def get_overlays(wcs_header):
             "galdim_minaxis": "max",
             "galdim_angle": "max",
             "otype": "first",
-            "otype_txt": "first",
-            "distance": "mean",
+            "mesdistance.dist": "first",
+            "mesdistance.unit": "first",
+            "plx_value": "first",
             # "flux": "mean",
         }
     )
     df.sort_values(["galdim_majaxis", "galdim_minaxis"], ascending=False, inplace=True)
+
     # df.loc[pd.isna(df["flux"]), "flux"] = 0.0
+    dist = df["mesdistance.dist"]
+    unit = [0 if len(i)==0 else 1e3 if i.lower()[0]=='k' else 1e6 if i.lower()[0] == 'm' else 1 for i in df["mesdistance.unit"]]
+    distance = dist * unit * pc_to_ly  # Convert distance to light years
+    plx = (df["plx_value"]**-1)*pc_to_ly*1e3 # Convert parallax to distance in light years
+
+    d_ly = np.nanmean([distance.values, plx.values], axis=0)
 
     x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
-    df["x"] = x
-    df["y"] = y
-    df.reset_index(drop=True, inplace=True)
 
     df["galdim_majaxis_pix"] = (df["galdim_majaxis"] * 60) / pixel_scale/2
     df["galdim_minaxis_pix"] = (df["galdim_minaxis"] * 60) / pixel_scale/2
 
-    overlay_groups = defaultdict(list)
-
-    for _, row in df.iterrows():
-        
-        rx, ry, angle = row[
-            ["galdim_majaxis_pix", "galdim_minaxis_pix", "galdim_angle"]
-        ]
-        if angle is pd.NA or angle == 32767:
-            angle = 0
-        if np.isnan(rx) or np.isnan(ry):
-            rx, ry = 0, 0
-
-        obj = chosen_stars[row["otype_txt"]]
-        item = {
-            "id": row["main_id"].replace("NAME", "").strip(),
-            "x": row["x"],
-            "y": row["y"],
-            "rx": rx,
-            "ry": ry,
-            "angle": angle,
-            # "flux": row["flux"],
-            "otype": obj,
-            "color": otype_to_color(row["otype_txt"]),
-        }
-        overlay_groups[obj].append(item)
+    db = {
+        "name": df["main_id"].astype(str).tolist(),
+        "x": x.round(1).tolist(),
+        "y": y.round(1).tolist(),
+        "rx": [0 if np.isnan(i) else round(i,1) for i in df.galdim_majaxis_pix],
+        "ry": [0 if np.isnan(i) else round(i,1) for i in df.galdim_minaxis_pix],
+        "angle": [0 if pd.isna(i) or i==32767 else int(i) for i in df.galdim_angle],
+        "otype": [chosen_stars.get(o,"Unknown") for o in df["otype"].astype(str)],
+        "dist": [0 if np.isnan(i) else round(i,1) for i in d_ly],
+    }
 
     return {
         "width": nx,
         "height": ny,
-        "overlays": overlay_groups,
+        "overlays": json.dumps(db),
     }
