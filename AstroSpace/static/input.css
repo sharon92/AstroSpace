@@ -2,6 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+
 @font-face {
   font-family: scribble;
   src: url('/static/fonts/Scribble.woff2') format('woff2');

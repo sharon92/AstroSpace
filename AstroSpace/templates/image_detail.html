@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
+
+<head>
+  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+</head>
 <!-- Import TailwindCSS and Headless UI via CDN (or use local build pipeline in production) -->
 <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@headlessui/react@1.7.15/dist/headlessui.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+
 <script>
   function alignTable(rows) {
     const colWidths = [];
@@ -99,7 +104,6 @@
         {% endfor %}
       </div>
 
-
       <!-- Image Tab -->
       <div x-show="mainTab === 'image'" class="space-y-2 md:p-4">
         <div id="zoom-container-{{il.image.id}}"
@@ -117,6 +121,15 @@
             </div>
             <div id="compare-{{il.image.id}}"
               class="absolute top-0 left-0 w-full h-full pointer-events-none z-20  duration-300">
+              {% set moon_width = (1800 / il.image.pixel_scale) | int %}
+              <svg id="comp-svg-{{il.image.id}}"
+                class="absolute top-0 left-0 pointer-events-auto w-[{{ moon_width }}px] h-[{{ moon_width }}px] fill-current hidden"
+                viewBox="0 0 {{ moon_width }} {{ moon_width }}" reserveAspectRatio="xMidYMid meet">
+                <circle cx="{{ (moon_width/2) }}" cy="{{ (moon_width/2) }}" r="{{ (moon_width/2) }}" fill="#fce5ac">
+                </circle>
+              </svg>
+            </div>
+            <div id="graticule-{{il.image.id}}" class="absolute top-0 left-0 w-full h-full pointer-events-none z-3000 ">
             </div>
           </div>
 
@@ -144,24 +157,82 @@
           </span>
 
           <div class="flex items-center space-x-2">
+            <div>
+              <input id="graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+              <label for="graticule-toggle-{{il.image.id}}" title="Overlay Coordinate Grid" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
+         bg-gray-300 text-gray-900 border-slate-300 
+         hover:bg-gray-400 hover:border-slate-500 
+         hover:dark:bg-slate-600 hover:dark:border-slate-400
+         peer-checked:bg-green-800 peer-checked:text-white
+         peer-checked:hover:bg-green-700
+         dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
+         dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 100 100"
+                  preserveAspectRatio="xMidYMid meet">
+                  <g fill="none" stroke="currentColor" stroke-width="4">
+                    <!-- Outer circle -->
+                    <circle cx="50" cy="50" r="45" />
+
+                    <!-- Latitude lines (declination) -->
+                    <ellipse cx="50" cy="50" rx="45" ry="15" />
+                    <ellipse cx="50" cy="50" rx="45" ry="30" />
+
+                    <!-- Longitude lines (RA) -->
+                    <path d="M5,50 a45,45 0 0,1 90,0" />
+                    <path d="M95,50 a45,45 0 0,1 -90,0" />
+
+                    <!-- Meridians -->
+                    <line x1="50" y1="5" x2="50" y2="95" />
+                    <path d="M35,5 A50,100 0 0,0 35,95" />
+                    <path d="M65,5 A50,100 0 0,1 65,95" /> <!-- Flipped this one -->
+                  </g>
+                </svg>
+
+              </label>
+            </div>
+
             <button id="compare-button-{{il.image.id}}" title="compare with apparent size of solar objects"
               class="inline-block px-3 py-1.5 rounded-full text-sm font-medium  bg-gray-300 text-gray-900 border-slate-300 
          hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400  dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 shadow">
 
-              <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="_x32_" class="w-5 h-5 fill-current"
-                version="1.1" viewBox="0 0 512 512">
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--noto"
+                preserveAspectRatio="xMidYMid meet">
+                <circle cx="64" cy="64" r="60" fill="#fce5ac"></circle>
                 <path
-                  d="M480.931 191.431c-1.37-3.032-3.171-5.863-5.495-8.326a24.85 24.85 0 0 0-7.877-5.643L115.761 2.619l-.258-.101C111.459.781 107.158 0 102.903 0 96.322.01 89.87 1.838 83.74 4.881c-9.199 4.595-17.839 11.928-25.651 21.248-7.83 9.338-14.796 20.724-20.256 33.638-7.132 16.846-10.67 33.711-10.68 48.784.01 10.349 1.655 19.926 5.359 28.114 1.866 4.108 4.255 7.867 7.298 11.093 3.014 3.217 6.69 5.864 10.863 7.629l.266.11 201.799 71.539v57.846L130.3 470.789c-2.821 4.283-1.627 10.055 2.656 12.876 4.283 2.831 10.055 1.626 12.876-2.647l106.906-162.324V502.69a9.302 9.302 0 0 0 9.309 9.31c5.128 0 9.292-4.162 9.292-9.31V317.564l107.65 163.455c2.84 4.274 8.594 5.478 12.894 2.647 4.292-2.821 5.469-8.593 2.638-12.876L271.339 283.761v-50.126l149.881 53.14v-.019a25.038 25.038 0 0 0 9.191 1.756c5.045-.028 9.852-1.425 14.346-3.631 6.736-3.373 12.867-8.621 18.39-15.21 5.505-6.59 10.376-14.567 14.218-23.582 4.981-11.792 7.472-23.611 7.482-34.31-.01-7.361-1.168-14.254-3.916-20.348zM65.295 139.706c-1.875 0-3.658-.238-5.367-.753l-2.106-.736c-1.654-.735-3.097-1.746-4.484-3.217-2.123-2.242-4.072-5.643-5.441-10.146-1.351-4.503-2.151-10.054-2.151-16.304 0-12.132 2.96-26.8 9.218-41.532 6.36-15.045 15.073-27.581 24.006-36.036 4.43-4.218 8.915-7.408 13.05-9.448 4.136-2.058 7.858-2.95 10.882-2.95 1.939.01 3.612.359 5.22 1.002l2.049 1.029a19.243 19.243 0 0 1 4.283 3.364c2.758 2.876 5.037 6.866 6.599 11.855 1.572 4.964 2.408 10.864 2.399 17.389.008 11.791-2.748 25.495-8.566 39.189-6.139 14.484-14.641 26.524-23.638 34.768-4.485 4.127-9.089 7.288-13.519 9.402-4.429 2.104-8.638 3.124-12.434 3.124zm92.862 34.071-76.76-27.214c.285-.129.598-.258.9-.387 8.336-3.979 16.378-10.495 23.63-18.95 7.279-8.437 13.722-18.841 18.73-30.642 6.332-14.944 9.42-29.962 9.42-43.361 0-8.208-1.168-15.827-3.575-22.498l72.918 36.229c.653 1.433 1.268 2.922 1.793 4.55 1.58 4.953 2.407 10.89 2.407 17.397.01 11.783-2.748 25.495-8.565 39.207-6.14 14.466-14.65 26.506-23.639 34.75-4.484 4.127-9.089 7.288-13.519 9.402a37.1 37.1 0 0 1-3.74 1.517zm238.082 84.406L172.108 178.73c6.323-3.952 12.398-9.301 17.986-15.816 7.28-8.447 13.722-18.851 18.73-30.661 6.323-14.953 9.42-29.933 9.42-43.352 0-5.404-.515-10.541-1.535-15.348l212.892 105.812c1.369 1.738 2.518 3.944 3.373 6.682 1.066 3.382 1.654 7.454 1.654 11.975.019 8.189-1.911 17.784-5.992 27.406-4.301 10.156-10.284 18.584-16.506 24.309-3.124 2.868-6.296 5.037-9.292 6.452-2.352 1.121-4.576 1.755-6.599 1.994zm63.995-19.347c-4.164 9.862-9.898 18.078-15.624 23.446-2.84 2.72-5.652 4.696-8.134 5.946-2.5 1.232-4.567 1.672-6.066 1.672-.984 0-1.737-.166-2.454-.469l-.257-.119-16.25-5.753c4.724-2.922 9.209-6.884 13.345-11.672 5.284-6.158 9.98-13.721 13.611-22.306 4.596-10.854 6.856-21.744 6.856-31.56 0-4.052-.432-7.876-1.213-11.488l15.486 7.692.257.12c.744.303 1.398.763 2.123 1.535 1.057 1.084 2.17 2.968 2.997 5.68.845 2.721 1.342 6.213 1.342 10.22.001 7.775-1.911 17.369-6.019 27.056z"
-                  class="st0" />
+                  d="M62.34 8.58c-.02 1.36-3.4 2.23-7.38 2.6c-3.98.37-7.3.11-7.65-1.2c-.35-1.31 2.69-3.26 7.03-3.68s8.01.92 8 2.28z"
+                  fill="#f1c688"></path>
                 <path
-                  d="M97.811 48.26c1.727-.909 3.225-1.286 4.494-1.286.459 0 .91.046 1.342.148a5.32 5.32 0 0 0 6.359-3.989 5.317 5.317 0 0 0-4.016-6.36 15.962 15.962 0 0 0-3.685-.413c-3.336 0-6.553.947-9.485 2.509-4.402 2.372-8.327 6.048-11.902 10.68-3.538 4.594-6.7 10.183-9.346 16.506-1.14 2.702.137 5.799 2.849 6.956a5.298 5.298 0 0 0 6.939-2.858c3.134-7.454 7.022-13.529 10.9-17.517 1.911-2.005 3.832-3.466 5.551-4.376z"
-                  class="st0" />
+                  d="M119.37 59.47c-.01-.4.01-.8.08-1.21c1.22-7.23 1.8-14-6.32-18.14c-.89-.46-1.87-.83-2.55-1.57c-1.25-1.35-1.14-3.41-1.46-5.22c-.97-5.54-7.24-9.51-12.66-8.01c-1.78.49-3.64 1.47-5.35.8c-1.38-.54-2.16-1.97-2.94-3.23c-2.21-3.58-5.6-6.76-9.77-7.34c-4.17-.59-8.91 2.3-9.17 6.5c-.11 1.83.2 3.99 1.6 5.18c5.88 5.01 9.52 1.32 12.25 3.91c3.17 3.01-3.41 3.82-2.32 11.47c.55 3.82 4.34 7.4 8.19 7.08c1.71-.15 4.31-.24 5.26 1.19c.75 1.12.56 2.19.56 4.03c0 4.54.5 8.11 4.92 9.14c.57.13 1.19.2 1.72-.03c1.17-.51 1.16-2.08 1.08-3.36c-.35-5.62-4.31-6.76-5.03-9.85c-.91-3.94 4.47-9.27 8.87-7.78c3.5 1.19.65 5.25 3.21 9.94c1.69 3.11 5.01 4.54 6.24 7.08c1.23 2.54.09 4.3.69 5.91c.93 2.52 2.41 2.56 3.24 1.67c.91-.97.61-2.96.39-4.12c-.24-1.35-.69-2.67-.73-4.04z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M24.24 102.04c.11-.16.99-.39 2.01.57c1.02.95 4.03 3.79 5.23 4.88c1.2 1.09.03 2.01-.97 1.83c-4.8-.84-7.42-5.61-6.27-7.28z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M42.04 114.42c.05-.19.79-.71 2.08-.19s5.12 2.11 6.63 2.7c1.51.59.74 1.86-.25 2.06c-4.8.92-8.94-2.6-8.46-4.57z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M48.3 110.84c.6.47 1.21 1.21.93 1.91c-.26.64-1.08.81-1.77.83c-2.28.07-4.56-.51-6.55-1.6c-1.4-.77-5.07-3.14-4.55-5.13c.74-2.82 10.4 2.8 11.94 3.99z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M97.71 106c-.22-.13-.6-1.22.58-2.57c1.18-1.35 4.68-5.33 6.01-6.92s2.66-.18 2.52 1.09c-.7 6.11-6.79 9.73-9.11 8.4z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M109.01 94.19c-.2-.04-.77-.78-.21-2.12s2.23-5.29 2.85-6.84c.62-1.56 2-.82 2.21.2c1.02 4.86-2.73 9.19-4.85 8.76z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M86.51 13.32c-.04.2-.79.79-2.12.27s-5.25-2.1-6.8-2.68c-1.55-.58-.79-1.98.22-2.22c4.88-1.15 9.16 2.49 8.7 4.63z"
+                  fill="#f1c688"></path>
+                <path
+                  d="M56.47 15.47c-9.5-1.73-12.9 3.96-15.81 5.2c-2.32.98-3.92-.73-7.5 1.46c-4.94 3.01-3.07 5.19-3.52 7.74c-.46 2.55-3.19 3.64-5.19 3.83c-2.37.23-2.56-1.21-1.42-2.94c.63-.95 1.3-1.54 1.62-2.66c.37-1.3.17-2.7.89-3.9c1.13-1.88 3.77-2.14 5.4-3.6c1.18-1.06 1.75-2.69 3.01-3.66c1.26-.97 2.9-1.32 4.47-1.6c3.2-.57 5.9-3.09 4.45-3.17c-1.46-.08-3.89-.55-5.93.95c-2.27 1.66-5.32 2.18-7.73 3.55c-2.7 1.55-4.12 4.92-4.94 5.83c-.82.91-3.46 1-5.28 2.88c-3.8 3.89-10.14 18.02-10.14 23.31c0 4.93 2.19 9.75 7.08 11.09c.74.2 1.53.43 2.01 1.03c1.1 1.37-1.65 5.49-2.07 7.15c-1.07 4.3.1 7.61 2 9.98c4.11 5.11 8.21 4.42 12.33 1.89c1-.62 1.86-1.49 2.97-1.9c2.34-.87 2.4.63 2.63 2.38c1.08 8.06 4.43 10.14 6.78 11.05c4.89 1.89 10.9.09 14.08-4.08s3.53-10.4.66-14.79c-4.38-6.7-13.03-7.07-14.78-10.82c-1.97-4.22 3.48-4.81 5.86-8.47c2.12-3.25 2.56-7.72.54-11.08c-1-1.66-2.66-3.32-2.24-5.21c.47-2.11 6.48-5.42 10.95-9.26c3.18-2.72 10.63-10.03-1.18-12.18zM26.01 48.86c-.34.65-.85 1.3-1.58 1.41c-.69.1-1.35-.34-1.78-.89c-.68-.89-.88-2.14-.45-3.17c.51-1.24 2.25-2.23 3.6-1.65c.73.31.95 1.05.91 1.86c-.05.89-.4 1.86-.7 2.44zm15.5 2.94c-.14.79-.39 1.55-.57 2.07c-.49 1.45-1.2 2.97-2.57 3.64c-.6.3-1.27.4-1.93.51c-1.37.21-3.08.28-3.79-.91c-.26-.43-.32-.95-.37-1.45c-.23-2.16-.34-4.67 1.25-6.14c1.14-1.06 2.42-.93 3.84-.94c.8 0 2.73-.26 3.41.18c.91.59.94 1.85.73 3.04z"
+                  fill="#f1c688"></path>
               </svg>
             </button>
+            <div>
+              <input id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
 
-            <input id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
-
-            <label for="overlay-toggle-{{il.image.id}}" title="Label celestial objects in the image" class="inline-block px-3 p-1.5 rounded-full cursor-pointer  shadow-sm text-sm font-medium 
+              <label for="overlay-toggle-{{il.image.id}}" title="Label celestial objects in the image" class="inline-block px-3 p-1.5 rounded-full cursor-pointer  shadow-sm text-sm font-medium 
          
          bg-gray-300 text-gray-900 border-slate-300 
          hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
@@ -169,12 +240,17 @@
          peer-checked:bg-green-800 peer-checked:text-white
          dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
          dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path
-                  d="M14.635 2.217a.74.74 0 0 0-1.048 0l-10.37 10.37a.74.74 0 0 0-.217.524v5.185a.741.741 0 0 0 .217.524l2.286 2.286c-.247.6-.513.881-.722.881-.429 0-.846-.58-.982-.86l-.086-.18-1.037.493.085.18c.029.063.728 1.518 2.02 1.518a1.853 1.853 0 0 0 1.608-1.215.732.732 0 0 0 .315.077h5.185a.741.741 0 0 0 .524-.217l10.37-10.37a.74.74 0 0 0 0-1.048zM11.782 21H6.81l-.043-.043a10.076 10.076 0 0 0 .258-1.005 2.533 2.533 0 1 0-1.056-.488c-.022.079-.05.152-.066.235-.023.115-.048.216-.072.322L4 18.189v-4.97L14.11 3.106l7.783 7.782zM6 17.5A1.5 1.5 0 1 1 7.5 19c-.021 0-.04-.005-.062-.006a2.873 2.873 0 0 1 .61-.647l.16-.114-.649-.946-.165.115A4.018 4.018 0 0 0 6.39 18.5a1.489 1.489 0 0 1-.39-1zm2.542-5.792 5.922-5.922.707.707-5.922 5.923zm2.021 2.022 5.922-5.922.707.707-5.922 5.922zm2.021 2.021 5.923-5.922.707.707-5.922 5.922z" />
-                <path fill="none" d="M0 0h24v24H0z" />
-              </svg>
-            </label>
+                <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="_x32_" class="w-5 h-5 fill-current"
+                  version="1.1" viewBox="0 0 512 512">
+                  <path
+                    d="M480.931 191.431c-1.37-3.032-3.171-5.863-5.495-8.326a24.85 24.85 0 0 0-7.877-5.643L115.761 2.619l-.258-.101C111.459.781 107.158 0 102.903 0 96.322.01 89.87 1.838 83.74 4.881c-9.199 4.595-17.839 11.928-25.651 21.248-7.83 9.338-14.796 20.724-20.256 33.638-7.132 16.846-10.67 33.711-10.68 48.784.01 10.349 1.655 19.926 5.359 28.114 1.866 4.108 4.255 7.867 7.298 11.093 3.014 3.217 6.69 5.864 10.863 7.629l.266.11 201.799 71.539v57.846L130.3 470.789c-2.821 4.283-1.627 10.055 2.656 12.876 4.283 2.831 10.055 1.626 12.876-2.647l106.906-162.324V502.69a9.302 9.302 0 0 0 9.309 9.31c5.128 0 9.292-4.162 9.292-9.31V317.564l107.65 163.455c2.84 4.274 8.594 5.478 12.894 2.647 4.292-2.821 5.469-8.593 2.638-12.876L271.339 283.761v-50.126l149.881 53.14v-.019a25.038 25.038 0 0 0 9.191 1.756c5.045-.028 9.852-1.425 14.346-3.631 6.736-3.373 12.867-8.621 18.39-15.21 5.505-6.59 10.376-14.567 14.218-23.582 4.981-11.792 7.472-23.611 7.482-34.31-.01-7.361-1.168-14.254-3.916-20.348zM65.295 139.706c-1.875 0-3.658-.238-5.367-.753l-2.106-.736c-1.654-.735-3.097-1.746-4.484-3.217-2.123-2.242-4.072-5.643-5.441-10.146-1.351-4.503-2.151-10.054-2.151-16.304 0-12.132 2.96-26.8 9.218-41.532 6.36-15.045 15.073-27.581 24.006-36.036 4.43-4.218 8.915-7.408 13.05-9.448 4.136-2.058 7.858-2.95 10.882-2.95 1.939.01 3.612.359 5.22 1.002l2.049 1.029a19.243 19.243 0 0 1 4.283 3.364c2.758 2.876 5.037 6.866 6.599 11.855 1.572 4.964 2.408 10.864 2.399 17.389.008 11.791-2.748 25.495-8.566 39.189-6.139 14.484-14.641 26.524-23.638 34.768-4.485 4.127-9.089 7.288-13.519 9.402-4.429 2.104-8.638 3.124-12.434 3.124zm92.862 34.071-76.76-27.214c.285-.129.598-.258.9-.387 8.336-3.979 16.378-10.495 23.63-18.95 7.279-8.437 13.722-18.841 18.73-30.642 6.332-14.944 9.42-29.962 9.42-43.361 0-8.208-1.168-15.827-3.575-22.498l72.918 36.229c.653 1.433 1.268 2.922 1.793 4.55 1.58 4.953 2.407 10.89 2.407 17.397.01 11.783-2.748 25.495-8.565 39.207-6.14 14.466-14.65 26.506-23.639 34.75-4.484 4.127-9.089 7.288-13.519 9.402a37.1 37.1 0 0 1-3.74 1.517zm238.082 84.406L172.108 178.73c6.323-3.952 12.398-9.301 17.986-15.816 7.28-8.447 13.722-18.851 18.73-30.661 6.323-14.953 9.42-29.933 9.42-43.352 0-5.404-.515-10.541-1.535-15.348l212.892 105.812c1.369 1.738 2.518 3.944 3.373 6.682 1.066 3.382 1.654 7.454 1.654 11.975.019 8.189-1.911 17.784-5.992 27.406-4.301 10.156-10.284 18.584-16.506 24.309-3.124 2.868-6.296 5.037-9.292 6.452-2.352 1.121-4.576 1.755-6.599 1.994zm63.995-19.347c-4.164 9.862-9.898 18.078-15.624 23.446-2.84 2.72-5.652 4.696-8.134 5.946-2.5 1.232-4.567 1.672-6.066 1.672-.984 0-1.737-.166-2.454-.469l-.257-.119-16.25-5.753c4.724-2.922 9.209-6.884 13.345-11.672 5.284-6.158 9.98-13.721 13.611-22.306 4.596-10.854 6.856-21.744 6.856-31.56 0-4.052-.432-7.876-1.213-11.488l15.486 7.692.257.12c.744.303 1.398.763 2.123 1.535 1.057 1.084 2.17 2.968 2.997 5.68.845 2.721 1.342 6.213 1.342 10.22.001 7.775-1.911 17.369-6.019 27.056z"
+                    class="st0" />
+                  <path
+                    d="M97.811 48.26c1.727-.909 3.225-1.286 4.494-1.286.459 0 .91.046 1.342.148a5.32 5.32 0 0 0 6.359-3.989 5.317 5.317 0 0 0-4.016-6.36 15.962 15.962 0 0 0-3.685-.413c-3.336 0-6.553.947-9.485 2.509-4.402 2.372-8.327 6.048-11.902 10.68-3.538 4.594-6.7 10.183-9.346 16.506-1.14 2.702.137 5.799 2.849 6.956a5.298 5.298 0 0 0 6.939-2.858c3.134-7.454 7.022-13.529 10.9-17.517 1.911-2.005 3.832-3.466 5.551-4.376z"
+                    class="st0" />
+                </svg>
+              </label>
+            </div>
 
             <div x-data="{ open: false }" class="relative inline-block">
               <button @click="open = !open" title="Share this image" class="flex items-center p-1 rounded-full bg-gray-300 text-gray-900   shadow
@@ -219,37 +295,6 @@
             </div>
 
 
-          </div>
-        </div>
-
-        <!-- add object popup  -->
-        <div id="compare-modal-{{il.image.id}}" class="fixed inset-0 flex items-center justify-center z-50 hidden
-                    backdrop-blur-sm bg-white/30 dark:bg-slate-900/30">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-80">
-            <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Compare Apparent Size of Objects in
-              the Night Sky (Pan by clicking, Double click to remove)</h2>
-
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Object</label>
-            <select id="object-select-{{il.image.id}}"
-              class="w-full mb-3 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white">
-              <option value="sun">Sun</option>
-              <option value="moon">Moon</option>
-              <option value="jupiter">Jupiter</option>
-            </select>
-
-            <label for="count-{{il.image.id}}"
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scale By</label>
-            <input type="number" id="count-{{il.image.id}}" min="1" value="1"
-              class="w-full mb-4 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white" />
-
-            <div class="flex justify-end space-x-2">
-              <button id="modal-cancel-{{il.image.id}}"
-                class="px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:underline">Cancel</button>
-              <button id="add-object-{{il.image.id}}"
-                class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded">
-                Add
-              </button>
-            </div>
           </div>
         </div>
 
@@ -404,10 +449,9 @@
           </div>
       </template>
 
-      <template x-if="mainTab === 'explore'">
-        <div>Explore is empty for now</div>
-      </template>
-
+      <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4">
+        <div id="dist-scatter" class="w-full h-full items-center justify-center bg-transparent rounded-xl"></div>
+      </div>
     </div>
 
     <div class="relative flex flex-col items-center justify-center">
@@ -529,14 +573,11 @@
         let overlayData = {{ il.svg_image | tojson | safe
       }};
 
-      const compareDiv = document.getElementById('compare-{{il.image.id}}');
-      let compSVG = `<svg id="comp-svg-{{il.image.id}}" viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" class="absolute top-0 left-0 pointer-events-auto"></svg>`;
-      compareDiv.innerHTML = compSVG;
+      overlayData.overlays = JSON.parse(overlayData.overlays);
+      overlayData.grid_lines = JSON.parse(overlayData.grid_lines);
 
       const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
       const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
-
-      overlayData.overlays = JSON.parse(overlayData.overlays);
 
       let overlays = overlayData.overlays.name.map((_, i) => ({
         id: overlayData.overlays.name[i],
@@ -558,7 +599,9 @@
         let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
 
         for (let item of overlays) {
+          console.log(item);
           if (item.rx >= 10 && item.ry >= 10) {
+
             const transform = item.angle
               ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
               : "";
@@ -584,66 +627,123 @@
 
       renderOverlay();
 
-      const objectSizes = {
-        sun: 1920, // arcseconds
-        moon: 1800,
-        jupiter: 40
-      };
+      // render graticule
+      const graticuleToggle = document.getElementById('graticule-toggle-{{il.image.id}}');
+      const graticuleOverlay = document.getElementById('graticule-{{il.image.id}}');
 
-      const objectColors = {
-        sun: "rgba(255, 255, 0, 0.8)",
-        moon: "rgba(255, 255, 255, 0.8)",
-        jupiter: "rgba(255, 200, 150, 0.8)"
-      };
+      function renderGraticule() {
+        if (!graticuleToggle.checked) {
+          graticuleOverlay.innerHTML = "";
+          return;
+        }
+
+        let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
+
+        // RA lines (lime color)
+        overlayData.grid_lines.ra_lines.forEach(line => {
+          const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
+          svg += `<polyline class="ra-line" stroke="white" stroke-width="8" fill="none" opacity="0.7" points="${points}" />`;
+        });
+
+        // Dec lines (cyan color)
+        overlayData.grid_lines.dec_lines.forEach(line => {
+          const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
+          svg += `<polyline class="dec-line" stroke="white" stroke-width="8" fill="none" opacity="0.7"  points="${points}" />`;
+        });
+
+        // Labels (yellow text with black stroke)
+        overlayData.grid_lines.labels.forEach(label => {
+          svg += `<text x="${label.x}" y="${label.y}"font-family="Arial" font-weight="bold" font-size="60" fill="white" stroke="black" stroke-width="1" paint-order="stroke fill" opacity="0.7"  transform="rotate(${label.rotation}, ${label.x}, ${label.y})">${label.text}</text>`;
+        });
+
+
+        svg += "</svg>";
+        graticuleOverlay.innerHTML = svg;
+      }
+
+      // Handle overlay toggle
+      graticuleToggle.addEventListener('change', () => {
+        renderGraticule();
+      });
+
+      renderGraticule();
+
 
       const pixelScale = {{ il.image.pixel_scale }};
 
       document.getElementById("compare-button-{{il.image.id}}").onclick = () => {
-        document.getElementById("compare-modal-{{il.image.id}}").classList.remove("hidden");
-      };
-
-      document.getElementById("modal-cancel-{{il.image.id}}").onclick = () => {
-        document.getElementById("compare-modal-{{il.image.id}}").classList.add("hidden");
-      };
-
-      document.getElementById("add-object-{{il.image.id}}").onclick = () => {
-        const object = document.getElementById("object-select-{{il.image.id}}").value;
-        const count = parseInt(document.getElementById("count-{{il.image.id}}").value);
-        const baseSize = objectSizes[object];
-        const size = baseSize * count / pixelScale;
-        const objectColor = objectColors[object];
-        addOverlay(objectColor, size);
-
-        // ✅ Close modal after adding
-        document.getElementById("compare-modal-{{il.image.id}}").classList.add("hidden");
-      }
-
-      function addOverlay(objectColor, size) {
+        const size = 1800 / pixelScale; //moon size is 1800 arcseconds
         const container = document.getElementById('comp-svg-{{il.image.id}}');
-        const uniqueId = `overlay-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        // Toggle visibility
+        if (!container.classList.contains("hidden")) {
+          container.classList.add("hidden");
+          return;
+        }
 
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("id", uniqueId);
-        circle.setAttribute("cx", size / 2);
-        circle.setAttribute("cy", size / 2);
-        circle.setAttribute("r", (size / 2) - 2);
-        circle.setAttribute("fill", objectColor);
-        circle.setAttribute("stroke", "black");
-        circle.setAttribute("stroke-width", "2");
+        container.classList.remove('hidden'); // Show the SVG
 
-        container.appendChild(circle);
+        // Initialize Panzoom only once
+        if (!container.dataset.panzoomInitialized) {
+          container.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
+          Panzoom(container, {
+            cursor: 'grab',
+            disableZoom: true
+          });
 
-        const panzoom = Panzoom(circle, {
-          cursor: 'grab',
-          disableZoom: true,
-        })
+          container.dataset.panzoomInitialized = "true";
+        }
+      };
+        }) ();
 
-        circle.addEventListener('dblclick', (e) => {
-          circle.remove();
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        const data = JSON.parse({{ il.svg_image.overlays | tojson | safe }});
+      const dist = data.dist;
+      const name = data.name;
 
+      const scatterTrace = {
+        x: Array.from({ length: dist.length }, (_, i) => i + 1),
+        y: dist,
+        text: name,
+        mode: "markers",
+        type: "scatter",
+        marker: {
+          size: 4,
+          color: "royalblue"
+        }
+      };
+
+      const histogramTrace = {
+        x: dist,
+        type: "histogram",
+        marker: {
+          color: "royalblue"
+        }
+      };
+
+      const layoutBase = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        hovermode: "closest",
+        autosize: true,
+        margin: { l: 50, r: 50, b: 50, t: 50 },
+      };
+
+      let isHistogram = false;
+
+      function drawPlot() {
+        const trace = isHistogram ? histogramTrace : scatterTrace;
+        const layout = {
+          ...layoutBase,
+          title: { text: isHistogram ? "Histogram of Distances" : "Object Distances" },
+          xaxis: { title: { text: isHistogram ? "Distance (light years)" : "Index" } },
+          yaxis: { title: { text: isHistogram ? "Count" : "Distance (light years)" } }
+        };
+
+        Plotly.newPlot("dist-scatter", [trace], layout, { responsive: true });
       }
-  }) ();
+
+      drawPlot();
+});
     </script>
 
 
