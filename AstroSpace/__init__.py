@@ -28,6 +28,12 @@ def create_app(test_config=None):
     from . import db
     db.init_app(app)
 
+    with app.app_context():
+        exists = db.check_images_table_exists()
+        if not exists:
+            print("Table does not exist. Initializing database...")
+            db.init_db()
+
     from . import auth
     app.register_blueprint(auth.bp)
 

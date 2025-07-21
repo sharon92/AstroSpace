@@ -18,6 +18,17 @@ def get_conn():
 
     return g.db
 
+def check_images_table_exists():
+    db = get_conn()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'images'
+            );
+        """)
+        return cur.fetchone()['exists']
 
 def close_db(e=None):
     db = g.pop('db', None)
