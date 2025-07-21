@@ -290,7 +290,7 @@
         </div>
       </div>
 
-      <template x-if="mainTab === 'details'">
+      <div x-show="mainTab === 'details'" x-cloak>
         <div>
           <!-- Acquisition Details Tab -->
           <div x-show="detailTab === 'lights'" class="p-6 dark:text-white">
@@ -433,173 +433,173 @@
               </div>
             </div>
           </div>
-      </template>
-
-      <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4">
-        <div>
-          <label for="db-select">Data Source:</label>
-          <select id="db-select">
-            <option value="db1">Spatial</option>
-            <option value="db2">Flux</option>
-          </select>
-
-          <label for="x-select">X:</label>
-          <select id="x-select"></select>
-
-          <label for="y-select">Y:</label>
-          <select id="y-select"></select>
-
-          <label><input type="checkbox" id="log-x"> Log X</label>
-          <label><input type="checkbox" id="log-y"> Log Y</label>
-          <label><input type="checkbox" id="histogram-toggle"> Histogram</label>
         </div>
-        <div id="dist-scatter" class="w-full h-full items-center justify-center bg-transparent rounded-xl"></div>
+
+        <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4">
+          <div>
+            <label for="db-select">Data Source:</label>
+            <select id="db-select">
+              <option value="db1">Spatial</option>
+              <option value="db2">Flux</option>
+            </select>
+
+            <label for="x-select">X:</label>
+            <select id="x-select"></select>
+
+            <label for="y-select">Y:</label>
+            <select id="y-select"></select>
+
+            <label><input type="checkbox" id="log-x"> Log X</label>
+            <label><input type="checkbox" id="log-y"> Log Y</label>
+            <label><input type="checkbox" id="histogram-toggle"> Histogram</label>
+          </div>
+          <div id="dist-scatter" class="w-full h-full items-center justify-center bg-transparent rounded-xl"></div>
+        </div>
       </div>
-    </div>
 
-    <div class="relative flex flex-col items-center justify-center">
-      <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
+      <div class="relative flex flex-col items-center justify-center">
+        <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
+        </div>
       </div>
-    </div>
 
-    <script>
-      (function () {
-        const img = document.getElementById('zoomable-image-{{il.image.id}}');
-        const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
+      <script>
+        (function () {
+          const img = document.getElementById('zoomable-image-{{il.image.id}}');
+          const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
 
-        const panzoom = Panzoom(wrapper, {
-          maxScale: 50
-        })
-        wrapper.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+          const panzoom = Panzoom(wrapper, {
+            maxScale: 50
+          })
+          wrapper.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
 
-        document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
-          panzoom.reset();
-        });
-
-        function copyCurrentURL() {
-          const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
-          navigator.clipboard.writeText(link)
-            .then(() => {
-              alert("Link copied to clipboard!");
-            })
-            .catch(err => {
-              alert("Failed to copy: " + err);
-            });
-        }
-
-        document.getElementById("copy-link-{{il.image.id}}").addEventListener("click", copyCurrentURL);
-
-        function copyCurrentURLwithDetails() {
-          const id = "{{il.image.id}}";  // use your actual id injection method here
-          const link = `${window.location.origin}${window.location.pathname}#uid-${id}`;
-
-          // Define tables and their section titles in the order you want
-          const tablesInfo = [
-            { selector: `table[html-id="light-${id}"]`, title: "Acquisition:\n------------" },
-            { selector: `table[html-id="night-${id}"]`, title: "" },
-            { selector: `table[html-id="equipment-${id}"]`, title: "Equipment:\n-----------" },
-            { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
-          ];
-
-          let fullText = "{{il.image.title}} - {{il.image.short_description}}\n\n{{ il.image.description }}\n\nImage By: {{ il.image.author }}\n\n";
-
-          tablesInfo.forEach(({ selector, title }) => {
-            const table = document.querySelector(selector);
-            if (!table) return;  // skip if table not found
-
-            const rows = table.querySelectorAll("tr");
-            const tableData = [];
-
-            rows.forEach(row => {
-              const cells = Array.from(row.querySelectorAll("td"));
-              const rowText = cells.map(cell => {
-                const pElements = cell.querySelectorAll("p");
-                if (pElements.length > 0) {
-                  return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
-                } else {
-                  return cell.innerText.trim();
-                }
-              });
-              tableData.push(rowText);
-            });
-
-            const formattedTable = alignTable(tableData);
-
-            fullText += `${title}\n${formattedTable}\n\n`;
+          document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
+            panzoom.reset();
           });
 
-          fullText += link;
-          //console.log(fullText);
-          navigator.clipboard.writeText(fullText)
-            .then(() => {
-              alert("Link copied to clipboard!");
-            })
-            .catch(err => {
-              alert("Failed to copy: " + err);
+          function copyCurrentURL() {
+            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+            navigator.clipboard.writeText(link)
+              .then(() => {
+                alert("Link copied to clipboard!");
+              })
+              .catch(err => {
+                alert("Failed to copy: " + err);
+              });
+          }
+
+          document.getElementById("copy-link-{{il.image.id}}").addEventListener("click", copyCurrentURL);
+
+          function copyCurrentURLwithDetails() {
+            const id = "{{il.image.id}}";  // use your actual id injection method here
+            const link = `${window.location.origin}${window.location.pathname}#uid-${id}`;
+
+            // Define tables and their section titles in the order you want
+            const tablesInfo = [
+              { selector: `table[html-id="light-${id}"]`, title: "Acquisition:\n------------" },
+              { selector: `table[html-id="night-${id}"]`, title: "" },
+              { selector: `table[html-id="equipment-${id}"]`, title: "Equipment:\n-----------" },
+              { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
+            ];
+
+            let fullText = "{{il.image.title}} - {{il.image.short_description}}\n\n{{ il.image.description }}\n\nImage By: {{ il.image.author }}\n\n";
+
+            tablesInfo.forEach(({ selector, title }) => {
+              const table = document.querySelector(selector);
+              if (!table) return;  // skip if table not found
+
+              const rows = table.querySelectorAll("tr");
+              const tableData = [];
+
+              rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll("td"));
+                const rowText = cells.map(cell => {
+                  const pElements = cell.querySelectorAll("p");
+                  if (pElements.length > 0) {
+                    return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
+                  } else {
+                    return cell.innerText.trim();
+                  }
+                });
+                tableData.push(rowText);
+              });
+
+              const formattedTable = alignTable(tableData);
+
+              fullText += `${title}\n${formattedTable}\n\n`;
             });
-        }
 
-        document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
+            fullText += link;
+            console.log(fullText);
+            navigator.clipboard.writeText(fullText)
+              .then(() => {
+                alert("Link copied to clipboard!");
+              })
+              .catch(err => {
+                alert("Failed to copy: " + err);
+              });
+          }
 
-
-        function copyCurrentURLwithDetailsHTML() {
-          const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
-          const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
-
-          //console.log(link);
-          // Clone the table to avoid modifying the DOM
-          const tableClone = lightTable.cloneNode(true);
-
-          // Optionally remove classes or inline styles
-          tableClone.removeAttribute("class");
-
-          // Create a full HTML snippet
-          const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
-          //console.log(htmlContent);
-          // Copy as HTML
-          const blobt = new Blob([htmlContent], { type: "text/plain" });
-          const blob = new Blob([htmlContent], { type: "text/html" });
-          const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
-
-          navigator.clipboard.write([clipboardItem])
-            .then(() => {
-              alert("HTML table and link copied to clipboard!");
-            })
-            .catch(err => {
-              alert("Failed to copy HTML: " + err);
-            });
-        }
-
-        // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
+          document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
 
 
-        let overlayData = {{ il.svg_image | tojson | safe
-      }};
+          function copyCurrentURLwithDetailsHTML() {
+            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+            const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
 
-      overlayData.overlays = JSON.parse(overlayData.overlays);
-      overlayData.grid_lines = JSON.parse(overlayData.grid_lines);
+            //console.log(link);
+            // Clone the table to avoid modifying the DOM
+            const tableClone = lightTable.cloneNode(true);
 
-      const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
-      const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
+            // Optionally remove classes or inline styles
+            tableClone.removeAttribute("class");
 
-      let overlays = overlayData.overlays.name.map((_, i) => ({
-        id: overlayData.overlays.name[i],
-        x: overlayData.overlays.x[i],
-        y: overlayData.overlays.y[i],
-        rx: overlayData.overlays.rx[i],
-        ry: overlayData.overlays.ry[i],
-        angle: overlayData.overlays.angle[i],
-        otype: overlayData.overlays.otype[i],
-        dist: overlayData.overlays.dist[i]
-      }));
+            // Create a full HTML snippet
+            const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
+            //console.log(htmlContent);
+            // Copy as HTML
+            const blobt = new Blob([htmlContent], { type: "text/plain" });
+            const blob = new Blob([htmlContent], { type: "text/html" });
+            const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
 
-      function renderOverlay() {
-        if (!overlayToggle.checked) {
-          svgOverlay.innerHTML = "";
-          return;
-        }
+            navigator.clipboard.write([clipboardItem])
+              .then(() => {
+                alert("HTML table and link copied to clipboard!");
+              })
+              .catch(err => {
+                alert("Failed to copy HTML: " + err);
+              });
+          }
 
-        let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet"
+          // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
+
+
+          let overlayData = {{ il.svg_image | tojson | safe
+        }};
+
+        overlayData.overlays = JSON.parse(overlayData.overlays);
+        overlayData.grid_lines = JSON.parse(overlayData.grid_lines);
+
+        const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
+        const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
+
+        let overlays = overlayData.overlays.name.map((_, i) => ({
+          id: overlayData.overlays.name[i],
+          x: overlayData.overlays.x[i],
+          y: overlayData.overlays.y[i],
+          rx: overlayData.overlays.rx[i],
+          ry: overlayData.overlays.ry[i],
+          angle: overlayData.overlays.angle[i],
+          otype: overlayData.overlays.otype[i],
+          dist: overlayData.overlays.dist[i]
+        }));
+
+        function renderOverlay() {
+          if (!overlayToggle.checked) {
+            svgOverlay.innerHTML = "";
+            return;
+          }
+
+          let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet"
   style="position: absolute; top: 0; left: 0; pointer-events: auto;" xmlns="http://www.w3.org/2000/svg">
 
   <style>
@@ -614,13 +614,13 @@
     }
   </style>
 `;
-        for (let item of overlays) {
-          if (item.rx >= 10 && item.ry >= 10) {
-            const transform = item.angle
-              ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
-              : "";
+          for (let item of overlays) {
+            if (item.rx >= 10 && item.ry >= 10) {
+              const transform = item.angle
+                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
+                : "";
 
-            svg += `<g class="astro-group">
+              svg += `<g class="astro-group">
       <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
         rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
         fill="none" stroke="white" stroke-width="10"></ellipse>
@@ -631,293 +631,294 @@
         ${item.id}
       </text>
     </g>`;
+            }
+          }
+
+          svg += "</svg>";
+          svgOverlay.innerHTML = svg;
+        }
+
+        // Handle overlay toggle
+        overlayToggle.addEventListener('change', () => {
+          renderOverlay();
+        });
+
+        renderOverlay();
+
+        // render graticule
+        const graticuleToggle = document.getElementById('graticule-toggle-{{il.image.id}}');
+        const graticuleOverlay = document.getElementById('graticule-{{il.image.id}}');
+
+        function renderGraticule() {
+          if (!graticuleToggle.checked) {
+            graticuleOverlay.innerHTML = "";
+            return;
+          }
+
+          let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
+
+          // RA lines (lime color)
+          overlayData.grid_lines.ra_lines.forEach(line => {
+            const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
+            svg += `<polyline class="ra-line" stroke="white" stroke-width="8" fill="none" opacity="0.7" points="${points}" />`;
+          });
+
+          // Dec lines (cyan color)
+          overlayData.grid_lines.dec_lines.forEach(line => {
+            const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
+            svg += `<polyline class="dec-line" stroke="white" stroke-width="8" fill="none" opacity="0.7"  points="${points}" />`;
+          });
+
+          // Labels (yellow text with black stroke)
+          overlayData.grid_lines.labels.forEach(label => {
+            svg += `<text x="${label.x}" y="${label.y}"font-family="Arial" font-weight="bold" font-size="60" fill="white" stroke="black" stroke-width="1" paint-order="stroke fill" opacity="0.7"  transform="rotate(${label.rotation}, ${label.x}, ${label.y})">${label.text}</text>`;
+          });
+
+
+          svg += "</svg>";
+          graticuleOverlay.innerHTML = svg;
+        }
+
+        // Handle overlay toggle
+        graticuleToggle.addEventListener('change', () => {
+          renderGraticule();
+        });
+
+        renderGraticule();
+
+
+        const pixelScale = {{ il.image.pixel_scale }};
+
+        document.getElementById("compare-toggle-{{il.image.id}}").onclick = () => {
+          const size = 1800 / pixelScale; //moon size is 1800 arcseconds
+          const container = document.getElementById('comp-wrapper-{{il.image.id}}');
+          //const parentCont = document.getElementById('compare-{{il.image.id}}');
+
+          // Toggle visibility
+          if (!container.classList.contains("hidden")) {
+            container.classList.add("hidden");
+            return;
+          }
+
+          container.classList.remove('hidden'); // Show the SVG
+
+          // Initialize Panzoom only once
+          if (!container.dataset.panzoomInitialized) {
+            container.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
+            //parentCont.style.width = `${overlayData.width}px`;
+            //parentCont.style.height = `${overlayData.height}px`;
+            Panzoom(container, {
+              cursor: 'grab',
+              disableZoom: true
+            });
+
+            container.dataset.panzoomInitialized = "true";
+          }
+        };
+        }) ();
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const db1 = JSON.parse({{ il.svg_image.overlays | tojson | safe }});
+        const db2 = JSON.parse({{ il.svg_image.plots | tojson | safe }});
+        const dbMap = { db1, db2 };
+
+        const displayNames = {
+          V: "Visual Magnitude",
+          U: "Ultraviolet Magnitude",
+          R: "Red Magnitude",
+          B: "Blue Magnitude",
+          I: "Infrared Magnitude",
+          rvz_redshift: "Redshift",
+          sp_type: "Spectral Type",
+          dist: "Distance (light years)",
+          otype: "Object Type",
+          index: "Index"
+        };
+
+        const dbSelect = document.getElementById("db-select");
+        const xSelect = document.getElementById("x-select");
+        const ySelect = document.getElementById("y-select");
+        const yLabel = document.getElementById("y-label");
+        const logX = document.getElementById("log-x");
+        const logY = document.getElementById("log-y");
+
+        function updateAxisOptions(dbKey) {
+          xSelect.innerHTML = "";
+          ySelect.innerHTML = "";
+
+          if (dbKey === "db1") {
+            xSelect.add(new Option("Index", "index"));
+            ySelect.add(new Option("Distance (light years)", "dist"));
+            ySelect.add(new Option("Object Type", "otype"));
+            ySelect.style.display = "";
+            yLabel.style.display = "";
+            logX.disabled = false;
+            logY.disabled = true;
+            logY.checked = false;
+          } else {
+            xSelect.add(new Option("Index", "index"));
+            ySelect.add(new Option("Index", "index"));
+
+            const keys = Object.keys(db2).filter(k =>
+              !["pmra", "pmdec", "rvz_radvel"].includes(k) &&
+              Array.isArray(db2[k]) &&
+              db2[k].some(v => typeof v === "number")
+            );
+
+            keys.forEach(key => {
+              const label = displayNames[key] || key;
+              xSelect.add(new Option(label, key));
+              ySelect.add(new Option(label, key));
+            });
+
+            xSelect.value = "index";
+            ySelect.value = keys[0] || "index";
+            ySelect.style.display = "";
+            yLabel.style.display = "";
+            logX.disabled = false;
+            logY.disabled = false;
           }
         }
 
-        svg += "</svg>";
-        svgOverlay.innerHTML = svg;
-      }
+        function drawPlot() {
+          const dbKey = dbSelect.value;
+          const db = dbMap[dbKey];
+          const xKey = xSelect.value;
+          const yKey = ySelect.value;
+          const xLabel = displayNames[xKey] || xKey;
+          const yLabelText = displayNames[yKey] || yKey;
 
-      // Handle overlay toggle
-      overlayToggle.addEventListener('change', () => {
-        renderOverlay();
-      });
+          let trace, layout;
 
-      renderOverlay();
+          if (dbKey === "db1") {
+            if (yKey === "dist") {
+              let x = [], y = [], text = [];
 
-      // render graticule
-      const graticuleToggle = document.getElementById('graticule-toggle-{{il.image.id}}');
-      const graticuleOverlay = document.getElementById('graticule-{{il.image.id}}');
+              for (let i = 0; i < db.dist.length; i++) {
+                const d = db.dist[i];
+                if (d != null && !Number.isNaN(d)) {
+                  x.push(i + 1);
+                  y.push(d);
+                  text.push(db.name?.[i] || "");
+                }
+              }
 
-      function renderGraticule() {
-        if (!graticuleToggle.checked) {
-          graticuleOverlay.innerHTML = "";
-          return;
-        }
+              trace = {
+                x: x,
+                y: y,
+                text: text,
+                mode: "markers",
+                type: "scatter",
+                marker: { size: 6, color: "darkorange" }
+              };
 
-        let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
+              layout = {
+                title: "Distance of Objects",
+                xaxis: { title: "Index", type: logX.checked ? "log" : "linear" },
+                yaxis: { title: "Distance (light years)", type: "linear" },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                hovermode: "closest",
+                margin: { l: 50, r: 50, b: 50, t: 50 }
+              };
+            } else if (yKey === "otype") {
+              const counts = {};
+              for (const o of db.otype) {
+                if (o) counts[o] = (counts[o] || 0) + 1;
+              }
 
-        // RA lines (lime color)
-        overlayData.grid_lines.ra_lines.forEach(line => {
-          const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
-          svg += `<polyline class="ra-line" stroke="white" stroke-width="8" fill="none" opacity="0.7" points="${points}" />`;
-        });
+              const otypes = Object.keys(counts);
+              const freq = otypes.map(o => counts[o]);
 
-        // Dec lines (cyan color)
-        overlayData.grid_lines.dec_lines.forEach(line => {
-          const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
-          svg += `<polyline class="dec-line" stroke="white" stroke-width="8" fill="none" opacity="0.7"  points="${points}" />`;
-        });
+              trace = {
+                x: otypes,
+                y: freq,
+                type: "bar",
+                marker: { color: "darkorange" }
+              };
 
-        // Labels (yellow text with black stroke)
-        overlayData.grid_lines.labels.forEach(label => {
-          svg += `<text x="${label.x}" y="${label.y}"font-family="Arial" font-weight="bold" font-size="60" fill="white" stroke="black" stroke-width="1" paint-order="stroke fill" opacity="0.7"  transform="rotate(${label.rotation}, ${label.x}, ${label.y})">${label.text}</text>`;
-        });
+              layout = {
+                title: "Object Type Distribution",
+                xaxis: { title: "Object Type" },
+                yaxis: { title: "Count" },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 50, r: 50, b: 100, t: 50 }
+              };
+            }
 
+          } else if (dbKey === "db2") {
+            const rawX = xKey === "index" ? null : db[xKey];
+            const rawY = yKey === "index" ? null : db[yKey];
+            const rawText = db.name || [];
 
-        svg += "</svg>";
-        graticuleOverlay.innerHTML = svg;
-      }
-
-      // Handle overlay toggle
-      graticuleToggle.addEventListener('change', () => {
-        renderGraticule();
-      });
-
-      renderGraticule();
-
-
-      const pixelScale = {{ il.image.pixel_scale }};
-
-      document.getElementById("compare-toggle-{{il.image.id}}").onclick = () => {
-        const size = 1800 / pixelScale; //moon size is 1800 arcseconds
-        const container = document.getElementById('comp-wrapper-{{il.image.id}}');
-        //const parentCont = document.getElementById('compare-{{il.image.id}}');
-
-        // Toggle visibility
-        if (!container.classList.contains("hidden")) {
-          container.classList.add("hidden");
-          return;
-        }
-
-        container.classList.remove('hidden'); // Show the SVG
-
-        // Initialize Panzoom only once
-        if (!container.dataset.panzoomInitialized) {
-          container.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
-          //parentCont.style.width = `${overlayData.width}px`;
-          //parentCont.style.height = `${overlayData.height}px`;
-          Panzoom(container, {
-            cursor: 'grab',
-            disableZoom: true
-          });
-
-          container.dataset.panzoomInitialized = "true";
-        }
-      };
-        }) ();
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const db1 = JSON.parse({{ il.svg_image.overlays | tojson | safe }});
-      const db2 = JSON.parse({{ il.svg_image.plots | tojson | safe }});
-      const dbMap = { db1, db2 };
-
-      const displayNames = {
-        V: "Visual Magnitude",
-        U: "Ultraviolet Magnitude",
-        R: "Red Magnitude",
-        B: "Blue Magnitude",
-        I: "Infrared Magnitude",
-        rvz_redshift: "Redshift",
-        sp_type: "Spectral Type",
-        dist: "Distance (light years)",
-        otype: "Object Type",
-        index: "Index"
-      };
-
-      const dbSelect = document.getElementById("db-select");
-      const xSelect = document.getElementById("x-select");
-      const ySelect = document.getElementById("y-select");
-      const yLabel = document.getElementById("y-label");
-      const logX = document.getElementById("log-x");
-      const logY = document.getElementById("log-y");
-
-      function updateAxisOptions(dbKey) {
-        xSelect.innerHTML = "";
-        ySelect.innerHTML = "";
-
-        if (dbKey === "db1") {
-          xSelect.add(new Option("Index", "index"));
-          ySelect.add(new Option("Distance (light years)", "dist"));
-          ySelect.add(new Option("Object Type", "otype"));
-          ySelect.style.display = "";
-          yLabel.style.display = "";
-          logX.disabled = false;
-          logY.disabled = true;
-          logY.checked = false;
-        } else {
-          xSelect.add(new Option("Index", "index"));
-          ySelect.add(new Option("Index", "index"));
-
-          const keys = Object.keys(db2).filter(k =>
-            !["pmra", "pmdec", "rvz_radvel"].includes(k) &&
-            Array.isArray(db2[k]) &&
-            db2[k].some(v => typeof v === "number")
-          );
-
-          keys.forEach(key => {
-            const label = displayNames[key] || key;
-            xSelect.add(new Option(label, key));
-            ySelect.add(new Option(label, key));
-          });
-
-          xSelect.value = "index";
-          ySelect.value = keys[0] || "index";
-          ySelect.style.display = "";
-          yLabel.style.display = "";
-          logX.disabled = false;
-          logY.disabled = false;
-        }
-      }
-
-      function drawPlot() {
-        const dbKey = dbSelect.value;
-        const db = dbMap[dbKey];
-        const xKey = xSelect.value;
-        const yKey = ySelect.value;
-        const xLabel = displayNames[xKey] || xKey;
-        const yLabelText = displayNames[yKey] || yKey;
-
-        let trace, layout;
-
-        if (dbKey === "db1") {
-          if (yKey === "dist") {
             let x = [], y = [], text = [];
 
-            for (let i = 0; i < db.dist.length; i++) {
-              const d = db.dist[i];
-              if (d != null && !Number.isNaN(d)) {
-                x.push(i + 1);
-                y.push(d);
-                text.push(db.name?.[i] || "");
+            const totalLength = Math.max(
+              rawX ? rawX.length : 0,
+              rawY ? rawY.length : 0,
+              Object.values(db)[0]?.length || 0
+            );
+
+            for (let i = 0; i < totalLength; i++) {
+              const xi = xKey === "index" ? i + 1 : rawX?.[i];
+              const yi = yKey === "index" ? i + 1 : rawY?.[i];
+
+              if (xi != null && yi != null && !Number.isNaN(xi) && !Number.isNaN(yi)) {
+                x.push(xi);
+                y.push(yi);
+                if (rawText[i]) text.push(rawText[i]);
               }
             }
 
             trace = {
               x: x,
               y: y,
-              text: text,
+              text: text.length ? text : undefined,
               mode: "markers",
               type: "scatter",
-              marker: { size: 6, color: "darkorange" }
+              marker: { size: 6, color: "royalblue" }
             };
 
             layout = {
-              title: "Distance of Objects",
-              xaxis: { title: "Index", type: logX.checked ? "log" : "linear" },
-              yaxis: { title: "Distance (light years)", type: "linear" },
+              title: `${yLabelText} vs ${xLabel}`,
+              xaxis: { title: xLabel, type: logX.checked ? "log" : "linear" },
+              yaxis: { title: yLabelText, type: logY.checked ? "log" : "linear" },
               paper_bgcolor: 'rgba(0,0,0,0)',
               plot_bgcolor: 'rgba(0,0,0,0)',
               hovermode: "closest",
               margin: { l: 50, r: 50, b: 50, t: 50 }
             };
-          } else if (yKey === "otype") {
-            const counts = {};
-            for (const o of db.otype) {
-              if (o) counts[o] = (counts[o] || 0) + 1;
-            }
-
-            const otypes = Object.keys(counts);
-            const freq = otypes.map(o => counts[o]);
-
-            trace = {
-              x: otypes,
-              y: freq,
-              type: "bar",
-              marker: { color: "darkorange" }
-            };
-
-            layout = {
-              title: "Object Type Distribution",
-              xaxis: { title: "Object Type" },
-              yaxis: { title: "Count" },
-              paper_bgcolor: 'rgba(0,0,0,0)',
-              plot_bgcolor: 'rgba(0,0,0,0)',
-              margin: { l: 50, r: 50, b: 100, t: 50 }
-            };
           }
 
-        } else if (dbKey === "db2") {
-          const rawX = xKey === "index" ? null : db[xKey];
-          const rawY = yKey === "index" ? null : db[yKey];
-          const rawText = db.name || [];
-
-          let x = [], y = [], text = [];
-
-          const totalLength = Math.max(
-            rawX ? rawX.length : 0,
-            rawY ? rawY.length : 0,
-            Object.values(db)[0]?.length || 0
-          );
-
-          for (let i = 0; i < totalLength; i++) {
-            const xi = xKey === "index" ? i + 1 : rawX?.[i];
-            const yi = yKey === "index" ? i + 1 : rawY?.[i];
-
-            if (xi != null && yi != null && !Number.isNaN(xi) && !Number.isNaN(yi)) {
-              x.push(xi);
-              y.push(yi);
-              if (rawText[i]) text.push(rawText[i]);
-            }
-          }
-
-          trace = {
-            x: x,
-            y: y,
-            text: text.length ? text : undefined,
-            mode: "markers",
-            type: "scatter",
-            marker: { size: 6, color: "royalblue" }
-          };
-
-          layout = {
-            title: `${yLabelText} vs ${xLabel}`,
-            xaxis: { title: xLabel, type: logX.checked ? "log" : "linear" },
-            yaxis: { title: yLabelText, type: logY.checked ? "log" : "linear" },
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            hovermode: "closest",
-            margin: { l: 50, r: 50, b: 50, t: 50 }
-          };
+          Plotly.newPlot("dist-scatter", [trace], layout, { responsive: true });
         }
 
-        Plotly.newPlot("dist-scatter", [trace], layout, { responsive: true });
-      }
+        dbSelect.addEventListener("change", () => {
+          updateAxisOptions(dbSelect.value);
+          drawPlot();
+        });
 
-      dbSelect.addEventListener("change", () => {
-        updateAxisOptions(dbSelect.value);
+        xSelect.addEventListener("change", drawPlot);
+        ySelect.addEventListener("change", drawPlot);
+        logX.addEventListener("change", drawPlot);
+        logY.addEventListener("change", drawPlot);
+
+        // Init
+        updateAxisOptions("db1");
         drawPlot();
-      });
-
-      xSelect.addEventListener("change", drawPlot);
-      ySelect.addEventListener("change", drawPlot);
-      logX.addEventListener("change", drawPlot);
-      logY.addEventListener("change", drawPlot);
-
-      // Init
-      updateAxisOptions("db1");
-      drawPlot();
     });
-    </script>
+      </script>
 
 
-  </div>
-  {% endfor %}
-  <div class="relative min-h-[35vh] flex flex-col items-center justify-center shadow-5xl">
-    <div class="flex-grow flex items-center justify-center border-1 border-gray-200 dark:border-gray-400   shadow-5xl">
-      <div class="w-0 top-0 h-full shadow-2xl">
+    </div>
+    {% endfor %}
+    <div class="relative min-h-[35vh] flex flex-col items-center justify-center shadow-5xl">
+      <div
+        class="flex-grow flex items-center justify-center border-1 border-gray-200 dark:border-gray-400   shadow-5xl">
+        <div class="w-0 top-0 h-full shadow-2xl">
+        </div>
       </div>
     </div>
   </div>
-</div>
-{% endblock %}
+  {% endblock %}
