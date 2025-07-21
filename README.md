@@ -1,8 +1,8 @@
 # 🌌 AstroSpace
 
-**AstroSpace** is a web application designed to host, organize, and showcase your astrophotography collection. 🔭 Sort celestial objects in timeline views, automatic annotation for your images (Plate Solving) and create a stunning digital observatory of your cosmic captures. ✨
+**AstroSpace** is a web application designed to host, organize, and showcase your astrophotography collection. 🔭 Sort celestial objects in timeline views, automatic annotation for your images (via Plate Solving), compare the size of your DSO with moon scale, explore the objects inside your DSO with Plotly graphs and much more! ✨
 
-Perfect for amateur astronomers, astrophotographers, and stargazers who want to organize their night sky adventures! 🌟
+Perfect for amateur astronomers, astrophotographers, and stargazers who want to organize their night sky adventures and create their own personal space for Astro Stuff! 🌟
 
 check out my Instance at:
 
@@ -11,16 +11,20 @@ check out my Instance at:
 
 ## 🚀 Key Features
 
-- 🔐 **Secure User Authentication** - Protected access with customizable user limits
-- 🎨 **Modern Tailwind CSS Interface** - Sleek, responsive design that looks professional
-- 🌙 **Dark & Light Mode Support** - Perfect for both day and night viewing sessions
-- 🗂️ **Dynamic Content Management** - Seamlessly handle static and dynamic astrophotography content
-- 🧩 **Modular Architecture** - Clean, maintainable structure with reusable utilities and templates
-- 🐳 **Docker Ready** - Containerized deployment for hassle-free setup
-- ✍️ **Post Creation & Editing** - Document your observations and share your astrophotography journey
-- 📊 **PHD2 Log Integration** - Upload and analyze your autoguiding logs for better tracking performance
-- 🔍 **Plate Solving** - Automatically identify celestial objects and coordinates in your images
-- 📱 **Responsive Design** - Access your collection from any device
+- 🔐 **Secure User Authentication** – Protected access with customizable user limits  
+- 🎨 **Modern Tailwind CSS Interface** – Sleek, responsive design that looks professional  
+- 🌙 **Dark & Light Mode Support** – Perfect for both day and night viewing sessions  
+- 🗂️ **Dynamic Content Management** – Seamlessly handle static and dynamic astrophotography content  
+- 🧩 **Modular Architecture** – Clean, maintainable structure with reusable utilities and templates  
+- 🐳 **Docker Ready** – Containerized deployment for hassle-free setup  
+- ✍️ **Post Creation & Editing** – Document your observations and share your astrophotography journey  
+- 📊 **PHD2 Log Integration** – Upload and analyze your autoguiding logs for better tracking performance  
+- 🔍 **Plate Solving** – Automatically identify celestial objects and coordinates in your images  
+- 📱 **Responsive Design** – Access your collection from any device  
+- 🌕 **Moon Scale for DSO Frames** – Visualize the scale of deep sky objects in comparison to the Moon  
+- 🗺️ **Equatorial Grid Overlay** – Overlay celestial coordinate grids for precise orientation  
+- 🔗 **Shareable Links with Tabular Acquisition Details** – Easily share your captures along with structured metadata  
+- 📈 **Explore DSO Contents with Plotly Graphs** – Interactively visualize SIMBAD and VizieR catalog queries
 
 ---
 
@@ -122,15 +126,32 @@ TITLE = "My AstroSpace Observatory"  # Customize your site name
 ```
 
 ```bash
-# 🚀 Initialize the Database
-flask --app AstroSpace init-db
-
 # 🚀 Launch the application
 flask --app AstroSpace run
 ```
 
 Your AstroSpace instance will be available at `http://localhost:5000` 🌐
 
+#### Docker Container
+
+```bash
+docker pull sharonshaji92/astrospace:latest
+docker run \
+  -d \
+  --name='Your_Container_Name' \
+  -e 'SECRET_KEY'='your_super_secret_key' \
+  -e 'DB_NAME'='astrodb' \
+  -e 'DB_USER'='test' \
+  -e 'DB_PASSWORD'='123123' \
+  -e 'DB_PORT'='8080' \
+  -e 'TITLE'='Your_Website_Name' \
+  -e 'MAX_USERS'='1' \
+  -e 'ASTROMETRY_API_KEY'='your_astrometry_key' \
+  -e 'DB_HOST'='0.0.0.0' \
+  -p '9000:9000/tcp' \
+  sharonshaji92/astrospace:latest
+
+```
 ---
 
 ## 🤝 Contributing
