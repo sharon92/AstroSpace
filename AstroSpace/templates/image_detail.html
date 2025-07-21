@@ -128,9 +128,11 @@
               {% set moon_width = (1800 / il.image.pixel_scale) | int %}
 
               <svg id="comp-wrapper-{{ il.image.id }}"
-                class="absolute top-0 left-0 hidden pointer-events-auto w-[{{ moon_width }}px] h-[{{ moon_width }}px]">
+                class="absolute top-0 left-0 hidden pointer-events-auto w-full h-full z-5000"
+                viewBox="0 0 {{ moon_width }} {{ moon_width }}">
                 <image href="{{ url_for('static', filename='assets/images/moon.png') }}"
-                  class="w-full h-full object-contain" id="comp-img-{{ il.image.id }}" alt="Moon overlay" />
+                  class="w-[{{ moon_width }}px] h-[{{ moon_width }}px]" id="comp-img-{{ il.image.id }}"
+                  alt="Moon overlay" />
               </svg>
             </div>
             <div id="graticule-{{il.image.id}}" class="absolute top-0 left-0 w-full h-full pointer-events-none z-3000 ">
@@ -702,6 +704,7 @@
 
         // Initialize Panzoom only once
         if (!container.dataset.panzoomInitialized) {
+          container.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
           //parentCont.style.width = `${overlayData.width}px`;
           //parentCont.style.height = `${overlayData.height}px`;
           Panzoom(container, {
