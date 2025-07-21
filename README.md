@@ -33,16 +33,17 @@ check out my Instance at:
 ### 🖼️ Image Gallery with Detailed Information Tabs
 Organize your astrophotography with rich metadata and detailed viewing options:
 
-![Image Gallery Interface](https://github.com/user-attachments/assets/3fa18c68-780e-48a9-8121-763af082daba)
+<img width="1239" height="1215" alt="image" src="https://github.com/user-attachments/assets/a81628c6-39c0-4db0-a9c9-4ca643db51ac" />
 
-![Detailed Image View](https://github.com/user-attachments/assets/76b01b0f-763b-46b8-ba72-853b3e469c98)
 
-![Image Information Panel](https://github.com/user-attachments/assets/34944a68-2bbb-42c5-b010-98812281b3ad)
+<img width="1236" height="1077" alt="image" src="https://github.com/user-attachments/assets/365d763e-64ca-4bb6-b8b7-3637342151c6" />
+
 
 ### 📊 PHD2 Log Analysis
 Upload and analyze your autoguiding performance:
 
-![PHD2 Log Upload](https://github.com/user-attachments/assets/4f3ae6a4-5db6-4883-b88f-eaf6d5716b23)
+<img width="1220" height="1170" alt="image" src="https://github.com/user-attachments/assets/c92e1fbd-af4f-4765-a50e-337d1e0b77f9" />
+
 
 ### 🔐 User Authentication System
 Secure login with configurable user limits (set `MAX_USERS` environment variable):
