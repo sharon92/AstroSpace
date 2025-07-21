@@ -567,6 +567,9 @@
   .items-end {
     align-items: flex-end;
   }
+  .items-start {
+    align-items: flex-start;
+  }
   .justify-between {
     justify-content: space-between;
   }
@@ -694,18 +697,6 @@
     border-style: var(--tw-border-style);
     border-width: 2px;
   }
-  .border-3 {
-    border-style: var(--tw-border-style);
-    border-width: 3px;
-  }
-  .border-4 {
-    border-style: var(--tw-border-style);
-    border-width: 4px;
-  }
-  .border-400 {
-    border-style: var(--tw-border-style);
-    border-width: 400px;
-  }
   .border-b {
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
@@ -728,12 +719,6 @@
   }
   .border-gray-600 {
     border-color: var(--color-gray-600);
-  }
-  .border-red-700 {
-    border-color: var(--color-red-700);
-  }
-  .border-red-900 {
-    border-color: var(--color-red-900);
   }
   .border-slate-300 {
     border-color: var(--color-slate-300);
