@@ -186,7 +186,7 @@ CREATE TABLE images (
     dew_heater_id INT REFERENCES dew_heater(id),
     flat_panel_id INT REFERENCES flat_panel(id),
     guide_camera_id INT REFERENCES camera(id),
-    guider_id INT REFERENCES off_axis_guider(id),
+    guider_id INT REFERENCES guider(id),
     rotator_id INT REFERENCES rotator(id) -- assuming rotator uses the same EAF table
 );
 
