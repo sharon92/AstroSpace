@@ -73,19 +73,19 @@
                 <div class="w-36 flex-none ...">
                     <label class="label">Latitude</label>
                     <input name="location_latitude" id="location_lat" class="input_container"
-                        value="{{ image.location_latitude if is_edit else '' }}" readonly />
+                        value="{{ image.location_latitude if is_edit else '' }}" />
                 </div>
 
                 <div class="w-36 flex-none ...">
                     <label class="label">Longitude</label>
                     <input name="location_longitude" id="location_lng" class="input_container"
-                        value="{{ image.location_longitude if is_edit else '' }}" readonly />
+                        value="{{ image.location_longitude if is_edit else '' }}" />
                 </div>
 
                 <div class="w-36 flex-none ...">
                     <label class="label">Elevation</label>
                     <input name="location_elevation" id="location_elev" class="input_container"
-                        value="{{ image.location_elevation if is_edit else '' }}" readonly />
+                        value="{{ image.location_elevation if is_edit else '' }}" />
                 </div>
             </div>
         </div>
@@ -300,41 +300,6 @@
     <script>
         const input_container_style = `w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
-        async function updateLocationDetails(q) {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-
-            if (data[0]) {
-                const lat = data[0].lat;
-                const lon = data[0].lon;
-
-                document.getElementById('location_lat').value = lat;
-                document.getElementById('location_lng').value = lon;
-
-                // Now get elevation from your API
-                const elevRes = await fetch(`/get_elevation?lat=${lat}&lon=${lon}`);
-                const elevData = await elevRes.text();
-
-                if (elevData) {
-                    document.getElementById('location_elev').value = elevData;
-                }
-            }
-        }
-
-        const locInput = document.getElementById('locationInput');
-
-        // Run when the user changes the input
-        locInput.addEventListener('change', () => {
-            const q = locInput.value;
-            if (q.trim()) updateLocationDetails(q);
-        });
-
-        // Also run on page load if value already exists
-        window.addEventListener('DOMContentLoaded', () => {
-            const q = locInput.value;
-            if (q.trim()) updateLocationDetails(q);
-        });
-
         let dates = {{ capture_dates| safe }};
 
         function renderDateList() {
@@ -432,6 +397,40 @@
             inputStyle.forEach(link => {
                 link.className = input_container_style;
             });
+
+            const locInput = document.getElementById('locationInput');
+
+            if (!locInput) return; // Prevent error if element not found
+
+            // Run when the user changes the input
+            locInput.addEventListener('change', () => {
+                const q = locInput.value;
+                if (q.trim()) updateLocationDetails(q);
+            });
+
+            // Also run on page load if value already exists
+            const q = locInput.value;
+            if (q.trim()) updateLocationDetails(q);
+
+            async function updateLocationDetails(q) {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+
+                if (data[0]) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+
+                    document.getElementById('location_lat').value = lat;
+                    document.getElementById('location_lng').value = lon;
+
+                    const elevRes = await fetch(`/get_elevation?lat=${lat}&lon=${lon}`);
+                    const elevData = await elevRes.text();
+
+                    if (elevData) {
+                        document.getElementById('location_elev').value = elevData;
+                    }
+                }
+            }
         });
 
     </script>
