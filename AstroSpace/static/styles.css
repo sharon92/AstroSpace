@@ -307,9 +307,6 @@
   .z-300 {
     z-index: 300;
   }
-  .z-2000 {
-    z-index: 2000;
-  }
   .z-3000 {
     z-index: 3000;
   }
@@ -719,9 +716,6 @@
   }
   .border-gray-600 {
     border-color: var(--color-gray-600);
-  }
-  .border-red-900 {
-    border-color: var(--color-red-900);
   }
   .border-slate-300 {
     border-color: var(--color-slate-300);
