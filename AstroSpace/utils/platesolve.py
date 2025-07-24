@@ -3,7 +3,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 import numpy as np
-
+import math
 # from astroquery.vizier import Vizier
 from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord
@@ -40,6 +40,12 @@ def make_grid_lines(wcs, ra_limits, dec_limits, ra_count=6, dec_count=6):
         ra_lines.append(pix.tolist())
 
         mid = ra_count // 2
+        if 1 < mid < len(pix) - 1:
+            dx = pix[mid + 1][0] - pix[mid - 1][0]
+            dy = pix[mid + 1][1] - pix[mid - 1][1]
+            angle = math.degrees(math.atan2(dy, dx))
+        else:
+            angle = -90  # Fallback
         hrs = ra // 15 
         mins = (ra%15)*4
         secs = (mins % 1) * 60
@@ -48,7 +54,7 @@ def make_grid_lines(wcs, ra_limits, dec_limits, ra_count=6, dec_count=6):
                 "text": f"{hrs:02.0f}h {int(mins):02.0f}m {secs:02.1f}s",
                 "x": float(pix[mid][0] - 15),
                 "y": float(pix[mid][1] - 10),
-                 "rotation": -90
+                 "rotation": angle
             }
         )
 
@@ -59,12 +65,19 @@ def make_grid_lines(wcs, ra_limits, dec_limits, ra_count=6, dec_count=6):
         dec_lines.append(pix.tolist())
 
         mid = dec_count // 2
+        if 1 < mid < len(pix) - 1:
+                dx = pix[mid + 1][0] - pix[mid - 1][0]
+                dy = pix[mid + 1][1] - pix[mid - 1][1]
+                angle = math.degrees(math.atan2(dy, dx))
+        else:
+            angle = 0  # Fallback
+
         labels.append(
             {
                 "text": f"{int(dec):+03d}°{int(abs(dec % 1) * 60):02d}′",
                 "x": float(pix[mid][0] + 20),
                 "y": float(pix[mid][1] - 15),
-                "rotation": 0
+                "rotation": angle
             }
         )
 
@@ -83,7 +96,7 @@ def platesolve(image_path, user_id, fits_file=None):
         if fits_name.endswith(".xisf"):
             wcs_header = xisf_header(fits_file)
         elif fits_name.endswith(".fits") or fits_name.endswith(".fit"):
-            with fits.open(fits_file) as hdul:
+            with fits.open(fits_file, mode="update") as hdul:
                 wcs_header = hdul[0].header
 
     else:
@@ -97,6 +110,12 @@ def platesolve(image_path, user_id, fits_file=None):
         raise ValueError("FITS file does not contain WCS information. Plate Solve the Fits file first!")
     
     wcs = WCS(wcs_header)
+    try:
+        wcs = wcs.dropaxis(2)  # Drop any unused axes
+        #wcs_header = wcs.to_header()
+    except:
+        pass 
+
     ps_x, ps_y = wcs.proj_plane_pixel_scales()[:2]
     pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
 
@@ -171,8 +190,13 @@ favs = [
 def get_overlays(wcs_header):
     wcs_header = Header.fromstring(wcs_header)
     wcs = WCS(wcs_header)
+    try:
+        wcs = wcs.dropaxis(2)  # Drop any unused axes
+        #wcs_header = wcs.to_header()
+    except:
+        pass 
 
-    ps_x, ps_y = wcs.proj_plane_pixel_scales()
+    ps_x, ps_y = wcs.proj_plane_pixel_scales()[:2]
     pixel_scale = np.mean([ps_x.value, ps_y.value]) * 3600
 
     simbad_desc = os.path.join(
@@ -184,7 +208,10 @@ def get_overlays(wcs_header):
     # chosen_stars = otypes.query("index.isin(@favs)").to_dict()[0]
     chosen_stars = otypes.to_dict()[0]
 
-    nx, ny = wcs_header.get("IMAGEW", 0), wcs_header.get("IMAGEH", 0)
+    try:
+        nx, ny = wcs_header["IMAGEW"], wcs_header["IMAGEH"]
+    except:
+        nx, ny = wcs_header["NAXIS1"], wcs_header["NAXIS2"]
 
     corners_pix = np.array([[0, 0], [nx, 0], [nx, ny], [0, ny]])
     corners_world = wcs.pixel_to_world_values(corners_pix[:, 0], corners_pix[:, 1])

@@ -236,14 +236,13 @@ def edit_image(image_id):
     )
 
 
-@bp.route("/delete")
+@bp.route("/delete/<int:image_id>")
 @login_required
-def delete_image(img_id):
+def delete_image(image_id):
     conn = get_conn()
     cur = conn.cursor()
     # Clear and reinsert related tables
     for table in [
-        "images",
         "image_views",
         "image_likes",
         "image_comments",
@@ -251,8 +250,9 @@ def delete_image(img_id):
         "image_lights",
         "image_software",
     ]:
-        cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
-
+        cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (image_id,))
+    cur.execute("DELETE FROM images WHERE id = %s", (image_id,))
+    
     conn.commit()
     cur.close()
     flash("Post deleted successfully!")
