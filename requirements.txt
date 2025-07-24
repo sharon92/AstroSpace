@@ -11,3 +11,4 @@ astroquery
 astropy
 photoutils
 pillow
+xisf

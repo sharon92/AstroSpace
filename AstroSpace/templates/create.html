@@ -59,6 +59,18 @@
         file:text-sm file:font-semibold
         file:bg-blue-50 file:text-blue-700
         hover:file:bg-blue-100" {% if not is_edit %} required {% endif %} />
+
+            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
+                <p>Upload FITS/XISF file [optional]</p>
+                <p>[In cases when Astrometry.net is not available. The Jpeg should be of same
+                    dimension as the fits/XISF file otherwise the annotation will be incorrect!]</p>
+            </label>
+            <input name="fits_file" type="file" accept=".fits,.fit,.xisf" class="block w-full text-sm text-gray-500
+                 file:mr-4 file:py-2 file:px-4
+                 file:rounded-full file:border-0
+                 file:text-sm file:font-semibold
+                 file:bg-blue-50 file:text-blue-700
+                 hover:file:bg-blue-100" />
         </div>
 
         <!-- Location Row -->

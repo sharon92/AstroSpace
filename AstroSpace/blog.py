@@ -36,6 +36,7 @@ from werkzeug.utils import secure_filename
 bp = Blueprint("blog", __name__)
 
 ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
+ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
 ALLOWED_TXT_EXTENSIONS = {"txt"}
 
 
@@ -289,13 +290,15 @@ def save_image():
         object_type = query[0]["otype_txt"]
 
     file = request.files.get("image_path")
+    fits_path = request.files.get("fits_file")
+
     if file.filename and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
         img_path_upload = f"{user_id}/{filename}"
         file.save(image_path)
         header_json, svg_image, thumbnail_path, pixel_scale = platesolve(
-            image_path, user_id
+            image_path, user_id, fits_path
         )
     elif img_id:
         img_path_upload = form.get("prev_img")
@@ -304,7 +307,7 @@ def save_image():
                 current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
             )
             header_json, svg_image, thumbnail_path, pixel_scale = platesolve(
-                full_img_path, user_id
+                full_img_path, user_id, fits_path
             )
         else:
             header_json = tmp_img["header_json"]

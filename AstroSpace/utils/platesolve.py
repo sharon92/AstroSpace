@@ -1,5 +1,7 @@
 import os
+from astropy.io import fits
 from astropy.wcs import WCS
+
 import numpy as np
 
 # from astroquery.vizier import Vizier
@@ -12,6 +14,7 @@ import hashlib
 from flask import current_app
 from astroquery.astrometry_net import AstrometryNet
 from AstroSpace.utils.utils import resize_image
+from AstroSpace.utils.xisf_reader import xisf_header
 import json
 # import scipy
 
@@ -72,16 +75,29 @@ def make_grid_lines(wcs, ra_limits, dec_limits, ra_count=6, dec_count=6):
     }
 
 
-
-def platesolve(image_path, user_id):
+def platesolve(image_path, user_id, fits_file=None):
     print("Plate solving image....")
-    # Initialize AstrometryNet with your API key
-    ast = AstrometryNet()
-    ast.api_key = current_app.config["ASTROMETRY_API_KEY"]
-    wcs_header = ast.solve_from_image(image_path, solve_timeout=1800)
+    if fits_file:
+        # If a FITS file is provided, use it to extract the WCS header
+        fits_name = fits_file.filename.lower()
+        if fits_name.endswith(".xisf"):
+            wcs_header = xisf_header(fits_file)
+        elif fits_name.endswith(".fits") or fits_name.endswith(".fit"):
+            with fits.open(fits_file) as hdul:
+                wcs_header = hdul[0].header
 
+    else:
+        print("Plate solving using AstrometryNet...")
+        # Initialize AstrometryNet with your API key
+        ast = AstrometryNet()
+        ast.api_key = current_app.config["ASTROMETRY_API_KEY"]
+        wcs_header = ast.solve_from_image(image_path, solve_timeout=1800)
+
+    if "CRPIX1" not in wcs_header:
+        raise ValueError("FITS file does not contain WCS information. Plate Solve the Fits file first!")
+    
     wcs = WCS(wcs_header)
-    ps_x, ps_y = wcs.proj_plane_pixel_scales()
+    ps_x, ps_y = wcs.proj_plane_pixel_scales()[:2]
     pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
 
     header_json = wcs_header.tostring()
