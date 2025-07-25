@@ -1,11 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "AstroSpace"
+name = "astrospace"
 version = "1.0.0"
-description = "Astrophotography blog app built in Flask\PostgreSQL"
+description = "A Flask-based astrophotography web application"
+authors = [
+  { name="Sharon Shaji", email="sharonshaji92@outlook.com" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
 dependencies = [
-    "flask",
+"Flask",
+"flask-login",
+"flask_wtf",
+"psycopg2-binary",
+"numpy",
+"pandas",
+"requests",
+"ephem",
+"bokeh",
+"astroquery",
+"astropy",
+"photoutils",
+"pillow",
+"xisf"
 ]
 
-[build-system]
-requires = ["flit_core<4"]
-build-backend = "flit_core.buildapi"
+[tool.hatch.build]
+include = [
+  "AstroSpace/*.py",
+  "AstroSpace/*.sql",
+  "AstroSpace/static/**",
+  "AstroSpace/templates/**",
+  "AstroSpace/utils/**",
+  "README.md",
+  "LICENSE",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["AstroSpace"]
