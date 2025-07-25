@@ -13,6 +13,9 @@ def create_app(test_config=None):
         # load the test config if passed in
         app.config.from_mapping(test_config)
     
+    # load the environment variables from the path set in environment variable
+    app.config.from_envvar('ASTROSPACE_SETTINGS', silent=True)
+    
     app.config['root_path'] = os.path.dirname(__file__)
     app.config['MAX_CONTENT_LENGTH'] = 4 * 100 * 1000 * 1000 #about 400mb
 
@@ -24,6 +27,11 @@ def create_app(test_config=None):
         os.makedirs(app.instance_path)
     except OSError:
         pass
+    
+
+    for key in ['SECRET_KEY', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']:
+        if key not in app.config:
+            raise ValueError(f"{key} must be set in the configuration")
 
     from . import db
     db.init_app(app)
