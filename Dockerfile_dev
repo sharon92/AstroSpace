@@ -7,9 +7,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set working directory (name doesn't matter much here)
 WORKDIR /AstroSpace
 
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the entire app code into the container
+COPY . .
+
 # Install published package + gunicorn
 RUN pip install --upgrade pip \
-    && pip install --upgrade astrospace gunicorn
+    && pip install gunicorn
 
 # Expose the port your app listens on
 EXPOSE 9000

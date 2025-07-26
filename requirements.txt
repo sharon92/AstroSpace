@@ -6,7 +6,7 @@ numpy
 pandas
 requests
 ephem
-bokeh
+bokeh==3.7.3
 astroquery
 astropy
 photoutils

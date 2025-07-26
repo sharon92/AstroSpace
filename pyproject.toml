@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "astrospace"
-version = "1.0.0"
+version = "1.0.2"
 description = "A Flask-based astrophotography web application"
 authors = [
   { name="Sharon Shaji", email="sharonshaji92@outlook.com" }
@@ -20,7 +20,7 @@ dependencies = [
 "pandas",
 "requests",
 "ephem",
-"bokeh",
+"bokeh==3.7.3",
 "astroquery",
 "astropy",
 "photoutils",
