@@ -6,6 +6,8 @@ class Config:
     TITLE = os.environ.get("TITLE", "AstroSpace")
     MAX_USERS = int(os.environ.get("MAX_USERS", 1))
 
+    UPLOAD_PATH = os.environ.get("UPLOAD_PATH", os.path.abspath("uploads"))
+
     if "DB_NAME" in os.environ:
         DB_NAME = os.environ['DB_NAME']
     

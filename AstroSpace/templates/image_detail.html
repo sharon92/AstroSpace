@@ -617,7 +617,7 @@
           for (let item of overlays) {
             if (item.rx >= 10 && item.ry >= 10) {
               const transform = item.angle
-                ? ` transform="rotate(${-item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
+                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
                 : "";
 
               svg += `<g class="astro-group">

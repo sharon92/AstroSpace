@@ -23,7 +23,7 @@ def create_app(test_config=None):
     app.config['root_path'] = os.path.dirname(__file__)
     app.config['MAX_CONTENT_LENGTH'] = 4 * 100 * 1000 * 1000 #about 400mb
 
-    app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
+    #app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_PATH'],exist_ok=True)
 
     # ensure the instance folder exists
