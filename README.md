@@ -79,30 +79,9 @@ Before you begin, ensure you have the following installed on your system:
 - 🐳 **Docker** - *(Optional)* For containerized deployment
 - 🌐 **Astrometry.net Account** - For plate-solving functionality
 
-### 🧪 Local Development Setup
-
-Follow these steps to get AstroSpace running on your local machine:
-
-```bash
-# 📥 Clone the repository
-git clone https://github.com/sharon92/AstroSpace.git
-cd AstroSpace
-
-# 🔧 Set up a Python virtual environment
-python -m venv venv
-source venv/bin/activate      # On Windows: venv\Scripts\activate
-
-# 📦 Install required dependencies
-pip install -r requirements.txt
-
-# ⚙️ Create configuration file
-# Create a file at: instance/config.py
-# Add the following configuration variables:
-```
-
 #### 📝 Configuration Template
 
-Create `instance/config.py` with the following settings:
+Create `config.py` with the following settings:
 
 ```python
 # 🔐 Security Configuration
@@ -124,10 +103,49 @@ MAX_USERS = 5  # Set maximum number of registered users
 
 # 🏷️ Site Branding
 TITLE = "My AstroSpace Observatory"  # Customize your site name
+
+# Upload Path - uploaded jpegs and phd logs will be saved here
+UPLOAD_PATH = "absolute/path/to/uploads
+```
+
+### 🧪 Local Setup
+Follow these steps to get AstroSpace running on your local machine:
+
+```bash
+# 🔧 Set up a Python virtual environment
+python -m venv venv
+source venv/bin/activate      # On Windows: venv\Scripts\activate
+
+# 📦 Install astrospace package
+pip install astrospace
+
+set ASTROSPACE_SETTINGS=path/to/config.py
+flask --app AstroSpace run
+
+#follow the link in the console to access your website
+```
+
+### 🧪 Local Development Setup
+
+Follow these steps to get AstroSpace running on your local machine:
+
+```bash
+# 📥 Clone the repository
+git clone https://github.com/sharon92/AstroSpace.git
+cd AstroSpace
+
+# 🔧 Set up a Python virtual environment
+python -m venv venv
+source venv/bin/activate      # On Windows: venv\Scripts\activate
+
+# 📦 Install required dependencies
+pip install -r requirements.txt
+
 ```
 
 ```bash
 # 🚀 Launch the application
+set ASTROSPACE_SETTINGS=path/to/config.py
 flask --app AstroSpace run
 ```
 
@@ -149,7 +167,9 @@ docker run \
   -e 'MAX_USERS'='1' \
   -e 'ASTROMETRY_API_KEY'='your_astrometry_key' \
   -e 'DB_HOST'='0.0.0.0' \
+  -e 'UPLOAD_PATH' = '/uploads' \
   -p '9000:9000/tcp' \
+  -v '/path/on/server/to/mount/to/the/app':'/uploads' \
   sharonshaji92/astrospace:latest
 
 ```

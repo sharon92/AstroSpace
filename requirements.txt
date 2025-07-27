@@ -12,3 +12,4 @@ astropy
 photoutils
 pillow
 xisf
+gunicorn

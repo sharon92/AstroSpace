@@ -4,15 +4,14 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Set working directory (name doesn't matter much here)
+# Set working directory
 WORKDIR /AstroSpace
 
-# Install published package + gunicorn
+# Install dependencies (add gevent too, to avoid resource exhaustion)
 RUN pip install --upgrade pip \
-    && pip install --upgrade astrospace gunicorn
+    && pip install --upgrade astrospace gunicorn gevent
 
-# Expose the port your app listens on
+# Expose app port
 EXPOSE 9000
 
-# Start the app using Gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:9000", "AstroSpace:create_app()"]
+CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:9000", "--timeout", "120", "--worker-class", "gevent", "AstroSpace:create_app()"]
