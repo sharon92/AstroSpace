@@ -50,6 +50,11 @@ def create_app(test_config=None):
 
     from . import blog
     app.register_blueprint(blog.bp)
+
+    from .profile import private, public
+    app.register_blueprint(private.bp)
+    app.register_blueprint(public.bp)
+
     app.add_url_rule('/', endpoint='index')
 
     return app

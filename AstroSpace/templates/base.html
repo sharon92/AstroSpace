@@ -6,6 +6,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{{WebName}}</title>
 
+        <link rel="preload" href="{{ url_for('static', filename='fonts/Lato-Medium.woff2') }}" as="font"
+            type="font/woff2" crossorigin="anonymous">
+        <link rel="preload" href="{{ url_for('static', filename='fonts/Patung.woff2') }}" as="font" type="font/woff2"
+            crossorigin="anonymous">
+
         <!-- Custom Stylesheet and js-->
         <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
@@ -115,11 +120,8 @@
                             <li><a href="{{ url_for('blog.new_blog') }}" class="nav-link">New
                                     Blog</a>
                             </li>
-                            <li><a href="{{ url_for('blog.add_equipment') }}" class="nav-link">Add Equipment
-                                </a>
-                            </li>
-                            <li><a href="{{ url_for('blog.list_images') }}" class="nav-link">My
-                                    Posts</a>
+                            <li><a href="{{ url_for('my_profile.profile') }}" class="nav-link">My
+                                    Profile</a>
                             </li>
                             <li><a href="{{ url_for('auth.logout') }}"
                                     class="text-red-600 dark:text-red-400 nav-link">Log

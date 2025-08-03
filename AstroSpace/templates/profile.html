@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+
+<div class="py-20 px-10">
+    <!-- Main Card Container -->
+    <div x-data="{ tab: 'Posts'}" class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
+
+        <!-- Main Tabs -->
+        <div x-cloak
+            class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-center items-center whitespace-nowrap">
+
+            {% for itab in tabs %}
+            <button @click="tab = '{{ itab }}'"
+                :class="tab === '{{ itab }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
+                class="px-4 py-2 text-sm font-medium">
+                {{ itab }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <div x-show="tab === 'Posts'" class="space-y-2 md:p-4">
+            <div class="overflow-x-auto rounded shadow">
+                <table
+                    class="min-w-full bg-white dark:bg-gray-700 border border-gray-200 text-sm text-left text-gray-700 dark:text-white">
+                    <thead class="bg-gray-100 dark:bg-gray-900 border-b">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-sm font-semibold">Title</th>
+                            <th scope="col" class="px-4 py-3 text-sm font-semibold">Date</th>
+                            <th scope="col" class="px-4 py-3 text-sm font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in posts %}
+                        <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{{ p['title'] }}</td>
+                            <td class="px-4 py-2 text-gray-600 dark:text-gray-300">
+                                {{ p['created_at'].strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-4 py-2 space-x-2">
+                                <a href="{{ url_for('blog.edit_image', image_id=p['id']) }}"
+                                    class="inline-block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
+                                    Edit
+                                </a>
+                                <a href="{{ url_for('blog.delete_image', image_id=p['id']) }}"
+                                    class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                                    onclick="return confirm('Delete?');">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+<div x-data='{
+    inventory: {{ inventory | tojson }},
+    selectedType: "",
+    selectedName: "",
+    currentNames: [],
+    currentValues: {},
+
+    updateNames() {
+        const namesObj = this.inventory[this.selectedType] || {};
+        this.currentNames = Object.keys(namesObj);
+        this.selectedName = this.currentNames[0] || "";
+        this.updateValues();
+    },
+
+    updateValues() {
+        this.currentValues = this.inventory[this.selectedType]?.[this.selectedName] || {};
+    }
+}' 
+x-init="
+    selectedType = Object.keys(inventory)[0];
+    updateNames();
+"
+x-show="tab === 'Inventory'" class="space-y-4 md:p-4">
+
+    <!-- Inventory Type Dropdown -->
+    <label for="inventoryType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Select Inventory Type
+    </label>
+
+    <select id="inventoryType" x-model="selectedType" @change="updateNames()"
+        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        {% for item in inventory %}
+        <option value="{{ item }}">{{ item | capitalize }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Item Name Dropdown -->
+    <label for="itemName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Select Inventory Name
+    </label>
+
+    <select id="itemName" x-model="selectedName" @change="updateValues()"
+        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        <template x-for="name in currentNames" :key="name">
+            <option :value="name" x-text="name"></option>
+        </template>
+    </select>
+
+    <!-- Item Details Display -->
+    <div class="grid grid-cols-2 gap-4 border p-4 rounded bg-gray-50 dark:bg-gray-800 mt-4">
+        <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" x-text="key"></label>
+                <input type="text"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    x-model="currentValues[key]" />
+            </div>
+        </template>
+    </div>
+</div>
+
+        <div x-show="tab === 'Settings'" class="space-y-2 md:p-4">
+            <p class="text-gray-600 dark:text-gray-300">Your account settings will be displayed here.</p>
+            <!-- Settings content goes here -->
+        </div>
+    </div>
+</div>
+
+{%endblock%}

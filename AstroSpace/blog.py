@@ -50,7 +50,6 @@ def upload(filename):
     return send_from_directory(current_app.config["UPLOAD_PATH"], filename)
 
 
-# List view
 @bp.route("/")
 @bp.route("/home")
 def home():
@@ -113,12 +112,6 @@ def new_blog():
     )
 
 
-@bp.route("/equipment")
-@login_required
-def add_equipment():
-    return "Not yet Implemented"
-
-
 @bp.route("/image/<int:image_id>/<string:image_name>")
 def image_detail(image_id, image_name):
     tables = get_image_tables(image_id)
@@ -156,24 +149,6 @@ def image_detail(image_id, image_name):
         images=images,
         WebName=current_app.config["TITLE"],
     )
-
-
-# List view
-@bp.route("/posts")
-@login_required
-def list_images():
-    db = get_conn()
-    with db.cursor() as cur:
-        cur.execute(
-            "SELECT id, title, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
-            (g.user["username"],),
-        )
-        posts = cur.fetchall()
-
-    return render_template(
-        "user_posts.html", posts=posts, WebName=current_app.config["TITLE"]
-    )
-
 
 # New post form
 def render_image_form(title, **kwargs):
