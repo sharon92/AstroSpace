@@ -1,5 +1,6 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify
+from werkzeug.exceptions import RequestEntityTooLarge
 
 
 def create_app(test_config=None):
@@ -21,7 +22,11 @@ def create_app(test_config=None):
         app.config.from_mapping(test_config)
     
     app.config['root_path'] = os.path.dirname(__file__)
-    app.config['MAX_CONTENT_LENGTH'] = 4 * 100 * 1000 * 1000 #about 400mb
+    app.config['MAX_CONTENT_LENGTH'] = 2 *  (1024 ** 3) #about 2GB
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def handle_file_too_large(e):
+        return jsonify(error=f"Uploaded File is too large. Max size is {app.config['MAX_CONTENT_LENGTH']/(1024**3)} GB."), 413
 
     #app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_PATH'],exist_ok=True)

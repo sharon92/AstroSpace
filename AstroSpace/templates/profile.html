@@ -105,7 +105,7 @@ x-show="tab === 'Inventory'" class="space-y-4 md:p-4">
     </select>
 
     <!-- Item Details Display -->
-    <div class="grid grid-cols-2 gap-4 border p-4 rounded bg-gray-50 dark:bg-gray-800 mt-4">
+    <div class="grid grid-cols-1 gap-4 border p-4 rounded bg-gray-50 dark:bg-gray-800 mt-4">
         <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" x-text="key"></label>
