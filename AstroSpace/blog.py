@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from datetime import datetime
+import bleach
 from flask import (
     Blueprint,
     flash,
@@ -39,6 +40,16 @@ ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
 ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
 ALLOWED_TXT_EXTENSIONS = {"txt"}
 
+# Define which HTML tags and attributes are safe
+ALLOWED_TAGS = [
+    'b', 'i', 'u', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li',
+    'blockquote', 'code', 'span'
+]
+ALLOWED_ATTRIBUTES = {
+    'a': ['href', 'title', 'rel'],
+    'span': ['style'],
+}
+ALLOWED_STYLES = ['color', 'font-weight', 'text-decoration']
 
 @bp.context_processor
 def inject_now():
@@ -339,6 +350,18 @@ def save_image():
     created_at = form.get("created_at")
     edited_at = datetime.now().strftime("%Y-%m-%d")
 
+    # Get raw description from form
+    desc = form.get("description")
+
+    # Sanitize it
+    clean_desc = bleach.clean(
+        desc,
+        tags=ALLOWED_TAGS,
+        attributes=ALLOWED_ATTRIBUTES,
+        styles=ALLOWED_STYLES,
+        strip=True   # strips disallowed tags completely (instead of escaping)
+    )
+
     conn = get_conn()
     cur = conn.cursor()
 
@@ -357,7 +380,7 @@ def save_image():
     values = [
         title,
         form.get("short_description"),
-        form.get("description"),
+        clean_desc,
         user,
         slugify(title),
         created_at,

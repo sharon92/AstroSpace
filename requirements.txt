@@ -13,3 +13,4 @@ photoutils
 pillow
 xisf
 gunicorn
+bleach
