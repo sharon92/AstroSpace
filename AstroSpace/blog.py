@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from datetime import datetime
+import time
 import bleach
 from flask import (
     Blueprint,
@@ -58,7 +59,9 @@ def inject_now():
 
 @bp.route("/uploads/<path:filename>")
 def upload(filename):
-    return send_from_directory(current_app.config["UPLOAD_PATH"], filename)
+    path = os.path.join(current_app.config["UPLOAD_PATH"], filename)
+    last_modified = time.gmtime(os.path.getmtime(path))
+    return send_from_directory(current_app.config["UPLOAD_PATH"], filename, last_modified = last_modified)
 
 
 @bp.route("/")
