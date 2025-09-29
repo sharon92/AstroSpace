@@ -3,9 +3,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
 
-<div class="py-20 px-10">
+<div class="m-5 p-5 flex justify-center w-auto">
     <!-- Main Card Container -->
-    <div x-data="{ tab: 'Posts'}" class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
+    <div x-data="{ tab: 'Posts'}" class="inline-block rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
         <!-- Main Tabs -->
         <div x-cloak
@@ -23,8 +23,8 @@
         <div x-show="tab === 'Posts'" class="space-y-2 md:p-4">
             <div class="overflow-x-auto rounded shadow">
                 <table
-                    class="min-w-full bg-white dark:bg-gray-700 border border-gray-200 text-sm text-left text-gray-700 dark:text-white">
-                    <thead class="bg-gray-100 dark:bg-gray-900 border-b">
+                    class="min-w-full bg-white dark:bg-gray-700 text-sm text-left text-gray-700 dark:text-white rounded-lg">
+                    <thead class="bg-gray-100 dark:bg-gray-900">
                         <tr>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Title</th>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Date</th>
@@ -33,7 +33,7 @@
                     </thead>
                     <tbody>
                         {% for p in posts %}
-                        <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <tr class="hover:bg-gray-200 dark:hover:bg-gray-400">
                             <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{{ p['title'] }}</td>
                             <td class="px-4 py-2 text-gray-600 dark:text-gray-300">
                                 {{ p['created_at'].strftime('%Y-%m-%d') }}
@@ -78,39 +78,41 @@ x-init="
     selectedType = Object.keys(inventory)[0];
     updateNames();
 "
-x-show="tab === 'Inventory'" class="space-y-4 md:p-4">
+x-show="tab === 'Inventory'" class="space-y-2 p-4  text-gray-700 dark:text-white">
 
-    <!-- Inventory Type Dropdown -->
-    <label for="inventoryType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Select Inventory Type
-    </label>
+    <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <!-- Inventory Type Dropdown -->
+        <label for="inventoryType" class="flex items-center">
+            Select Inventory Type
+        </label>
 
-    <select id="inventoryType" x-model="selectedType" @change="updateNames()"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-        {% for item in inventory %}
-        <option value="{{ item }}">{{ item | capitalize }}</option>
-        {% endfor %}
-    </select>
+        <select id="inventoryType" x-model="selectedType" @change="updateNames()"
+            class="p-2 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700">
+            {% for item in inventory %}
+            <option value="{{ item }}">{{ item | capitalize }}</option>
+            {% endfor %}
+        </select>
 
-    <!-- Item Name Dropdown -->
-    <label for="itemName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Select Inventory Name
-    </label>
+        <!-- Item Name Dropdown -->
+        <label for="itemName" class="flex items-center">
+            Select Inventory Name
+        </label>
 
-    <select id="itemName" x-model="selectedName" @change="updateValues()"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-        <template x-for="name in currentNames" :key="name">
-            <option :value="name" x-text="name"></option>
-        </template>
-    </select>
+        <select id="itemName" x-model="selectedName" @change="updateValues()"
+            class="p-2 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700">
+            <template x-for="name in currentNames" :key="name">
+                <option :value="name" x-text="name"></option>
+            </template>
+        </select>
+    </div>
 
     <!-- Item Details Display -->
-    <div class="grid grid-cols-1 gap-4 border p-4 rounded bg-gray-50 dark:bg-gray-800 mt-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-gray-800 mt-4 rounded-lg">
         <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" x-text="key"></label>
+            <div class="flex items-center justify-between not-[]:gap-2">
+                <label x-text="key"></label>
                 <input type="text"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    class="p-2 text-right rounded-md bg-gray-100 dark:bg-gray-700 "
                     x-model="currentValues[key]" />
             </div>
         </template>
