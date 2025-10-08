@@ -56,8 +56,10 @@
             </div>
         </div>
 
-<div x-data='{
+<div
+x-data='{
     inventory: {{ inventory | tojson }},
+    dataType: {{ data_type | tojson }},
     selectedType: "",
     selectedName: "",
     currentNames: [],
@@ -72,6 +74,44 @@
 
     updateValues() {
         this.currentValues = this.inventory[this.selectedType]?.[this.selectedName] || {};
+    },
+
+    inputTypeFor(key) {
+        const dtype = this.dataType[key];
+        if (key === "id") return "hidden";
+        if (!dtype) return "text";
+        if (["integer", "numeric", "float", "double"].includes(dtype)) return "number";
+        if (["boolean", "bool"].includes(dtype)) return "checkbox";
+        if (["text", "varchar", "string"].includes(dtype)) return "text";
+        if (["date", "datetime", "timestamp"].includes(dtype)) return "date";
+        return "text";
+    },
+
+    async saveInventory() {
+        const payload = {
+            type: this.selectedType,
+            name: this.selectedName,
+            values: this.currentValues
+        };
+
+        try {
+            const response = await fetch("/private/update_inventory", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("Inventory saved successfully!");
+            } else {
+                alert("Failed to save inventory.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred while saving.");
+        }
     }
 }' 
 x-init="
@@ -95,7 +135,7 @@ x-show="tab === 'Inventory'" class="space-y-2 p-4  text-gray-700 dark:text-white
 
         <!-- Item Name Dropdown -->
         <label for="itemName" class="flex items-center">
-            Select Inventory Name
+            Add/Edit Inventory
         </label>
 
         <select id="itemName" x-model="selectedName" @change="updateValues()"
@@ -106,16 +146,35 @@ x-show="tab === 'Inventory'" class="space-y-2 p-4  text-gray-700 dark:text-white
         </select>
     </div>
 
-    <!-- Item Details Display -->
+    <!-- Inventory Details Display -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-gray-800 mt-4 rounded-lg">
         <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
-            <div class="flex items-center justify-between not-[]:gap-2">
-                <label x-text="key"></label>
-                <input type="text"
-                    class="p-2 text-right rounded-md bg-gray-100 dark:bg-gray-700 "
-                    x-model="currentValues[key]" />
-            </div>
+            <template x-if="inputTypeFor(key) !== 'hidden'">
+                <div class="flex items-center justify-between not-[]:gap-2">
+                    <label x-text="key"></label>
+                    <template x-if="inputTypeFor(key) === 'checkbox'">
+                        <input type="checkbox"
+                            class="w-5 h-5"
+                            x-model="currentValues[key]"
+                            :checked="currentValues[key]" />
+                    </template>
+                    <template x-if="inputTypeFor(key) !== 'checkbox'">
+                        <input :type="inputTypeFor(key)"
+                            class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700"
+                            x-model="currentValues[key]" />
+                    </template>
+                </div>
+            </template>
         </template>
+    </div>
+
+    <!-- Add/Edit Button -->
+    <div class="mt-4 flex justify-end">
+        <button 
+            @click="saveInventory"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700">
+            Add/Edit Inventory
+        </button>
     </div>
 </div>
 
