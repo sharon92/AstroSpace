@@ -222,35 +222,17 @@ def get_overlays(wcs_header):
 
     radius = max(abs(ra_max - ra_min), abs(dec_max - dec_min)) / 2
     coord = SkyCoord(ra_center, dec_center, unit="deg")
+
     Simbad.reset_votable_fields()  # Reset to default fields
     Simbad.add_votable_fields(
         "galdim_majaxis",
         "galdim_minaxis",
         "galdim_angle",
         "otype",
-        "mesdistance",
-        "plx_value",
     )
 
     print("Querying Simbad for objects in the field of view...")
     result = Simbad.query_region(coord, radius=radius * u.deg)
-
-    Simbad.reset_votable_fields()
-    Simbad.add_votable_fields(
-        "mesdiameter",
-        "U",
-        "B",
-        "V",
-        "R",
-        "I",
-        "pmra",
-        "pmdec",
-        "rvz_radvel",
-        "rvz_redshift",
-        "sp_type",
-    )
-    result2 = Simbad.query_region(coord, radius=radius * u.deg)
-
     df = result.to_pandas()
     df = df[
         [
@@ -261,137 +243,21 @@ def get_overlays(wcs_header):
             "galdim_minaxis",
             "galdim_angle",
             "otype",
-            "mesdistance.dist",
-            "mesdistance.unit",
-            "plx_value",
-        ]
-    ]
-    df2 = result2.to_pandas()
-    df2 = df2[
-        [
-            "main_id",
-            "ra",
-            "dec",
-            "mesdiameter.diameter",
-            "mesdiameter.unit",
-            "V",
-            "U",
-            "R",
-            "B",
-            "I",
-            "pmra",
-            "pmdec",
-            "rvz_radvel",
-            "rvz_redshift",
-            "sp_type",
         ]
     ]
 
-    # df = df[df["otype"].isin(chosen_stars.keys())].copy()
     df = df.dropna(subset=["ra", "dec"])
     box = (df.ra > ra_min) * (df.ra < ra_max) * (df.dec > dec_min) * (df.dec < dec_max)
     df = df[box]
 
-    df2 = df2.dropna(subset=["ra", "dec"])
-    box = (
-        (df2.ra > ra_min)
-        * (df2.ra < ra_max)
-        * (df2.dec > dec_min)
-        * (df2.dec < dec_max)
-    )
-    df2 = df2[box]
-
-    group = df.groupby("main_id", as_index=False, dropna=False)
-    df = group.aggregate(
-        {
-            "ra": "first",
-            "dec": "first",
-            "galdim_majaxis": "max",
-            "galdim_minaxis": "max",
-            "galdim_angle": "max",
-            "otype": "first",
-            # "mesdiameter.diameter": "first",
-            # "mesdiameter.unit": "first",
-            "mesdistance.dist": "first",
-            "mesdistance.unit": "first",
-            "plx_value": "first",
-        }
-    )
-    group2 = df2.groupby("main_id", as_index=False, dropna=False)
-    df2 = group2.aggregate(
-        {
-            "V": "first",
-            "U": "first",
-            "R": "first",
-            "B": "first",
-            "I": "first",
-            "pmra": "first",
-            "pmdec": "first",
-            "rvz_radvel": "first",
-            "rvz_redshift": "first",
-            "sp_type": "first",
-        }
-    )
-    
     df.sort_values(["galdim_majaxis", "galdim_minaxis"], ascending=False, inplace=True)
-
-    # df.loc[pd.isna(df["flux"]), "flux"] = 0.0
-    dist = df["mesdistance.dist"]
-    unit = [
-        0
-        if len(i) == 0
-        else 1e3
-        if i.lower()[0] == "k"
-        else 1e6
-        if i.lower()[0] == "m"
-        else 1
-        for i in df["mesdistance.unit"]
-    ]
-    distance = dist * unit * pc_to_ly  # Convert distance to light years
-    plx = (
-        (df["plx_value"] ** -1) * pc_to_ly * 1e3
-    )  # Convert parallax to distance in light years
-
-    d_ly = np.nanmean([distance.values, plx.values], axis=0)
-    # df["dist"] = d_ly
-    # df = df.dropna(subset=["dist"])
 
     x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
 
     df["rx"] = (df["galdim_majaxis"] * 60) / pixel_scale / 2
     df["ry"] = (df["galdim_minaxis"] * 60) / pixel_scale / 2
 
-    # catalogs = Vizier.query_region(coord, radius=radius * u.deg, catalog="IV/38/tic")
-
-    # if catalogs:
-    #     tic = catalogs[0]
-    #     df2 = tic.to_pandas()[["TIC","RAJ2000", "DEJ2000", "Teff", "logg", "Mass","Dist", "Rad"]]
-    #     df2.rename(columns={
-    #         "TIC": "main_id",
-    #         "RAJ2000": "ra",
-    #         "DEJ2000": "dec",
-    #     }, inplace=True)
-    #     df2 = df2.dropna(subset=["ra", "dec","Teff", "logg", "Mass","Dist", "Rad"])
-    #     box = (df2.ra > ra_min) * (df2.ra < ra_max) * (df2.dec > dec_min) * (df2.dec < dec_max)
-    #     df2 = df2[box]
-    #     df2["Dist"] *= pc_to_ly  # Convert distance to light years
-
-    #     # For df2
-    #     coords_df2 = SkyCoord(ra=df2["ra"].values * u.deg,
-    #                         dec=df2["dec"].values * u.deg,
-    #                         distance=df2["Dist"].values * u.lyr)
-    #     xyz_df2 = coords_df2.cartesian.xyz.value.T  # shape (N, 3)
-
-    #     # For df
-    #     coords_df = SkyCoord(ra=df["ra"].values * u.deg,
-    #                         dec=df["dec"].values * u.deg,
-    #                         distance=df["dist"].values * u.lyr)
-    #     xyz_df = coords_df.cartesian.xyz.value.T
-
-    #     tree = scipy.spatial.cKDTree(xyz_df)
-    #     n_dist,n_idx = tree.query(xyz_df2)
-
-    #     df = pd.concat([df, df2], ignore_index=True)
+    df = df.dropna(subset=["rx", "ry"])
 
     db = {
         "name": df["main_id"].astype(str).tolist(),
@@ -401,24 +267,63 @@ def get_overlays(wcs_header):
         "ry": [0 if np.isnan(i) else round(i, 1) for i in df.ry],
         "angle": [0 if pd.isna(i) or i == 32767 else int(i) for i in df.galdim_angle],
         "otype": [chosen_stars.get(o, "Unknown") for o in df["otype"].astype(str)],
-        "dist": [None if np.isnan(i) else round(i, 1) for i in d_ly],
     }
 
-    db2 = {
-        # "diameter": [],
-        "V": [None if np.isnan(i) else round(i, 1) for i in df2.V],
-        "U": [None if np.isnan(i) else round(i, 1) for i in df2.U],
-        "R": [None if np.isnan(i) else round(i, 1) for i in df2.R],
-        "B": [None if np.isnan(i) else round(i, 1) for i in df2.B],
-        "I": [None if np.isnan(i) else round(i, 1) for i in df2.I],
-        "pmra": [None if np.isnan(i) else round(i, 1) for i in df2["pmra"]],
-        "pmdec": [None if np.isnan(i) else round(i, 1) for i in df2["pmdec"]],
-        "rvz_radvel": [None if np.isnan(i) else round(i, 1) for i in df2["rvz_radvel"]],
-        "rvz_redshift": [
-            None if np.isnan(i) else round(i, 8) for i in df2["rvz_redshift"]
-        ],
-        "sp_type": [None if i.strip() == "" else i for i in df2["sp_type"]],
+    Simbad.reset_votable_fields()  # Reset to default fields
+    Simbad.add_votable_fields(
+        "otype",
+        "plx_value",
+        "U",
+        "B",
+        "V",
+        "pmra",
+        "pmdec",
+        "sp_type",
+    )
+
+    print("Querying Simbad for objects in the field of view...")
+    result = Simbad.query_region(coord, radius=radius * u.deg)
+
+    df2 = result.to_pandas()
+    df2= df2[
+        [
+            "main_id",
+            "otype",
+            "plx_value",
+            "U",
+            "B",
+            "V",
+            "pmra",
+            "pmdec",
+            "sp_type"
+        ]
+    ]
+
+    # Convert parallax to distance in light years
+    d_ly = (df2["plx_value"] ** -1) * pc_to_ly * 1e3
+
+    #HR Diagram data
+    df2["HR_x"] = df2.B - df2.V
+    df2["HR_y"] = df2.V - 5 * np.log10(100/df2.plx_value)
+    hr = df2.dropna(subset=["HR_x", "HR_y"])[['main_id','otype','sp_type','HR_x','HR_y']]
+    hr = {
+        "name": hr["main_id"].astype(str).tolist(), 
+        "x": [round(i, 2) for i in hr["HR_x"]],
+        "y": [round(i, 2) for i in hr["HR_y"]],
+        "Object Type": [chosen_stars.get(o, "Unknown") for o in hr["otype"].astype(str)],
+        "Spectral Class": [None if i.strip() == "" else i for i in hr["sp_type"]],
     }
+
+    #proper motion diagram data
+    pm = df2.dropna(subset=["pmra", "pmdec"])[['main_id','otype','sp_type','pmra','pmdec']]
+    pm = {
+        "name": pm["main_id"].astype(str).tolist(),
+        "x": [round(i, 2) for i in pm["pmra"]],
+        "y": [round(i, 2) for i in pm["pmdec"]],
+        "Object Type": [chosen_stars.get(o, "Unknown") for o in pm["otype"].astype(str)],
+        "Spectral Class": [None if i.strip() == "" else i for i in pm["sp_type"]],
+    }
+    
 
     print("Generating grid lines...")
     grid_lines = make_grid_lines(
@@ -428,7 +333,7 @@ def get_overlays(wcs_header):
     return {
         "width": nx,
         "height": ny,
-        "overlays": json.dumps(db),
-        "plots": json.dumps(db2),
-        "grid_lines": json.dumps(grid_lines),
+        "overlays": db,
+        "plots": {'hr': hr, 'pm': pm},
+        "grid_lines": grid_lines,
     }

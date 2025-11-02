@@ -361,7 +361,6 @@ def save_image():
         desc,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
-        styles=ALLOWED_STYLES,
         strip=True   # strips disallowed tags completely (instead of escaping)
     )
 
@@ -479,4 +478,4 @@ def save_image():
     conn.commit()
     cur.close()
     flash("Post updated successfully!")
-    return redirect(url_for("blog.list_images"))
+    return redirect(url_for("private.profile"))
