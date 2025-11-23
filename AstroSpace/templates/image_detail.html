@@ -436,9 +436,11 @@
         </div>
 
         <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
-          <div id="dist-scatter" class="w-full h-full items-center justify-center dark:bg-white/70 rounded-xl"></div>
+          <!-- Hertzsprung–Russell diagram container -->
+          <div id="dist-scatter"
+              class="w-full rounded-xl bg-white/70 dark:bg-white/70 mx-auto aspect-[3/4] sm:aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/3] max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px]">
+          </div>
         </div>
-      </div>
 
       <div class="relative flex flex-col items-center justify-center">
         <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
@@ -722,19 +724,10 @@
         db1 = overlayData.overlays;
         db2 = overlayData.plots;
         const db = db2["hr"];
-        const scaledSize = db.size.map(v => v * 20);
+        //const scaledSize = db.size.map(v => v * 20);
 
         function drawPlot() {          
           // Define spectral type labels for reference ticks
-          const spectralLabels = [
-            { value: -0.5, label: "O5" },
-            { value: -0.3, label: "B0" },
-            { value: 0.0, label: "A0" },
-            { value: 0.3, label: "F0" },
-            { value: 0.6, label: "G0" },
-            { value: 0.8, label: "K0" },
-            { value: 0.9, label: "M0" },
-          ];
 
           const trace = {
             x: db.x,
@@ -746,19 +739,12 @@
             mode: "markers",
             type: "scatter",
             marker: {
-              size: scaledSize,
-              color: db.x,
-              colorscale: [
-                [0.0, '#1093c7ff'],  // blue
-                [0.4, '#ADD8E6'],  // light blue
-                [0.6, '#FFFFFF'],  // white
-                [0.8, '#FFD700'],  // golden yellow
-                [1.0, '#FF0000']   // red
-              ],
-              cmin : -0.5,
-              cmax : 0.9,
-              line: { width: 0 },
-              opacity: 0.8,
+              size: 5,
+              color: db.color,
+              line: {
+                color: 'rgba(0, 0, 0, 1)',
+                width: 1
+              }
             },
             hovertemplate:
               "%{text}<extra></extra>", // clean hover box
@@ -772,15 +758,17 @@
             },
           xaxis: {
             title: { text: "Color Index (B–V)  →  Spectral Class" },
-            tickvals: spectralLabels.map(d => d.value),
-            ticktext: spectralLabels.map(d => d.label),
+            //tickvals: spectralLabels.map(d => d.value),
+            //ticktext: spectralLabels.map(d => d.label),
             range: [Math.min(...db.x), Math.max(...db.x)],
-            showgrid: true,
+            showgrid: false,
             zeroline: false,
             showline: true,
             linecolor: 'black',
             linewidth: 3,
-            mirror: true    // draws top and right borders too
+            mirror: true ,   // draws top and right borders too
+           // scaleanchor: "y",
+            //scaleratio: 1.25
           },
           yaxis: {
             title: { text: "Absolute Magnitude (Mv)" },
@@ -790,7 +778,8 @@
             showline: true,
             linecolor: 'black',
             linewidth: 3,
-            mirror: true
+            mirror: true,
+
           },
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
@@ -800,29 +789,29 @@
               {
                 x: 0.6, y: 6.5,
                 text: 'main sequence',
-                font: {size: 12, color: 'white'},
+                font: {size: 12, color: 'black'},
                 showarrow: true,
-                arrowcolor: 'white',
-                ax: -40, ay: -30   // offset in pixels
+                arrowcolor: 'yellow',
+                ax: 40, ay: 60   // offset in pixels
               },
               {
                 x: 1.8, y: -1,
                 text: 'giants',
-                font: {size: 12, color: 'white'},
+                font: {size: 15, color: 'black'},
                 showarrow: true,
-                arrowcolor: 'white',
-                ax: 30, ay: 7
+                arrowcolor: 'orange',
+                ax: 30, ay: -50
               },
               {
                 x: 0.5, y: -14,
                 text: 'supergiants',
-                font: {size: 12, color: 'white'},
+                font: {size: 20, color: 'black'},
                 showarrow: false
               },
               {
                 x: 0, y: 16,
                 text: 'white dwarfs',
-                font: {size: 12, color: 'white'},
+                font: {size: 8, color: 'black'},
                 showarrow: false
               }
             ]
