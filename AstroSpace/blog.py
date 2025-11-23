@@ -255,11 +255,13 @@ def allowed_file(filename, allowed_extensions=ALLOWED_IMG_EXTENSIONS):
 @bp.route("/create", methods=["POST"])
 @login_required
 def save_image():
+    print("Saving/Updating image...")
     user = g.user["username"]
     user_id = str(g.user["id"])
 
     os.makedirs(os.path.join(current_app.config["UPLOAD_PATH"], user_id), exist_ok=True)
 
+    #print("Processing form data...")
     form = request.form
     img_id = form.get("image_id")
     if img_id:
@@ -269,9 +271,12 @@ def save_image():
     lon = form.get("location_longitude") or None
     if not lat or not lon:
         lat, lon = geocode(form["location"])
-
+    
     title = form.get("title")
+    Simbad.reset_votable_fields()
     Simbad.add_votable_fields("otype_txt")
+        
+    print("Performing object lookup...")
     query = Simbad.query_object(title)
     object_type = "Unknown"
     if query and len(query) > 0:
@@ -280,7 +285,7 @@ def save_image():
 
     file = request.files.get("image_path")
     fits_path = request.files.get("fits_file")
-
+    #print("Performing plate solving...")
     if file.filename and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
@@ -357,6 +362,7 @@ def save_image():
     desc = form.get("description")
 
     # Sanitize it
+    print("Sanitizing description...")
     clean_desc = bleach.clean(
         desc,
         tags=ALLOWED_TAGS,

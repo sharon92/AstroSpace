@@ -435,16 +435,8 @@
           </div>
         </div>
 
-        <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4 dark:text-white">
-          <div>
-            <label for="plot-type">Plot Type:</label>
-            <select id="plot-type">
-              <option value="hr">Hertzsprung Russel Diagram</option>
-              <option value="pm">Proper Motion Diagram</option>
-            </select>
-
-          </div>
-          <div id="dist-scatter" class="w-full h-full items-center justify-center bg-transparent rounded-xl"></div>
+        <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
+          <div id="dist-scatter" class="w-full h-full items-center justify-center dark:bg-white/70 rounded-xl"></div>
         </div>
       </div>
 
@@ -586,43 +578,64 @@
             return;
           }
 
-          let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet"
-  style="position: absolute; top: 0; left: 0; pointer-events: auto;" xmlns="http://www.w3.org/2000/svg">
+          let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;" xmlns="http://www.w3.org/2000/svg">
 
-  <style>
-    .astro-group {
-      opacity: 0.2;
-      transition: opacity 0.2s ease;
-      cursor: pointer;
-      pointer-events: all;
-    }
-    .astro-group:hover {
-      opacity: 0.9;
-    }
-  </style>
-`;
-          for (let item of overlays) {
+          <style>
+            .astro-group {
+              opacity: 0.2;
+              transition: opacity 0.2s ease;
+              cursor: pointer;
+              pointer-events: all;
+            }
+            .astro-group:hover {
+              opacity: 0.9;
+            }
+          </style>
+        `;
+
+        for (let item of overlays) {
+            
             if (item.rx >= 10 && item.ry >= 10) {
               const transform = item.angle
                 ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
                 : "";
 
               svg += `<g class="astro-group">
-      <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
-        rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
-        fill="none" stroke="white" stroke-width="10"></ellipse>
+                  <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+                    rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
+                    fill="none" stroke="white" stroke-width="10"></ellipse>
 
-      <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
-        font-size="72" fill="white" stroke="black" stroke-width="2"
-        text-anchor="middle" alignment-baseline="middle">
-        ${item.id}
-      </text>
-    </g>`;
-            }
+                  <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
+                    font-size="72" fill="white" stroke="black" stroke-width="2"
+                    text-anchor="middle" alignment-baseline="middle">
+                    ${item.id}
+                  </text>
+                </g>`;
+            } else {
+              const crossSize = 50;
+
+              svg += `<g class="astro-group">
+                <!-- vertical line -->
+                <line x1="${item.x}" y1="${(item.y - crossSize)}"
+                      x2="${item.x}" y2="${(item.y + crossSize)}"
+                      stroke="white" stroke-width="6"></line>
+
+                <!-- horizontal line -->
+                <line x1="${(item.x - crossSize)}" y1="${item.y}"
+                      x2="${(item.x + crossSize)}" y2="${item.y}"
+                      stroke="white" stroke-width="6"></line>
+
+                <text x="${(item.x + 60)}"
+                      y="${(item.y - crossSize - 40)}"
+                      font-size="72" fill="white" stroke="black" stroke-width="2"
+                      text-anchor="middle" alignment-baseline="middle">
+                  ${item.id}
+                </text>
+              </g>`;
           }
-
-          svg += "</svg>";
-          svgOverlay.innerHTML = svg;
+        }
+        svg += "</svg>";
+        svgOverlay.innerHTML = svg;
         }
 
         // Handle overlay toggle
@@ -708,33 +721,19 @@
 
         db1 = overlayData.overlays;
         db2 = overlayData.plots;
-        const plotType = document.getElementById("plot-type");
+        const db = db2["hr"];
+        const scaledSize = db.size.map(v => v * 20);
 
-        function drawPlot() {
-          const plotKey = plotType.value;
-          const db = db2[plotKey];
-
-            // Map B–V color index to HR color gradient (blue → red)
-          const getHRColor = (bv) => {
-            if (bv <= 0.0) return "#3b4cc0"; // blue
-            if (bv <= 0.3) return "#6383c1";
-            if (bv <= 0.6) return "#93b6d8";
-            if (bv <= 1.0) return "#c9d9a9";
-            if (bv <= 1.5) return "#e3b45a";
-            return "#d73027"; // red
-          };
-
-          const colors = db.x.map((bv) => getHRColor(bv));
-          
+        function drawPlot() {          
           // Define spectral type labels for reference ticks
           const spectralLabels = [
-            { value: -0.3, label: "O" },
-            { value: 0.0, label: "B" },
-            { value: 0.3, label: "A" },
-            { value: 0.6, label: "F" },
-            { value: 0.9, label: "G" },
-            { value: 1.2, label: "K" },
-            { value: 1.6, label: "M" },
+            { value: -0.5, label: "O5" },
+            { value: -0.3, label: "B0" },
+            { value: 0.0, label: "A0" },
+            { value: 0.3, label: "F0" },
+            { value: 0.6, label: "G0" },
+            { value: 0.8, label: "K0" },
+            { value: 0.9, label: "M0" },
           ];
 
           const trace = {
@@ -747,8 +746,17 @@
             mode: "markers",
             type: "scatter",
             marker: {
-              size: 6,
-              color: colors,
+              size: scaledSize,
+              color: db.x,
+              colorscale: [
+                [0.0, '#1093c7ff'],  // blue
+                [0.4, '#ADD8E6'],  // light blue
+                [0.6, '#FFFFFF'],  // white
+                [0.8, '#FFD700'],  // golden yellow
+                [1.0, '#FF0000']   // red
+              ],
+              cmin : -0.5,
+              cmax : 0.9,
               line: { width: 0 },
               opacity: 0.8,
             },
@@ -762,32 +770,66 @@
               x: 0.5,
               font: { size: 20 },
             },
-            xaxis: {
-              title: {text:"Color Index (B–V)  →  Spectral Class"},
-              tickvals: spectralLabels.map((d) => d.value),
-              ticktext: spectralLabels.map((d) => d.label),
-              range: [Math.min(...db.x, Math.max(...db.x))], // hotter (blue) on left
-              showgrid: true,
-              zeroline: false,
-            },
-            yaxis: {
-              title: {text:"Absolute Magnitude (Mv)"},
-              range: [20, -15],
-              showgrid: true,
-              zeroline: false,
-            },
+          xaxis: {
+            title: { text: "Color Index (B–V)  →  Spectral Class" },
+            tickvals: spectralLabels.map(d => d.value),
+            ticktext: spectralLabels.map(d => d.label),
+            range: [Math.min(...db.x), Math.max(...db.x)],
+            showgrid: true,
+            zeroline: false,
+            showline: true,
+            linecolor: 'black',
+            linewidth: 3,
+            mirror: true    // draws top and right borders too
+          },
+          yaxis: {
+            title: { text: "Absolute Magnitude (Mv)" },
+            range: [20, -15],
+            showgrid: false,
+            zeroline: false,
+            showline: true,
+            linecolor: 'black',
+            linewidth: 3,
+            mirror: true
+          },
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
             hovermode: "closest",
             margin: { l: 60, r: 40, b: 60, t: 80 },
+            annotations: [
+              {
+                x: 0.6, y: 6.5,
+                text: 'main sequence',
+                font: {size: 12, color: 'white'},
+                showarrow: true,
+                arrowcolor: 'white',
+                ax: -40, ay: -30   // offset in pixels
+              },
+              {
+                x: 1.8, y: -1,
+                text: 'giants',
+                font: {size: 12, color: 'white'},
+                showarrow: true,
+                arrowcolor: 'white',
+                ax: 30, ay: 7
+              },
+              {
+                x: 0.5, y: -14,
+                text: 'supergiants',
+                font: {size: 12, color: 'white'},
+                showarrow: false
+              },
+              {
+                x: 0, y: 16,
+                text: 'white dwarfs',
+                font: {size: 12, color: 'white'},
+                showarrow: false
+              }
+            ]
           };
 
-          Plotly.newPlot("dist-scatter", [trace], layout, { responsive: true });
+          Plotly.newPlot("dist-scatter", [trace], layout, {  displaylogo: false, responsive: true, modeBarButtonsToRemove: ['zoom2d','toImage','pan2d','lasso2d','zoomin2d','zoomOut2d','autoscale2d','select2d'] });
         }
-
-        plotType.addEventListener("change", () => {
-          drawPlot();
-        });
 
         // Init
         drawPlot();

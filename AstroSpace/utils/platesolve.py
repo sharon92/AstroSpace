@@ -1,4 +1,5 @@
 import os
+import re
 from astropy.io import fits
 from astropy.wcs import WCS
 
@@ -21,6 +22,94 @@ import json
 pc_to_ly = 3.26156  # 1 parsec = 3.26156 light years
 
 # Vizier.ROW_LIMIT = -1 # No limit on the number of rows returned
+
+
+popular_catalogs = [
+    r'\bM\s*\d+\b',                       # Messier (M31, M 31)
+    r'\bNGC\s*\d+\b',                     # NGC (NGC 6871, NGC6871)
+    r'\bIC\s*\d+\b',                      # IC
+    r'(?<!\[)\bC\s*(?:10[0-9]|[1-9][0-9]?)(?![0-9+\-\]])\b',  # Caldwell 1-109 (no coords, no [C...])
+    r'\bSH\s*\d+\s*[-–—]\s*\d+\b',        # Sharpless SH 2-101 (handles multiple spaces and different dashes)
+    r'\bSh\s*\d+\s*[-–—]\s*\d+\b',        # Sharpless mixed case
+    r'\bBarnard\s*\d+\b(?![.+-])',
+    r'\bLBN\s*\d+\b(?![.+-])',            # LBN integer-only (prefer this)
+    r'\bLDN\s*\d+\b(?![.+-])',             # LDN coordinate-style
+    r'\bTGU\s*H\d+\sP\d+\b'
+]
+
+def extract_popular_id(ids_str):
+    if not isinstance(ids_str, str):
+        return None
+
+    # normalize: collapse whitespace, normalize dashes
+    s = ids_str
+    s = re.sub(r'[–—]', '-', s)           # en/em dash -> hyphen
+    s = re.sub(r'\s+', ' ', s).strip()    # collapse runs of whitespace to single space
+
+    # split on pipe and attempt matches on each token (preferred)
+    tokens = [t.strip() for t in s.split('|') if t.strip()]
+    for pattern in popular_catalogs:
+        prog = re.compile(pattern, flags=re.IGNORECASE)
+        for tok in tokens:
+            m = prog.search(tok)
+            if m:
+                # normalize spacing around hyphen: 'SH  2-101' -> 'SH 2-101'
+                res = re.sub(r'\s+', ' ', m.group(0)).replace(' - ', '-')
+                return res
+    return None
+
+def luminosity_size(sptype):
+    if not isinstance(sptype, str) or sptype == '':
+        return 0.227
+    sptype = sptype.upper()
+    # match Roman numeral or letters at end
+    m = re.search(r'(0|I[AB]?|II|III|IV|V|VI|VII)$', sptype)
+    if m:
+        cls = m.group(0)
+        size_map = {
+            '0': 1,
+            'IA': 0.909, 'IAB': 0.909, 'IB': 0.818,
+            'II': 0.681,
+            'III': 0.454,
+            'IV': 0.318,
+            'V': 0.227,
+            'VI': 0.136,
+            'VII': 0.09
+        }
+        return size_map.get(cls, 0.227)
+    else:
+        # fallback: supergiant keywords in type
+        if 'S' in sptype and 'III' in sptype:
+            return 0.818
+        return 0.227
+
+def bv2rgb(bv):
+    t = (5000 / (bv + 1.84783)) + (5000 / (bv + .673913))
+    x, y = 0, 0
+    
+    if 1667 <= t <= 4000:
+        x = .17991 - (2.66124e8 / t**3) - (234358 / t**2) + (877.696 / t)
+    elif 4000 < t:
+        x = .24039 - (3.02585e9 / t**3) + (2.10704e6 / t**2) + (222.635 / t)
+        
+    if 1667 <= t <= 2222:
+        y = (-1.1063814 * x**3) - (1.34811020 * x**2) + 2.18555832 * x - .20219683
+    elif 2222 < t <= 4000:
+        y = (-.9549476 * x**3) - (1.37418593 * x**2) + 2.09137015 * x - .16748867
+    elif 4000 < t:
+        y = (3.0817580 * x**3) - (5.87338670 * x**2) + 3.75112997 * x - .37001483
+        
+    X = 0 if y == 0 else x / y
+    Z = 0 if y == 0 else (1 - x - y) / y
+    
+    r, g, b = np.dot([X, 1., Z],
+        [[3.2406, -.9689, .0557], [-1.5372, 1.8758, -.204], [-.4986, .0415, 1.057]])
+    
+    R = np.clip(12.92 * r if (r <= 0.0031308) else 1.4 * (r**2 - .285714), 0, 1)
+    G = np.clip(12.92 * g if (g <= 0.0031308) else 1.4 * (g**2 - .285714), 0, 1)
+    B = np.clip(12.92 * b if (b <= 0.0031308) else 1.4 * (b**2 - .285714), 0, 1)
+    
+    return (int(R*255), int(G*255), int(B*255))
 
 def make_grid_lines(wcs, ra_limits, dec_limits, ra_count=6, dec_count=6):
     ra_lines = []
@@ -92,6 +181,7 @@ def platesolve(image_path, user_id, fits_file=None):
     print("Plate solving image....")
     if fits_file:
         # If a FITS file is provided, use it to extract the WCS header
+        print("Plate solving using Fits/XISF...")
         fits_name = fits_file.filename.lower()
         if fits_name.endswith(".xisf"):
             wcs_header = xisf_header(fits_file)
@@ -214,17 +304,19 @@ def get_overlays(wcs_header):
         nx, ny = wcs_header["NAXIS1"], wcs_header["NAXIS2"]
 
     corners_pix = np.array([[0, 0], [nx, 0], [nx, ny], [0, ny]])
-    corners_world = wcs.pixel_to_world_values(corners_pix[:, 0], corners_pix[:, 1])
-    ra_vals, dec_vals = corners_world
+    ra_vals, dec_vals = wcs.pixel_to_world_values(corners_pix[:, 0], corners_pix[:, 1])
+
     ra_min, ra_max = ra_vals.min(), ra_vals.max()
     dec_min, dec_max = dec_vals.min(), dec_vals.max()
     ra_center, dec_center = wcs_header.get("CRVAL1", 0), wcs_header.get("CRVAL2", 0)
 
-    radius = max(abs(ra_max - ra_min), abs(dec_max - dec_min)) / 2
     coord = SkyCoord(ra_center, dec_center, unit="deg")
+    corners = SkyCoord(ra_vals, dec_vals, unit="deg")
+    radius = coord.separation(corners).max()   # accurate angular radius   
 
     Simbad.reset_votable_fields()  # Reset to default fields
     Simbad.add_votable_fields(
+        "ids",
         "galdim_majaxis",
         "galdim_minaxis",
         "galdim_angle",
@@ -232,11 +324,16 @@ def get_overlays(wcs_header):
     )
 
     print("Querying Simbad for objects in the field of view...")
-    result = Simbad.query_region(coord, radius=radius * u.deg)
+    big_objects = "('G', 'GiC', 'GiG', 'GiP', 'GrG','HII', 'PN', 'SNR', 'Cl*', 'OpC', 'GlC', 'Neb', 'Cld', 'DNe','..27','..28','..30','BiC','CGC','ClG','EmG','flt','GNe','IG', 'LSB','MoC','PaG','PCG','rG','RNe', 'SBG','Sy1','Sy2','SyG')"
+    result = Simbad.query_region(coord, radius=radius, criteria=f"otype IN {big_objects}")
+
     df = result.to_pandas()
+    df['name'] = df['ids'].apply(extract_popular_id)
     df = df[
-        [
-            "main_id",
+        [   
+            "name",
+            #"main_id",
+            #"ids",
             "ra",
             "dec",
             "galdim_majaxis",
@@ -245,8 +342,8 @@ def get_overlays(wcs_header):
             "otype",
         ]
     ]
-
-    df = df.dropna(subset=["ra", "dec"])
+    
+    df = df.dropna(subset=["ra", "dec","name"])
     box = (df.ra > ra_min) * (df.ra < ra_max) * (df.dec > dec_min) * (df.dec < dec_max)
     df = df[box]
 
@@ -257,10 +354,10 @@ def get_overlays(wcs_header):
     df["rx"] = (df["galdim_majaxis"] * 60) / pixel_scale / 2
     df["ry"] = (df["galdim_minaxis"] * 60) / pixel_scale / 2
 
-    df = df.dropna(subset=["rx", "ry"])
-
+    #df.dropna(subset=["rx","ry"])
+   
     db = {
-        "name": df["main_id"].astype(str).tolist(),
+        "name": df["name"].astype(str).tolist(),
         "x": x.round(1).tolist(),
         "y": y.round(1).tolist(),
         "rx": [0 if np.isnan(i) else round(i, 1) for i in df.rx],
@@ -276,54 +373,53 @@ def get_overlays(wcs_header):
         "U",
         "B",
         "V",
-        "pmra",
-        "pmdec",
         "sp_type",
     )
 
     print("Querying Simbad for objects in the field of view...")
-    result = Simbad.query_region(coord, radius=radius * u.deg)
+    result2 = Simbad.query_region(coord, radius=radius, criteria=f"otype NOT IN {big_objects}")
 
-    df2 = result.to_pandas()
+    df2 = result2.to_pandas()
     df2= df2[
         [
             "main_id",
+            "ra",
+            "dec",
             "otype",
             "plx_value",
             "U",
             "B",
             "V",
-            "pmra",
-            "pmdec",
             "sp_type"
         ]
     ]
-
+   
     # Convert parallax to distance in light years
     d_ly = (df2["plx_value"] ** -1) * pc_to_ly * 1e3
 
     #HR Diagram data
     df2["HR_x"] = df2.B - df2.V
     df2["HR_y"] = df2.V - 5 * np.log10(100/df2.plx_value)
-    hr = df2.dropna(subset=["HR_x", "HR_y"])[['main_id','otype','sp_type','HR_x','HR_y']]
+    hr = df2.dropna(subset=["HR_x", "HR_y"])
+    x, y = wcs.world_to_pixel_values(hr["ra"], hr["dec"])
+    hr = hr[['main_id','otype','sp_type','HR_x','HR_y']]
+    
     hr = {
         "name": hr["main_id"].astype(str).tolist(), 
         "x": [round(i, 2) for i in hr["HR_x"]],
         "y": [round(i, 2) for i in hr["HR_y"]],
         "Object Type": [chosen_stars.get(o, "Unknown") for o in hr["otype"].astype(str)],
         "Spectral Class": [None if i.strip() == "" else i for i in hr["sp_type"]],
+        "size": [luminosity_size(s) for s in hr.sp_type.values],
+        "color": ['#%02x%02x%02x' % bv2rgb(s) for s in hr.HR_x.values],
+        "pixel_x": x.astype(int).tolist(),
+        "pixel_y": y.astype(int).tolist(),
+        "label_x": "Color Index (B–V)",
+        "label_y": "Absolute Magnitude (Mv)",
+        "y_range": [20, -15],
+        "plot_title": "Hertzsprung-Russell Diagram",
     }
 
-    #proper motion diagram data
-    pm = df2.dropna(subset=["pmra", "pmdec"])[['main_id','otype','sp_type','pmra','pmdec']]
-    pm = {
-        "name": pm["main_id"].astype(str).tolist(),
-        "x": [round(i, 2) for i in pm["pmra"]],
-        "y": [round(i, 2) for i in pm["pmdec"]],
-        "Object Type": [chosen_stars.get(o, "Unknown") for o in pm["otype"].astype(str)],
-        "Spectral Class": [None if i.strip() == "" else i for i in pm["sp_type"]],
-    }
-    
 
     print("Generating grid lines...")
     grid_lines = make_grid_lines(
@@ -334,6 +430,6 @@ def get_overlays(wcs_header):
         "width": nx,
         "height": ny,
         "overlays": db,
-        "plots": {'hr': hr, 'pm': pm},
+        "plots": {'hr': hr},
         "grid_lines": grid_lines,
     }
