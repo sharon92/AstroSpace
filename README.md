@@ -24,7 +24,7 @@ check out my Instance at:
 - 🌕 **Moon Scale for DSO Frames** – Visualize the scale of deep sky objects in comparison to the Moon  
 - 🗺️ **Equatorial Grid Overlay** – Overlay celestial coordinate grids for precise orientation  
 - 🔗 **Shareable Links with Tabular Acquisition Details** – Easily share your captures along with structured metadata  
-- 📈 **Explore DSO Contents with Plotly Graphs** – Interactively visualize SIMBAD and VizieR catalog queries
+- 📈 **Explore DSO Contents with Plotly Graphs** – Interactively visualize SIMBAD and VizieR catalog queries. Plots a Hertzsprung Russel Diagram by default.
 
 ---
 
