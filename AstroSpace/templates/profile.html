@@ -5,7 +5,8 @@
 
 <div class="m-5 p-5 flex justify-center w-auto">
     <!-- Main Card Container -->
-    <div x-data="{ tab: 'Posts'}" class="inline-block rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
+    <div x-data="{ tab: 'Posts'}"
+        class="inline-block rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
         <!-- Main Tabs -->
         <div x-cloak
@@ -26,7 +27,7 @@
                     class="min-w-full bg-white dark:bg-gray-700 text-sm text-left text-gray-700 dark:text-white rounded-lg">
                     <thead class="bg-gray-100 dark:bg-gray-900">
                         <tr>
-                            <th scope="col" class="px-4 py-3 text-sm font-semibold">Title</th>
+                            <th scope="col" class="px-4 py-3 text-sm font-semibold">Post</th>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Date</th>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Actions</th>
                         </tr>
@@ -34,7 +35,12 @@
                     <tbody>
                         {% for p in posts %}
                         <tr class="hover:bg-gray-200 dark:hover:bg-gray-400">
-                            <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{{ p['title'] }}</td>
+                            <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">
+                                <a href="{{ url_for('blog.image_detail', image_id=p['id'], image_name=p['slug']) }}"
+                                    class="text-blue-700 dark:text-blue-300 hover:underline">
+                                    {{ p['title'] }}
+                                </a>
+                            </td>
                             <td class="px-4 py-2 text-gray-600 dark:text-gray-300">
                                 {{ p['created_at'].strftime('%Y-%m-%d') }}
                             </td>
@@ -56,8 +62,7 @@
             </div>
         </div>
 
-<div
-x-data='{
+        <div x-data='{
     inventory: {{ inventory | tojson }},
     dataType: {{ data_type | tojson }},
     selectedType: "",
@@ -113,70 +118,65 @@ x-data='{
             alert("An error occurred while saving.");
         }
     }
-}' 
-x-init="
+}' x-init="
     selectedType = Object.keys(inventory)[0];
     updateNames();
-"
-x-show="tab === 'Inventory'" class="space-y-2 p-4  text-gray-700 dark:text-white">
+" x-show="tab === 'Inventory'" class="space-y-2 p-4  text-gray-700 dark:text-white">
 
-    <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <!-- Inventory Type Dropdown -->
-        <label for="inventoryType" class="flex items-center">
-            Select Inventory Type
-        </label>
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <!-- Inventory Type Dropdown -->
+                <label for="inventoryType" class="flex items-center">
+                    Select Inventory Type
+                </label>
 
-        <select id="inventoryType" x-model="selectedType" @change="updateNames()"
-            class="p-2 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700">
-            {% for item in inventory %}
-            <option value="{{ item }}">{{ item | capitalize }}</option>
-            {% endfor %}
-        </select>
+                <select id="inventoryType" x-model="selectedType" @change="updateNames()"
+                    class="p-2 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700">
+                    {% for item in inventory %}
+                    <option value="{{ item }}">{{ item | capitalize }}</option>
+                    {% endfor %}
+                </select>
 
-        <!-- Item Name Dropdown -->
-        <label for="itemName" class="flex items-center">
-            Add/Edit Inventory
-        </label>
+                <!-- Item Name Dropdown -->
+                <label for="itemName" class="flex items-center">
+                    Add/Edit Inventory
+                </label>
 
-        <select id="itemName" x-model="selectedName" @change="updateValues()"
-            class="p-2 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700">
-            <template x-for="name in currentNames" :key="name">
-                <option :value="name" x-text="name"></option>
-            </template>
-        </select>
-    </div>
-
-    <!-- Inventory Details Display -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-gray-800 mt-4 rounded-lg">
-        <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
-            <template x-if="inputTypeFor(key) !== 'hidden'">
-                <div class="flex items-center justify-between not-[]:gap-2">
-                    <label x-text="key"></label>
-                    <template x-if="inputTypeFor(key) === 'checkbox'">
-                        <input type="checkbox"
-                            class="w-5 h-5"
-                            x-model="currentValues[key]"
-                            :checked="currentValues[key]" />
+                <select id="itemName" x-model="selectedName" @change="updateValues()"
+                    class="p-2 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700">
+                    <template x-for="name in currentNames" :key="name">
+                        <option :value="name" x-text="name"></option>
                     </template>
-                    <template x-if="inputTypeFor(key) !== 'checkbox'">
-                        <input :type="inputTypeFor(key)"
-                            class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700"
-                            x-model="currentValues[key]" />
-                    </template>
-                </div>
-            </template>
-        </template>
-    </div>
+                </select>
+            </div>
 
-    <!-- Add/Edit Button -->
-    <div class="mt-4 flex justify-end">
-        <button 
-            @click="saveInventory"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700">
-            Add/Edit Inventory
-        </button>
-    </div>
-</div>
+            <!-- Inventory Details Display -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-gray-800 mt-4 rounded-lg">
+                <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
+                    <template x-if="inputTypeFor(key) !== 'hidden'">
+                        <div class="flex items-center justify-between not-[]:gap-2">
+                            <label x-text="key"></label>
+                            <template x-if="inputTypeFor(key) === 'checkbox'">
+                                <input type="checkbox" class="w-5 h-5" x-model="currentValues[key]"
+                                    :checked="currentValues[key]" />
+                            </template>
+                            <template x-if="inputTypeFor(key) !== 'checkbox'">
+                                <input :type="inputTypeFor(key)"
+                                    class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700"
+                                    x-model="currentValues[key]" />
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </div>
+
+            <!-- Add/Edit Button -->
+            <div class="mt-4 flex justify-end">
+                <button @click="saveInventory"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700">
+                    Add/Edit Inventory
+                </button>
+            </div>
+        </div>
 
         <div x-show="tab === 'Settings'" class="space-y-2 md:p-4">
             <p class="text-gray-600 dark:text-gray-300">Your account settings will be displayed here.</p>

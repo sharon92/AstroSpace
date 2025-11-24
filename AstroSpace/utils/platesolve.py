@@ -210,9 +210,10 @@ def platesolve(image_path, user_id, fits_file=None):
     pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
 
     header_json = wcs_header.tostring()
-    svg_image = json.dumps(get_overlays(header_json))
     print("Plate solving done.")
-
+    print("Generating overlays...")
+    svg_image = json.dumps(get_overlays(header_json))
+    
     print("Resizing image...")
     path, ext = os.path.splitext(image_path)
     thumbnail_path = path + "_thumbnail" + ext
