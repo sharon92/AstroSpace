@@ -125,7 +125,9 @@ def get_image_tables(image_id, keep_original=False,bokeh_testing=False, testing=
             if soft:
                 software_list.append(soft)
     else:
-        software_list = [s["id"] for s in software]
+        software_list = [s["software_id"] for s in software]
+    
+    #print(software)
     cur.close()
 
     guiding_html, calibration_html, svg_image = "", "",""
