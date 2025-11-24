@@ -429,6 +429,9 @@
   .h-48 {
     height: calc(var(--spacing) * 48);
   }
+  .h-100 {
+    height: calc(var(--spacing) * 100);
+  }
   .h-auto {
     height: auto;
   }
@@ -437,6 +440,15 @@
   }
   .h-screen {
     height: 100vh;
+  }
+  .min-h-40 {
+    min-height: calc(var(--spacing) * 40);
+  }
+  .min-h-60 {
+    min-height: calc(var(--spacing) * 60);
+  }
+  .min-h-100 {
+    min-height: calc(var(--spacing) * 100);
   }
   .min-h-\[35vh\] {
     min-height: 35vh;

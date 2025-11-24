@@ -211,15 +211,13 @@ def platesolve(image_path, user_id, fits_file=None):
 
     header_json = wcs_header.tostring()
     print("Plate solving done.")
-    print("Generating overlays...")
-    svg_image = json.dumps(get_overlays(header_json))
     
     print("Resizing image...")
     path, ext = os.path.splitext(image_path)
     thumbnail_path = path + "_thumbnail" + ext
     resize_image(image_path, thumbnail_path)
     thumbnail_path = f"{user_id}/{os.path.basename(thumbnail_path)}"
-    return header_json, svg_image, thumbnail_path, pixel_scale
+    return header_json, thumbnail_path, pixel_scale
 
 
 def otype_to_color(otype):
@@ -279,6 +277,7 @@ favs = [
 
 
 def get_overlays(wcs_header):
+    print("Generating overlays...")
     wcs_header = Header.fromstring(wcs_header)
     wcs = WCS(wcs_header)
     try:

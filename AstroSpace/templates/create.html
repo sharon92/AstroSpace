@@ -29,7 +29,7 @@
         <!-- Description -->
         <div>
             <label class="label">Description (longer paragraph if required...)</label>
-            <textarea name="description" required
+            <textarea name="description" required style="min-height:200px;"
                 class="input_container">{{ image.description if is_edit else '' }}</textarea>
         </div>
 
@@ -46,11 +46,16 @@
 
             <!-- Redo Plate Solving Checkbox -->
             <label class="inline-flex items-center mt-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" name="redo_plate_solve" class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
+                <input type="checkbox" id="redo_plate_solve" name="redo_plate_solve"
+                    class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
                 Redo Plate Solving
             </label>
+            <label class="inline-flex items-center mt-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" id="regenerate_overlays" name="regenerate_overlays"
+                    class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
+                Regenerate Overlays
+            </label>
             {% endif %}
-
 
             <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Upload Image</label>
             <input name="image_path" type="file" accept=".png,.jpg,.jpeg" class="block w-full text-sm text-gray-500
@@ -399,6 +404,18 @@
         document.addEventListener('DOMContentLoaded', function () {
             renderDateList();
             existingLights.forEach(addLight); // prefill
+
+            const redo = document.getElementById("redo_plate_solve");
+            const regen = document.getElementById("regenerate_overlays");
+
+            redo.addEventListener("change", () => {
+                if (redo.checked) {
+                    regen.checked = true;
+                    regen.disabled = true;
+                } else {
+                    regen.disabled = false;
+                }
+            });
 
             const labelStyle = document.querySelectorAll('.label');
             labelStyle.forEach(link => {

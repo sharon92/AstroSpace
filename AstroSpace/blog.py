@@ -22,7 +22,7 @@ from AstroSpace.auth import login_required
 from AstroSpace.db import get_conn
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import bokeh_phd2
-from AstroSpace.utils.platesolve import platesolve
+from AstroSpace.utils.platesolve import platesolve, get_overlays
 from AstroSpace.utils.queries import (
     DB_TABLES,
     get_image_tables,
@@ -291,18 +291,25 @@ def save_image():
         image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
         img_path_upload = f"{user_id}/{filename}"
         file.save(image_path)
-        header_json, svg_image, thumbnail_path, pixel_scale = platesolve(
+        header_json, thumbnail_path, pixel_scale = platesolve(
             image_path, user_id, fits_path
         )
+        
     elif img_id:
         img_path_upload = form.get("prev_img")
         if form.get("redo_plate_solve") == "on":
             full_img_path = os.path.join(
                 current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
             )
-            header_json, svg_image, thumbnail_path, pixel_scale = platesolve(
+            header_json, thumbnail_path, pixel_scale = platesolve(
                 full_img_path, user_id, fits_path
             )
+            
+        elif form.get("regenerate_overlays") == "on":
+            header_json = tmp_img["header_json"]
+            thumbnail_path = tmp_img["image_thumbnail"]
+            pixel_scale = tmp_img["pixel_scale"]
+            svg_image = json.dumps(get_overlays(header_json))
         else:
             header_json = tmp_img["header_json"]
             svg_image = tmp_img["overlays_json"]
