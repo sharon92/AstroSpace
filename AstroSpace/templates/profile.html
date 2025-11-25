@@ -5,7 +5,8 @@
 
 <div class="m-5 p-5 flex justify-center w-auto">
     <!-- Main Card Container -->
-    <div x-data="{ tab: 'Posts'}"
+    <div x-data="{ tab: localStorage.getItem('activeTab') ||  'Posts'}"
+        x-init="$watch('tab', value => localStorage.setItem('activeTab', value))"
         class="inline-block rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
         <!-- Main Tabs -->
@@ -38,8 +39,10 @@
                         <tr class="hover:bg-gray-200 dark:hover:bg-gray-400">
                             <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">
                                 <a href="{{ url_for('blog.image_detail', image_id=p['id'], image_name=p['slug']) }}"
-                                    class="text-blue-700 dark:text-blue-300 hover:underline">
+                                    class="text-blue-700 text-center dark:text-blue-300 hover:underline">
                                     {{ p['title'] }}
+                                    <img src="{{ url_for('blog.upload', filename=p.image_thumbnail|replace('\\', '/') or p.image_path|replace('\\', '/')) }}"
+                                        alt="{{ p.title }}" class="w-full h-48 object-cover">
                                 </a>
                             </td>
                             <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">
@@ -117,6 +120,7 @@
 
             if (response.ok) {
                 alert("Inventory saved successfully!");
+                location.reload(); 
             } else {
                 alert("Failed to save inventory.");
             }

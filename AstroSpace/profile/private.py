@@ -12,7 +12,7 @@ def profile():
     db = get_conn()
     with db.cursor() as cur:
         cur.execute(
-            "SELECT id, title, short_description, slug, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
+            "SELECT id, title, short_description, image_thumbnail, slug, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
             (g.user["username"],),
         )
         posts = cur.fetchall()
@@ -92,11 +92,48 @@ def profile():
 @bp.route("/update_inventory", methods=["POST"])
 def update_inventory():
     data = request.get_json()
-    inventory_type = data.get("type")
-    name = data.get("name")
+    table = data.get("type")
     values = data.get("values")
+    tid = values.pop("id")
+    name = values["name"]
+    columns = ", ".join(values.keys())             
+    placeholders = ", ".join(["%s"] * len(values)) 
+    
+    db = get_conn()
+    
+    if tid == -1:
+        print(f"Inserting {table} -> {name} with {values}")
+        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING id"
+       
+        with db.cursor() as cur:
+            cur.execute(
+                query,
+                tuple(values.values()),
+            )
+            new_id = cur.fetchone()["id"]
+            print(f"Inserted with new id: {new_id}")
 
-    # TODO: Add your logic here (save to DB, file, etc.)
-    print(f"Updating {inventory_type} -> {name} with {values}")
+    else:
+        print(f"Updating {table} -> {name} with {values}")
+        column_list = [col.strip() for col in columns.split(",") if col.strip()]
+        set_clause = ", ".join([f"{col} = %s" for col in column_list])
+
+        query = f"""
+            UPDATE {table}
+            SET {set_clause}
+            WHERE id = %s
+        """
+
+        with db.cursor() as cur:
+            cur.execute(
+                query,
+                (
+                    *tuple(values.values()),
+                    tid
+                ),
+            )
+    
+    db.commit()
+    cur.close()
 
     return jsonify({"message": "Inventory updated successfully"}), 200
