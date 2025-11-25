@@ -28,6 +28,7 @@
                     <thead class="bg-gray-100 dark:bg-gray-900">
                         <tr>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Post</th>
+                            <th scope="col" class="px-4 py-3 text-sm font-semibold">Title</th>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Date</th>
                             <th scope="col" class="px-4 py-3 text-sm font-semibold">Actions</th>
                         </tr>
@@ -39,6 +40,12 @@
                                 <a href="{{ url_for('blog.image_detail', image_id=p['id'], image_name=p['slug']) }}"
                                     class="text-blue-700 dark:text-blue-300 hover:underline">
                                     {{ p['title'] }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">
+                                <a href="{{ url_for('blog.image_detail', image_id=p['id'], image_name=p['slug']) }}"
+                                    class="text-blue-700 dark:text-blue-300 hover:underline">
+                                    {{ p['short_description'] }}
                                 </a>
                             </td>
                             <td class="px-4 py-2 text-gray-600 dark:text-gray-300">

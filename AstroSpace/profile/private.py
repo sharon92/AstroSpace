@@ -12,7 +12,7 @@ def profile():
     db = get_conn()
     with db.cursor() as cur:
         cur.execute(
-            "SELECT id, title, slug, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
+            "SELECT id, title, short_description, slug, created_at FROM images WHERE author = %s ORDER BY created_at DESC",
             (g.user["username"],),
         )
         posts = cur.fetchall()
