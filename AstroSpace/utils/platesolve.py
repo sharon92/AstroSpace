@@ -7,7 +7,7 @@ import numpy as np
 import math
 # from astroquery.vizier import Vizier
 from astroquery.simbad import Simbad
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from astropy.io.fits import Header
 import pandas as pd
@@ -176,6 +176,23 @@ def make_grid_lines(wcs, ra_limits, dec_limits, ra_count=6, dec_count=6):
         "labels": labels
     }
 
+def pa_world_to_pixel(wcs, ra, dec, pa_deg):
+    # center point
+    c = SkyCoord(ra=ra*u.deg, dec=dec*u.deg)
+
+    # move 1 arcsec in direction of PA
+    pa = Angle(pa_deg, u.deg)
+    d = 1 * u.arcsec
+    c2 = c.directional_offset_by(pa, d)
+
+    # convert both points to pixel coords
+    x0, y0 = wcs.world_to_pixel(c)
+    x1, y1 = wcs.world_to_pixel(c2)
+
+    # compute pixel angle (atan2 correct orientation)
+    ang = np.degrees(np.arctan2(y1 - y0, x1 - x0))
+
+    return ang
 
 def platesolve(image_path, user_id, fits_file=None):
     print("Plate solving image....")
@@ -325,14 +342,14 @@ def get_overlays(wcs_header):
 
     print("Querying Simbad for objects in the field of view...")
     big_objects = "('G', 'GiC', 'GiG', 'GiP', 'GrG','HII', 'PN', 'SNR', 'Cl*', 'OpC', 'GlC', 'Neb', 'Cld', 'DNe','..27','..28','..30','BiC','CGC','ClG','EmG','flt','GNe','IG', 'LSB','MoC','PaG','PCG','rG','RNe', 'SBG','Sy1','Sy2','SyG')"
-    result = Simbad.query_region(coord, radius=radius, criteria=f"otype IN {big_objects}")
+    result = Simbad.query_region(coord, radius=radius)#, criteria=f"otype IN {big_objects}")
 
     df = result.to_pandas()
-    df['name'] = df['ids'].apply(extract_popular_id)
+    df['name'] = df['ids']#.apply(extract_popular_id)
     df = df[
         [   
             "name",
-            #"main_id",
+            "main_id",
             #"ids",
             "ra",
             "dec",
@@ -343,26 +360,33 @@ def get_overlays(wcs_header):
         ]
     ]
     
-    df = df.dropna(subset=["ra", "dec","name"])
+    df = df.dropna(subset=["ra", "dec"])#,"name"])
     box = (df.ra > ra_min) * (df.ra < ra_max) * (df.dec > dec_min) * (df.dec < dec_max)
     df = df[box]
 
     df.sort_values(["galdim_majaxis", "galdim_minaxis"], ascending=False, inplace=True)
 
-    x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
-
     df["rx"] = (df["galdim_majaxis"] * 60) / pixel_scale / 2
     df["ry"] = (df["galdim_minaxis"] * 60) / pixel_scale / 2
 
-    #df.dropna(subset=["rx","ry"])
+    df = df.dropna(subset=["rx","ry"])
+    df = df[df["rx"] >= 25]
+    df = df[df["ry"] >= 25]
    
+    x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
+    angle = [
+        pa_world_to_pixel(wcs, ra, dec, pa)
+        if not pd.isna(pa) and pa != 32767 else 0
+        for ra, dec, pa in zip(df["ra"], df["dec"], df["galdim_angle"])
+    ]
+
     db = {
-        "name": df["name"].astype(str).tolist(),
+        "name": df["main_id"].astype(str).tolist(),
         "x": x.round(1).tolist(),
         "y": y.round(1).tolist(),
         "rx": [0 if np.isnan(i) else round(i, 1) for i in df.rx],
         "ry": [0 if np.isnan(i) else round(i, 1) for i in df.ry],
-        "angle": [0 if pd.isna(i) or i == 32767 else int(i) for i in df.galdim_angle],
+        "angle": angle,
         "otype": [chosen_stars.get(o, "Unknown") for o in df["otype"].astype(str)],
     }
 
@@ -395,7 +419,7 @@ def get_overlays(wcs_header):
     ]
    
     # Convert parallax to distance in light years
-    d_ly = (df2["plx_value"] ** -1) * pc_to_ly * 1e3
+    #d_ly = (df2["plx_value"] ** -1) * pc_to_ly * 1e3
 
     #HR Diagram data
     df2["HR_x"] = df2.B - df2.V

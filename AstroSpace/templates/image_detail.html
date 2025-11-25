@@ -487,7 +487,10 @@
               { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
             ];
 
-            let fullText = "{{il.image.title}} - {{il.image.short_description}}\n\n{{ il.image.description }}\n\nImage By: {{ il.image.author }}\n\n";
+            let fullText = {{ (
+                il.image.title ~ " - " ~ il.image.short_description ~ "\n\n" ~
+                il.image.description ~ "\n\nImage By: " ~ il.image.author ~ "\n\n"
+            ) | tojson }};
 
             tablesInfo.forEach(({ selector, title }) => {
               const table = document.querySelector(selector);
@@ -598,44 +601,29 @@
 
         for (let item of overlays) {
             
-            if (item.rx >= 10 && item.ry >= 10) {
+            if (item.rx >= 25 && item.ry >= 25) {
+              //item.x = overlayData.width - item.x;       // flip x
+              //item.y = overlayData.height - item.y;      // flip y
               const transform = item.angle
-                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)})"`
+                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)}) "`
                 : "";
 
-              svg += `<g class="astro-group">
-                  <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
-                    rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
-                    fill="none" stroke="white" stroke-width="10"></ellipse>
+              svg += `
+                <a href="https://www.google.com/search?q=Simbad+Catalog:+${encodeURIComponent(item.id)}" target="_blank">
+                  <g class="astro-group">
+                    <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+                      rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
+                      fill="none" stroke="white" stroke-width="10"></ellipse>
 
-                  <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 40).toFixed(2)}"
-                    font-size="72" fill="white" stroke="black" stroke-width="2"
-                    text-anchor="middle" alignment-baseline="middle">
-                    ${item.id}
-                  </text>
-                </g>`;
-            } else {
-              const crossSize = 50;
-
-              svg += `<g class="astro-group">
-                <!-- vertical line -->
-                <line x1="${item.x}" y1="${(item.y - crossSize)}"
-                      x2="${item.x}" y2="${(item.y + crossSize)}"
-                      stroke="white" stroke-width="6"></line>
-
-                <!-- horizontal line -->
-                <line x1="${(item.x - crossSize)}" y1="${item.y}"
-                      x2="${(item.x + crossSize)}" y2="${item.y}"
-                      stroke="white" stroke-width="6"></line>
-
-                <text x="${(item.x + 60)}"
-                      y="${(item.y - crossSize - 40)}"
+                    <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 60).toFixed(2)}"
                       font-size="72" fill="white" stroke="black" stroke-width="2"
                       text-anchor="middle" alignment-baseline="middle">
-                  ${item.id}
-                </text>
-              </g>`;
-          }
+                      ${item.id}
+                    </text>
+                  </g>
+                </a>
+              `;
+            } 
         }
         svg += "</svg>";
         svgOverlay.innerHTML = svg;
