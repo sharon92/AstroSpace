@@ -281,7 +281,23 @@ CREATE TABLE blog_comments (
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL
+  password TEXT NOT NULL,
+  admin BOOLEAN DEFAULT false,
+  display_name TEXT,
+  display_image TEXT,
+  bio TEXT,
+  astrometry_api_key TEXT,
+  open_weather_api_key TEXT,
+  telescopius_api_key TEXT,
+);
+
+CREATE TABLE web_info (
+    id SERIAL PRIMARY KEY,
+    site_name TEXT,
+    site_description TEXT,
+    welcome_message TEXT,
+    contact_email TEXT,
+    social_links JSONB -- e.g., {"twitter": "url", "facebook": "url"}
 );
 
 -- Camera

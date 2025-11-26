@@ -5,8 +5,7 @@
 
 <div class="m-5 p-5 flex justify-center w-auto">
     <!-- Main Card Container -->
-    <div x-data="{ tab: localStorage.getItem('activeTab') ||  'Posts'}"
-        x-init="$watch('tab', value => localStorage.setItem('activeTab', value))"
+    <div x-data="settingsData" x-init="$watch('tab', value => localStorage.setItem('activeTab', value))"
         class="inline-block rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
         <!-- Main Tabs -->
@@ -189,11 +188,181 @@
             </div>
         </div>
 
-        <div x-show="tab === 'Settings'" class="space-y-2 md:p-4">
-            <p class="text-gray-600 dark:text-gray-300">Your account settings will be displayed here.</p>
-            <!-- Settings content goes here -->
+        <div x-show="tab === 'Settings'"
+            class="space-y-2 md:p-4 grid grid-cols-2 gap-4  text-gray-700 dark:text-white ">
+
+            <label class="flex items-center">
+                Display Name
+            </label>
+            <input type="text" x-model="settings.display_name"
+                class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700">
+
+            <label class="flex items-center">
+                Display Image
+            </label>
+
+            <div>
+                <input type="file" @change="uploadImage($event)" accept="image/jpeg,image/jpg"
+                    class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700">
+                <template x-if="settings.display_image">
+                    <img :src="uploadBaseUrl + settings.display_image.replace(/\\/g, '/')"
+                        class="p-2 w-32 h-32 object-cover rounded-2xl">
+                </template>
+            </div>
+
+            <label class="flex items-center">
+                Bio Description (HTML)
+            </label>
+            <textarea x-model="settings.bio"
+                class="p-2 text-left rounded-md h-80 bg-gray-100 dark:bg-gray-700"></textarea>
+
+            <label class="flex items-center">
+                Website Name
+            </label>
+            <input type="text" x-model="settings.site_name"
+                class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700">
+
+            <label class="flex items-center">
+                Astrometry.net API Key (optional)
+            </label>
+
+            <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" x-model="settings.astrometry_api"
+                    class="p-2 pr-10 text-left rounded-md bg-gray-100 dark:bg-gray-700 w-full">
+
+                <button type="button" @click="show = !show"
+                    class="absolute right-2 top-2 text-gray-600 dark:text-gray-300">
+                    <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                                -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+
+                    <svg x-show="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+                                a10.097 10.097 0 012.042-3.362M6.18 6.18A9.956 9.956 0 0112 5c4.477 0 8.268 2.943
+                                9.542 7a10.094 10.094 0 01-4.043 5.263M3 3l18 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <label class="flex items-center">
+                Open Weather Maps API Key (optional)
+            </label>
+
+            <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" x-model="settings.owm_api"
+                    class="p-2 pr-10 text-left rounded-md bg-gray-100 dark:bg-gray-700 w-full">
+
+                <button type="button" @click="show = !show"
+                    class="absolute right-2 top-2 text-gray-600 dark:text-gray-300">
+                    <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                                -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+
+                    <svg x-show="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+                                a10.097 10.097 0 012.042-3.362M6.18 6.18A9.956 9.956 0 0112 5c4.477 0 8.268 2.943
+                                9.542 7a10.094 10.094 0 01-4.043 5.263M3 3l18 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <label class="flex items-center">
+                Telescopius API Key (optional)
+            </label>
+
+            <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" x-model="settings.telescopius_api"
+                    class="p-2 pr-10 text-left rounded-md bg-gray-100 dark:bg-gray-700 w-full">
+
+                <button type="button" @click="show = !show"
+                    class="absolute right-2 top-2 text-gray-600 dark:text-gray-300">
+                    <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                                            -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+
+                    <svg x-show="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+                                            a10.097 10.097 0 012.042-3.362M6.18 6.18A9.956 9.956 0 0112 5c4.477 0 8.268 2.943
+                                            9.542 7a10.094 10.094 0 01-4.043 5.263M3 3l18 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <label class="flex items-center">
+                Welcome Page Note (HTML)
+            </label>
+            <textarea x-model="settings.welcome_note"
+                class="p-2 text-left rounded-md h-80 bg-gray-100 dark:bg-gray-700"></textarea>
+
+            <button @click="saveSettings" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Save Settings
+            </button>
         </div>
     </div>
 </div>
 
+<script>
+    document.addEventListener("alpine:init", () => {
+        Alpine.data("settingsData", () => ({
+            tab: localStorage.getItem("activeTab") || "Posts",
+            uploadBaseUrl: "{{ url_for('blog.upload', filename='') }}",
+            settings: {
+                display_name: {{ user_settings.display_name | default('') | tojson }},
+        display_image: {{ user_settings.display_image | default('') | tojson }},
+        bio: {{ user_settings.bio | default('') | tojson }},
+        site_name: {{ web_info.site_name | default('') | tojson }},
+        astrometry_api: {{ user_settings.astrometry_api_key | default('')  | tojson }},
+        owm_api: {{ user_settings.open_weather_api_key | default('')  | tojson }},
+        telescopius_api: {{ user_settings.telescopius_api_key | default('')  | tojson }},
+        welcome_note: {{ web_info.welcome_message | default('') | tojson }},
+            },
+
+        uploadImage(event) {
+        this.settings.display_image = event.target.files[0];
+    },
+
+        async saveSettings() {
+        const form = new FormData();
+        form.append("display_name", this.settings.display_name);
+        form.append("site_name", this.settings.site_name);
+        form.append("astrometry_api", this.settings.astrometry_api);
+        form.append("owm_api", this.settings.owm_api);
+        form.append("telescopius_api", this.settings.telescopius_api);
+        form.append("welcome_note", this.settings.welcome_note);
+        form.append("bio", this.settings.bio);
+
+        if(this.settings.display_image) {
+        form.append("display_image", this.settings.display_image);
+    }
+
+    const response = await fetch("/private/update_settings", {
+        method: "POST",
+        body: form
+    });
+
+    if (response.ok) {
+        alert("Settings saved!");
+        location.reload();
+    } else {
+        alert("Failed to save.");
+    }
+            }
+        }));
+    });
+</script>
 {%endblock%}

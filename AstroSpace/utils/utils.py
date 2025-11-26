@@ -1,8 +1,24 @@
-from PIL import Image
+from PIL import Image, ImageOps
 import requests 
 import os
 import re
 import unicodedata
+
+ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
+ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
+ALLOWED_TXT_EXTENSIONS = {"txt"}
+
+# Define which HTML tags and attributes are safe
+ALLOWED_TAGS = [
+    'b', 'i', 'u', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li',
+    'blockquote', 'code', 'span'
+]
+ALLOWED_ATTRIBUTES = {
+    'a': ['href', 'title', 'rel'],
+    'span': ['style'],
+}
+ALLOWED_STYLES = ['color', 'font-weight', 'text-decoration']
+
 
 def slugify(text):
     # Normalize unicode and remove accents
@@ -14,6 +30,12 @@ def slugify(text):
 
 def resize_image(input_path, output_path, base_width=500):
     with Image.open(input_path) as img:
+        try:
+            # Fix orientation from EXIF
+            img = ImageOps.exif_transpose(img)
+        except Exception as e:
+            print(f"EXIF transpose error: {e}")
+
         img = img.convert("RGB")
         wpercent = base_width / float(img.size[0])
         hsize = int((float(img.size[1]) * float(wpercent)))

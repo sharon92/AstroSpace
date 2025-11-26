@@ -32,25 +32,17 @@ from AstroSpace.utils.queries import (
 )
 from AstroSpace.utils.utils import geocode, slugify
 from AstroSpace.utils.blog_form import BlogForm
+from AstroSpace.utils.utils import (
+    ALLOWED_IMG_EXTENSIONS,
+    ALLOWED_TXT_EXTENSIONS,
+    ALLOWED_TAGS,
+    ALLOWED_ATTRIBUTES,
+)
 
 from werkzeug.utils import secure_filename
 
 bp = Blueprint("blog", __name__)
 
-ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
-ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
-ALLOWED_TXT_EXTENSIONS = {"txt"}
-
-# Define which HTML tags and attributes are safe
-ALLOWED_TAGS = [
-    'b', 'i', 'u', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li',
-    'blockquote', 'code', 'span'
-]
-ALLOWED_ATTRIBUTES = {
-    'a': ['href', 'title', 'rel'],
-    'span': ['style'],
-}
-ALLOWED_STYLES = ['color', 'font-weight', 'text-decoration']
 
 @bp.context_processor
 def inject_now():
