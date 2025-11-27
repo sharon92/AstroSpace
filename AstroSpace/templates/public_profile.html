@@ -29,23 +29,24 @@
     <!-- Posts Grid -->
     <h2 class="text-xl font-semibold mb-4">Latest Posts</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-20">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4 mb-20">
 
         {% for post in posts %}
-        <a href="{{ url_for('blog.image_detail', image_id = post.id, image_name=post.slug) }}"
-           class="block group">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <a href="{{ url_for('blog.image_detail', image_id=post.id, image_name=post.slug) }}"
+            class="relative block group">
 
-            {% if post.image_thumbnail %}
-            <img src="{{ url_for('blog.upload', filename=post.image_thumbnail|replace('\\','/') ) }}"
-                 class="rounded-lg w-full h-40 object-cover group-hover:opacity-80 transition">
-            {% else %}
-            <div class="w-full h-40 rounded-lg bg-gray-300 dark:bg-gray-700"></div>
-            {% endif %}
+                <img src="{{ url_for('blog.upload', filename=post.image_thumbnail|replace('\\','/')) }}"
+                    class="w-full h-48 object-cover transition group-hover:opacity-80">
 
-            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300 group-hover:text-amber-500">
-                {{ post.title }}
-            </p>
-        </a>
+                <!-- Overlaid title -->
+                <h5 class="absolute bottom-0 left-0 w-full text-white text-sm font-semibold px-1 py-2 
+                            bg-gradient-to-t from-black/70 to-transparent">
+                    {{ post.title }} - {{ post.short_description }}
+                </h5>
+
+            </a>
+        </div>
         {% endfor %}
 
         {% if posts|length == 0 %}
@@ -53,6 +54,7 @@
         {% endif %}
 
     </div>
+
 
 </div>
 

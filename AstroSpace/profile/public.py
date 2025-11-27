@@ -22,7 +22,7 @@ def public_profile(username):
     # --- Get user's posts ---
     with db.cursor() as cur:
         cur.execute("""
-            SELECT id, title, image_thumbnail, slug
+            SELECT id, title, short_description, image_thumbnail, slug
             FROM images
             WHERE author = %s
             ORDER BY created_at DESC
