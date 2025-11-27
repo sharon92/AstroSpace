@@ -55,6 +55,21 @@ def get_image_by_id(image_id):
     row = cur.fetchone()
     if not row:
         return None
+    
+    image = dict(row)  # convert to dict for easy merging
+    author = image.get("author")
+
+    # 2. Fetch user info (display_image)
+    cur.execute("""
+        SELECT display_image
+        FROM users
+        WHERE username = %s
+    """, (author,))
+
+    user_row = cur.fetchone()
+    if user_row:
+        row["user_image"] = user_row["display_image"]
+        
     return row
 
 # Helper functions

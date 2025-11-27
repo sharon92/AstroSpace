@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, g
 from werkzeug.exceptions import RequestEntityTooLarge
 
 
@@ -49,6 +49,21 @@ def create_app(test_config=None):
         if not exists:
             print("Table does not exist. Initializing database...")
             db.init_db()
+    
+    @app.before_request
+    def load_web_info():
+        conn = db.get_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM web_info LIMIT 1")
+            info = cur.fetchone()
+
+        g.web_info = info or {}  # fallback to empty dict
+    
+    @app.context_processor
+    def inject_web_info():
+        return {
+            "web_info": getattr(g, "web_info", {})
+        }
 
     from . import auth
     app.register_blueprint(auth.bp)

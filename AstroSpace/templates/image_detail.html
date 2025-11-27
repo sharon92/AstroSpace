@@ -157,10 +157,38 @@
         </div>
 
         <div class="flex justify-between items-center text-sm p-1.5 text-gray-600 dark:text-gray-300">
-          <span>
-            <span class="hover:text-amber-500 cursor-pointer">@{{ il.image.author }}</span>, <em>📍
-              {{ il.image.location }}</em>
+          <span class="flex items-center gap-2">
+              <a href="{{ url_for('profile.public', username=il.image.author) }}">
+              {% if il.image.user_image %}
+              
+                  <img 
+                      src="{{ url_for('blog.upload', filename=il.image.user_image) }}" 
+                      class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                      alt="author image"
+                  >
+           
+              {% else %}
+                  <img
+                      src="{{ url_for('static', filename='default_profile.png') }}"
+                      href="{{ url_for('profile.public', username=il.image.author) }}"
+                      class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                      alt="default profile"
+                  >
+              {% endif %}
+                </a>
+
+              <span class="text-lg">
+                  <a 
+                      href="{{ url_for('profile.public', username=il.image.author) }}"
+                      class="hover:text-blue-500"
+                  >
+                      @{{ il.image.author }}
+                  </a>,
+                  <em>📍 {{ il.image.location }}</em>
+              </span>
+
           </span>
+
 
           <div class="flex items-start space-x-2">
             <div>
@@ -435,13 +463,14 @@
           </div>
         </div>
 
-        <div x-show="mainTab === 'explore'" class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
+        <div x-show="mainTab === 'explore'"
+          class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
           <!-- Hertzsprung–Russell diagram container -->
           <div id="dist-scatter"
-              class="w-full rounded-xl bg-white/70 dark:bg-white/70 mx-auto aspect-[3/4] sm:aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/3] max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px]">
+            class="w-full rounded-xl bg-white/70 dark:bg-white/70 mx-auto aspect-[3/4] sm:aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/3] max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px]">
           </div>
         </div>
-        </div>
+      </div>
 
       <div class="relative flex flex-col items-center justify-center">
         <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
@@ -492,74 +521,74 @@
                 il.image.description ~ "\n\nImage By: " ~ il.image.author ~ "\n\n"
             ) | tojson }};
 
-            tablesInfo.forEach(({ selector, title }) => {
-              const table = document.querySelector(selector);
-              if (!table) return;  // skip if table not found
+        tablesInfo.forEach(({ selector, title }) => {
+          const table = document.querySelector(selector);
+          if (!table) return;  // skip if table not found
 
-              const rows = table.querySelectorAll("tr");
-              const tableData = [];
+          const rows = table.querySelectorAll("tr");
+          const tableData = [];
 
-              rows.forEach(row => {
-                const cells = Array.from(row.querySelectorAll("td"));
-                const rowText = cells.map(cell => {
-                  const pElements = cell.querySelectorAll("p");
-                  if (pElements.length > 0) {
-                    return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
-                  } else {
-                    return cell.innerText.trim();
-                  }
-                });
-                tableData.push(rowText);
-              });
-
-              const formattedTable = alignTable(tableData);
-
-              fullText += `${title}\n${formattedTable}\n\n`;
+          rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll("td"));
+            const rowText = cells.map(cell => {
+              const pElements = cell.querySelectorAll("p");
+              if (pElements.length > 0) {
+                return Array.from(pElements).map(p => p.innerText.trim()).join(", ");
+              } else {
+                return cell.innerText.trim();
+              }
             });
+            tableData.push(rowText);
+          });
 
-            fullText += link;
-            console.log(fullText);
-            navigator.clipboard.writeText(fullText)
-              .then(() => {
-                alert("Link copied to clipboard!");
-              })
-              .catch(err => {
-                alert("Failed to copy: " + err);
-              });
+          const formattedTable = alignTable(tableData);
+
+          fullText += `${title}\n${formattedTable}\n\n`;
+        });
+
+        fullText += link;
+        console.log(fullText);
+        navigator.clipboard.writeText(fullText)
+          .then(() => {
+            alert("Link copied to clipboard!");
+          })
+          .catch(err => {
+            alert("Failed to copy: " + err);
+          });
           }
 
-          document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
+        document.getElementById("copy-link-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetails);
 
 
-          function copyCurrentURLwithDetailsHTML() {
-            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
-            const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
+        function copyCurrentURLwithDetailsHTML() {
+          const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+          const lightTable = document.querySelector(`table[light-id="light-{{il.image.id}}"]`);
 
-            //console.log(link);
-            // Clone the table to avoid modifying the DOM
-            const tableClone = lightTable.cloneNode(true);
+          //console.log(link);
+          // Clone the table to avoid modifying the DOM
+          const tableClone = lightTable.cloneNode(true);
 
-            // Optionally remove classes or inline styles
-            tableClone.removeAttribute("class");
+          // Optionally remove classes or inline styles
+          tableClone.removeAttribute("class");
 
-            // Create a full HTML snippet
-            const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
-            //console.log(htmlContent);
-            // Copy as HTML
-            const blobt = new Blob([htmlContent], { type: "text/plain" });
-            const blob = new Blob([htmlContent], { type: "text/html" });
-            const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
+          // Create a full HTML snippet
+          const htmlContent = `<p>Link: <a href="${link}">${link}</a></p>${tableClone.outerHTML}`;
+          //console.log(htmlContent);
+          // Copy as HTML
+          const blobt = new Blob([htmlContent], { type: "text/plain" });
+          const blob = new Blob([htmlContent], { type: "text/html" });
+          const clipboardItem = new ClipboardItem({ "text/plain": blobt }, { "text/html": blob });
 
-            navigator.clipboard.write([clipboardItem])
-              .then(() => {
-                alert("HTML table and link copied to clipboard!");
-              })
-              .catch(err => {
-                alert("Failed to copy HTML: " + err);
-              });
-          }
+          navigator.clipboard.write([clipboardItem])
+            .then(() => {
+              alert("HTML table and link copied to clipboard!");
+            })
+            .catch(err => {
+              alert("Failed to copy HTML: " + err);
+            });
+        }
 
-          // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
+        // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
 
 
         let overlayData = {{ il.svg_image | tojson | safe  }};
@@ -599,8 +628,8 @@
           </style>
         `;
 
-        for (let item of overlays) {
-            
+          for (let item of overlays) {
+
             if (item.rx >= 25 && item.ry >= 25) {
               //item.x = overlayData.width - item.x;       // flip x
               //item.y = overlayData.height - item.y;      // flip y
@@ -623,10 +652,10 @@
                   </g>
                 </a>
               `;
-            } 
-        }
-        svg += "</svg>";
-        svgOverlay.innerHTML = svg;
+            }
+          }
+          svg += "</svg>";
+          svgOverlay.innerHTML = svg;
         }
 
         // Handle overlay toggle
@@ -706,112 +735,112 @@
             container.dataset.panzoomInitialized = "true";
           }
         };
-        
+
 
         document.addEventListener("DOMContentLoaded", () => {
 
-        db1 = overlayData.overlays;
-        db2 = overlayData.plots;
-        const db = db2["hr"];
-        //const scaledSize = db.size.map(v => v * 20);
+          db1 = overlayData.overlays;
+          db2 = overlayData.plots;
+          const db = db2["hr"];
+          //const scaledSize = db.size.map(v => v * 20);
 
-        function drawPlot() {          
-          // Define spectral type labels for reference ticks
+          function drawPlot() {
+            // Define spectral type labels for reference ticks
 
-          const trace = {
-            x: db.x,
-            y: db.y,
-            text: db.name.map(
-              (n, i) =>
-                `${n}<br>B–V: ${db.x[i]}<br>Mv: ${db.y[i]}<br>${db["Spectral Class"][i] || ""}`
-            ),
-            mode: "markers",
-            type: "scatter",
-            marker: {
-              size: 5,
-              color: db.color,
-              line: {
-                color: 'rgba(0, 0, 0, 1)',
-                width: 1
-              }
-            },
-            hovertemplate:
-              "%{text}<extra></extra>", // clean hover box
-          };
-
-          const layout = {
-            title: {
-              text: "Hertzsprung–Russell Diagram",
-              x: 0.5,
-              font: { size: 20 },
-            },
-          xaxis: {
-            title: { text: "Color Index (B–V)  →  Spectral Class" },
-            //tickvals: spectralLabels.map(d => d.value),
-            //ticktext: spectralLabels.map(d => d.label),
-            range: [Math.min(...db.x), Math.max(...db.x)],
-            showgrid: false,
-            zeroline: false,
-            showline: true,
-            linecolor: 'black',
-            linewidth: 3,
-            mirror: true ,   // draws top and right borders too
-           // scaleanchor: "y",
-            //scaleratio: 1.25
-          },
-          yaxis: {
-            title: { text: "Absolute Magnitude (Mv)" },
-            range: [20, -15],
-            showgrid: false,
-            zeroline: false,
-            showline: true,
-            linecolor: 'black',
-            linewidth: 3,
-            mirror: true,
-
-          },
-            paper_bgcolor: "rgba(0,0,0,0)",
-            plot_bgcolor: "rgba(0,0,0,0)",
-            hovermode: "closest",
-            margin: { l: 60, r: 40, b: 60, t: 80 },
-            annotations: [
-              {
-                x: 0.6, y: 6.5,
-                text: 'main sequence',
-                font: {size: 12, color: 'black'},
-                showarrow: true,
-                arrowcolor: 'yellow',
-                ax: 40, ay: 60   // offset in pixels
+            const trace = {
+              x: db.x,
+              y: db.y,
+              text: db.name.map(
+                (n, i) =>
+                  `${n}<br>B–V: ${db.x[i]}<br>Mv: ${db.y[i]}<br>${db["Spectral Class"][i] || ""}`
+              ),
+              mode: "markers",
+              type: "scatter",
+              marker: {
+                size: 5,
+                color: db.color,
+                line: {
+                  color: 'rgba(0, 0, 0, 1)',
+                  width: 1
+                }
               },
-              {
-                x: 1.8, y: -1,
-                text: 'giants',
-                font: {size: 15, color: 'black'},
-                showarrow: true,
-                arrowcolor: 'orange',
-                ax: 30, ay: -50
-              },
-              {
-                x: 0.5, y: -14,
-                text: 'supergiants',
-                font: {size: 20, color: 'black'},
-                showarrow: false
-              },
-              {
-                x: 0, y: 16,
-                text: 'white dwarfs',
-                font: {size: 8, color: 'black'},
-                showarrow: false
-              }
-            ]
-          };
+              hovertemplate:
+                "%{text}<extra></extra>", // clean hover box
+            };
 
-          Plotly.newPlot("dist-scatter", [trace], layout, {  displaylogo: false, responsive: true, modeBarButtonsToRemove: ['zoom2d','toImage','pan2d','lasso2d','zoomin2d','zoomOut2d','autoscale2d','select2d'] });
-        }
+            const layout = {
+              title: {
+                text: "Hertzsprung–Russell Diagram",
+                x: 0.5,
+                font: { size: 20 },
+              },
+              xaxis: {
+                title: { text: "Color Index (B–V)  →  Spectral Class" },
+                //tickvals: spectralLabels.map(d => d.value),
+                //ticktext: spectralLabels.map(d => d.label),
+                range: [Math.min(...db.x), Math.max(...db.x)],
+                showgrid: false,
+                zeroline: false,
+                showline: true,
+                linecolor: 'black',
+                linewidth: 3,
+                mirror: true,   // draws top and right borders too
+                // scaleanchor: "y",
+                //scaleratio: 1.25
+              },
+              yaxis: {
+                title: { text: "Absolute Magnitude (Mv)" },
+                range: [20, -15],
+                showgrid: false,
+                zeroline: false,
+                showline: true,
+                linecolor: 'black',
+                linewidth: 3,
+                mirror: true,
 
-        // Init
-        drawPlot();
-      });
+              },
+              paper_bgcolor: "rgba(0,0,0,0)",
+              plot_bgcolor: "rgba(0,0,0,0)",
+              hovermode: "closest",
+              margin: { l: 60, r: 40, b: 60, t: 80 },
+              annotations: [
+                {
+                  x: 0.6, y: 6.5,
+                  text: 'main sequence',
+                  font: { size: 12, color: 'black' },
+                  showarrow: true,
+                  arrowcolor: 'yellow',
+                  ax: 40, ay: 60   // offset in pixels
+                },
+                {
+                  x: 1.8, y: -1,
+                  text: 'giants',
+                  font: { size: 15, color: 'black' },
+                  showarrow: true,
+                  arrowcolor: 'orange',
+                  ax: 30, ay: -50
+                },
+                {
+                  x: 0.5, y: -14,
+                  text: 'supergiants',
+                  font: { size: 20, color: 'black' },
+                  showarrow: false
+                },
+                {
+                  x: 0, y: 16,
+                  text: 'white dwarfs',
+                  font: { size: 8, color: 'black' },
+                  showarrow: false
+                }
+              ]
+            };
+
+            Plotly.newPlot("dist-scatter", [trace], layout, { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['zoom2d', 'toImage', 'pan2d', 'lasso2d', 'zoomin2d', 'zoomOut2d', 'autoscale2d', 'select2d'] });
+          }
+
+          // Init
+          drawPlot();
+        });
       }) ();
       </script>
 

@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{{WebName}}</title>
+        <title>{{web_info.site_name}}</title>
 
         <link rel="preload" href="{{ url_for('static', filename='fonts/Lato-Medium.woff2') }}" as="font"
             type="font/woff2" crossorigin="anonymous">
@@ -39,7 +39,7 @@
                     <div class="flex items-end space-x-4 rtl:space-x-reverse">
                         <a href="{{ url_for('blog.home') }}" class="flex items-center space-x-3 rtl:space-x-reverse">
                             <span
-                                class="self-center text-2xl font-black whitespace-nowrap dark:text-white dark:hover:text-amber-400 hover:text-amber-900">{{WebName}}</span>
+                                class="self-center text-2xl font-black whitespace-nowrap dark:text-white dark:hover:text-amber-400 hover:text-amber-900">{{web_info.site_name}}</span>
                         </a>
                         <!-- Desktop nav links -->
                         <ul class="hidden md:flex flex-row space-x-6 font-medium">

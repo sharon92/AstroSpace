@@ -68,7 +68,7 @@ def home():
         img["url"] = url_for("blog.upload", filename=img["image_path"])
     # print("Top images:", top_images)
     return render_template(
-        "home.html", WebName=current_app.config["TITLE"], top_images=top_images
+        "home.html",top_images=top_images
     )
 
 
@@ -76,8 +76,8 @@ def home():
 def collection():
     images = get_all_images(unique=True)
     return render_template(
-        "collection.html", images=images, WebName=current_app.config["TITLE"]
-    )
+        "collection.html", images=images
+        )
 
 
 @bp.route("/get_elevation")
@@ -153,7 +153,6 @@ def image_detail(image_id, image_name):
         "image_detail.html",
         background_image=background_image,
         images=images,
-        WebName=current_app.config["TITLE"],
     )
 
 # New post form
@@ -170,7 +169,6 @@ def render_image_form(title, **kwargs):
 
     return render_template(
         "create.html",
-        WebName=current_app.config["TITLE"],
         title=title,
         filter_options=filter_options,
         option_none=option_none,

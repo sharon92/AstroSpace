@@ -408,14 +408,16 @@
             const redo = document.getElementById("redo_plate_solve");
             const regen = document.getElementById("regenerate_overlays");
 
-            redo.addEventListener("change", () => {
-                if (redo.checked) {
-                    regen.checked = true;
-                    regen.disabled = true;
-                } else {
-                    regen.disabled = false;
-                }
-            });
+            if (redo && regen) {
+                redo.addEventListener("change", () => {
+                    if (redo.checked) {
+                        regen.checked = true;
+                        regen.disabled = true;
+                    } else {
+                        regen.disabled = false;
+                    }
+                });
+            }
 
             const labelStyle = document.querySelectorAll('.label');
             labelStyle.forEach(link => {

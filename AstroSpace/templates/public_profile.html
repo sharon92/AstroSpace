@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto mt-10 text-center">
+
+    <!-- Profile Image -->
+    <div class="flex justify-center mb-6">
+        {% if user.display_image %}
+        <img src="{{ url_for('blog.upload', filename=user.display_image|replace('\\','/') ) }}"
+             class="w-32 h-32 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
+             alt="Profile Image">
+        {% else %}
+        <img src="{{ url_for('static', filename='default_profile.png') }}"
+             class="w-32 h-32 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
+             alt="Default Profile">
+        {% endif %}
+    </div>
+
+    <!-- Username -->
+    <h1 class="text-3xl font-bold mb-2">@{{ user.username }}</h1>
+
+    <!-- Bio -->
+    {% if user.bio %}
+    <div class="prose dark:prose-invert mx-auto mb-10 mt-4 text-gray-700 dark:text-gray-200">
+        {{ user.bio | safe }}
+    </div>
+    {% endif %}
+
+    <!-- Posts Grid -->
+    <h2 class="text-xl font-semibold mb-4">Latest Posts</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-20">
+
+        {% for post in posts %}
+        <a href="{{ url_for('blog.image_detail', image_id = post.id, image_name=post.slug) }}"
+           class="block group">
+
+            {% if post.image_thumbnail %}
+            <img src="{{ url_for('blog.upload', filename=post.image_thumbnail|replace('\\','/') ) }}"
+                 class="rounded-lg w-full h-40 object-cover group-hover:opacity-80 transition">
+            {% else %}
+            <div class="w-full h-40 rounded-lg bg-gray-300 dark:bg-gray-700"></div>
+            {% endif %}
+
+            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300 group-hover:text-amber-500">
+                {{ post.title }}
+            </p>
+        </a>
+        {% endfor %}
+
+        {% if posts|length == 0 %}
+        <p class="col-span-3 text-gray-500">No posts yet.</p>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
