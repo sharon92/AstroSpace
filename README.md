@@ -1,6 +1,6 @@
 # 🌌 AstroSpace
 
-**AstroSpace** is a web application designed to host, organize, and showcase your astrophotography collection. 🔭 Sort celestial objects in timeline views, automatic annotation for your images (via Plate Solving), compare the size of your DSO with moon scale, explore the objects inside your DSO with Plotly graphs and much more! ✨
+**AstroSpace** is a web application designed to host, organize, and showcase your astrophotography collection, its basically your personal Astrobin/Instagram. 🔭 Sort celestial objects in timeline views, automatic annotation for your images (via Plate Solving), compare the size of your DSO with moon scale, explore the objects inside your DSO with Plotly graphs and much more! ✨
 
 Perfect for amateur astronomers, astrophotographers, and stargazers who want to organize their night sky adventures and create their own personal space for Astro Stuff! 🌟
 
@@ -94,15 +94,11 @@ DB_PASSWORD = 'your_secure_password'
 DB_HOST = 'localhost'  # Or your database hostname
 DB_PORT = 5432
 
-# 🌟 Astrometry.net API Configuration
-# Go to https://nova.astrometry.net and sign in to get your API key
-ASTROMETRY_API_KEY = "your_astrometry_api_key_here"
-
 # 👥 User Management
 MAX_USERS = 5  # Set maximum number of registered users
 
 # 🏷️ Site Branding
-TITLE = "My AstroSpace Observatory"  # Customize your site name
+TITLE = "My AstroSpace Observatory"  # Customize your site name can be changed later in settings
 
 # Upload Path - uploaded jpegs and phd logs will be saved here
 UPLOAD_PATH = "absolute/path/to/uploads
@@ -165,7 +161,6 @@ docker run \
   -e 'DB_PORT'='8080' \
   -e 'TITLE'='Your_Website_Name' \
   -e 'MAX_USERS'='1' \
-  -e 'ASTROMETRY_API_KEY'='your_astrometry_key' \
   -e 'DB_HOST'='0.0.0.0' \
   -e 'UPLOAD_PATH' = '/uploads' \
   -p '9000:9000/tcp' \
