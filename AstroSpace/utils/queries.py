@@ -32,7 +32,7 @@ def get_all_images(unique=False, limit=None):
     if unique:
         cur.execute(f"""
     SELECT * FROM (
-    SELECT DISTINCT ON (title) id, title, slug, image_path, image_thumbnail, created_at
+    SELECT DISTINCT ON (title) id, title, short_description, slug, image_path, image_thumbnail, created_at
     FROM images
     ORDER BY title, created_at DESC
     {ilimit}
