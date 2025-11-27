@@ -12,7 +12,7 @@ import astropy.units as u
 from astropy.io.fits import Header
 import pandas as pd
 import hashlib
-from flask import current_app
+from flask import current_app, g
 from astroquery.astrometry_net import AstrometryNet
 from AstroSpace.utils.utils import resize_image
 from AstroSpace.utils.xisf_reader import xisf_header
@@ -210,7 +210,7 @@ def platesolve(image_path, user_id, fits_file=None):
         print("Plate solving using AstrometryNet...")
         # Initialize AstrometryNet with your API key
         ast = AstrometryNet()
-        ast.api_key = current_app.config["ASTROMETRY_API_KEY"]
+        ast.api_key = g.user["astrometry_api_key"]
         wcs_header = ast.solve_from_image(image_path, solve_timeout=1800)
 
     if "CRPIX1" not in wcs_header:

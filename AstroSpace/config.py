@@ -22,6 +22,3 @@ class Config:
     
     if "DB_PORT" in os.environ:
         DB_PORT = int(os.environ['DB_PORT'])
-
-    if "ASTROMETRY_API_KEY" in os.environ:
-        ASTROMETRY_API_KEY = os.environ['ASTROMETRY_API_KEY']

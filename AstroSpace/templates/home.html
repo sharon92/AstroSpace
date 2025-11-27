@@ -82,25 +82,12 @@
         class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 px-4 max-w-lg w-[90%] shadow-lg text-white text-center flex flex-col gap-6">
 
         <!-- Intro -->
-        <p class="leading-relaxed text-gray-200 font-lato font-light text-xl">
-            Ever caught yourself lost in the beauty of a starry night?
-            <a href="{{ url_for('blog.home') }}"
-                class="font-scribble text-3xl text-white hover:text-amber-400 transition-colors duration-200">
-                {{ WebName }}
-            </a>
-            is all about peeking into the vastness of space through the lenses of an amateur astronomer.
-            Feel free to
-            <a href="{{ url_for('blog.collection') }}"
-                class="text-blue-200 hover:text-blue-400 font-lato-Medium transition-colors duration-200">
-                explore
-            </a>
-            these high-resolution images and dive deeper into the techniques and equipment I use to capture the wonders
-            of the
-            cosmos.
+        <p class="leading-relaxed text-gray-200 font-scribble text-5xl">
+            {{web_info.welcome_message | safe}}
         </p>
 
         <!-- Signature -->
-        <p class="text-5xl text-gray-200 font-scribble">Sharons AstroSpace</p>
+        <p class="text-5xl text-gray-200 font-scribble">{{web_info.site_name}}</p>
     </div>
 </div>
 
