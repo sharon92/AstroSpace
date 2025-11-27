@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="max-w-3xl mx-auto mt-10 text-center">
+<div class="max-w-[300px] sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-6xl mx-auto mt-10 text-center dark:text-white px-4">
 
     <!-- Profile Image -->
     <div class="flex justify-center mb-6">
@@ -29,7 +29,7 @@
     <!-- Posts Grid -->
     <h2 class="text-xl font-semibold mb-4">Latest Posts</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-20">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-20">
 
         {% for post in posts %}
         <a href="{{ url_for('blog.image_detail', image_id = post.id, image_name=post.slug) }}"

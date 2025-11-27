@@ -382,6 +382,7 @@ def get_overlays(wcs_header):
 
     db = {
         "name": df["main_id"].astype(str).tolist(),
+        #"ids": df["name"].astype(str).tolist(),
         "x": x.round(1).tolist(),
         "y": y.round(1).tolist(),
         "rx": [0 if np.isnan(i) else round(i, 1) for i in df.rx],

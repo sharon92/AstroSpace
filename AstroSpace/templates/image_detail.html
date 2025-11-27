@@ -38,7 +38,7 @@
   }
 </style>
 
-<div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover"
+<div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover dark:text-white"
   style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
 
   <div class="absolute w-full h-full backdrop-blur-md"></div>
@@ -111,8 +111,35 @@
 
       <!-- Image Tab -->
       <div x-show="mainTab === 'image'" class="space-y-2 md:p-4">
+        <span class="flex items-center gap-3 px-1">
+            <!-- Avatar -->
+            <a href="{{ url_for('profile.public', username=il.image.author) }}">
+                {% if il.image.user_image %}
+                    <img
+                        src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
+                        class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                        alt="author image"
+                    >
+                {% else %}
+                    <img
+                        src="{{ url_for('static', filename='default_profile.png') }}"
+                        class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                        alt="default profile"
+                    >
+                {% endif %}
+            </a>
+
+            <!-- Name + location stacked -->
+            <span class="flex flex-col leading-tight">
+                <a 
+                    href="{{ url_for('profile.public', username=il.image.author) }}"
+                    class="hover:text-blue-500 font-medium"
+                >@{{ il.image.author }}</a>
+                <span class="text-xs text-gray-600 dark:text-gray-300">{{ il.image.location }}</span>
+            </span>
+        </span>
         <div id="zoom-container-{{il.image.id}}"
-          class="relative w-full max-w-full overflow-x-auto overflow-y-hidden md:rounded-[10px] flex items-center justify-center group touch-none">
+          class="relative w-full max-w-full overflow-x-auto overflow-y-hidden md:rounded-[10px]  px-1 flex items-center justify-center group touch-none">
 
           <div class="relative transition-transform duration-100 ease-in-out origin-center w-full h-full"
             id="zoom-wrapper-{{il.image.id}}">
@@ -141,7 +168,7 @@
 
           <!-- Reset Button -->
           <button id="reset-btn-{{il.image.id}}" title="Reset image zoom"
-            class="absolute bottom-2 right-2 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/15 hover:opacity-50 transition"
+            class="absolute bottom-2 right-2 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/15 hover:opacity-100 transition"
             aria-label="Reset image zoom" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
               stroke-width="6">
@@ -156,39 +183,7 @@
           </button>
         </div>
 
-        <div class="flex justify-between items-center text-sm p-1.5 text-gray-600 dark:text-gray-300">
-          <span class="flex items-center gap-2">
-              <a href="{{ url_for('profile.public', username=il.image.author) }}">
-              {% if il.image.user_image %}
-              
-                  <img 
-                      src="{{ url_for('blog.upload', filename=il.image.user_image) }}" 
-                      class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
-                      alt="author image"
-                  >
-           
-              {% else %}
-                  <img
-                      src="{{ url_for('static', filename='default_profile.png') }}"
-                      href="{{ url_for('profile.public', username=il.image.author) }}"
-                      class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
-                      alt="default profile"
-                  >
-              {% endif %}
-                </a>
-
-              <span class="text-lg">
-                  <a 
-                      href="{{ url_for('profile.public', username=il.image.author) }}"
-                      class="hover:text-blue-500"
-                  >
-                      @{{ il.image.author }}
-                  </a>,
-                  <em>📍 {{ il.image.location }}</em>
-              </span>
-
-          </span>
-
+        <div class="flex px-1 justify-between items-center text-sm md:text-gp-1.5 text-gray-600 dark:text-gray-300">
 
           <div class="flex items-start space-x-2">
             <div>
@@ -269,6 +264,8 @@
               </label>
             </div>
 
+          </div>
+
             <div x-data="{ open: false }" class="relative inline-block">
               <button @click="open = !open" title="Share this image" class="flex items-center p-1 rounded-full bg-gray-300 text-gray-900   shadow
            hover:bg-gray-400
@@ -308,8 +305,6 @@
                 </div>
               </div>
             </div>
-
-          </div>
         </div>
 
         <div class=" p-2 text-gray-700 dark:text-gray-200">
@@ -598,6 +593,7 @@
 
         let overlays = overlayData.overlays.name.map((_, i) => ({
           id: overlayData.overlays.name[i],
+          //ids: overlayData.overlays.ids[i],
           x: overlayData.overlays.x[i],
           y: overlayData.overlays.y[i],
           rx: overlayData.overlays.rx[i],
@@ -631,26 +627,42 @@
           for (let item of overlays) {
 
             if (item.rx >= 25 && item.ry >= 25) {
-              //item.x = overlayData.width - item.x;       // flip x
-              //item.y = overlayData.height - item.y;      // flip y
+              
+              const rawId = item.id ?? "";
+              const id = String(rawId).trim();
+
+              // otype must be valid and not "Unknown"
+              const rawOtype = item.otype === "Unknown" || !item.otype ? "" : item.otype;
+              const otype = String(rawOtype).trim();
+
+              // Build query safely
+              let query = (otype ? `${otype} ${id}` : id).trim();
+
+              // Last safety fallback
+              if (!query || typeof query !== "string") {
+                  query = id || "";
+              }
+              query = query.replace(/\s+/g, " ").trim();
+
+              // Default search engine link
+              const searchURL = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
               const transform = item.angle
                 ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)}) "`
                 : "";
 
               svg += `
-                <a href="https://www.google.com/search?q=Simbad+Catalog:+${encodeURIComponent(item.id)}" target="_blank">
-                  <g class="astro-group">
-                    <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
-                      rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
-                      fill="none" stroke="white" stroke-width="10"></ellipse>
+                <g class="astro-group" data-search="${searchURL}"  data-query="${query}">
+                  <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+                    rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
+                    fill="none" stroke="white" stroke-width="10"></ellipse>
 
-                    <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 60).toFixed(2)}"
-                      font-size="72" fill="white" stroke="black" stroke-width="2"
-                      text-anchor="middle" alignment-baseline="middle">
-                      ${item.id}
-                    </text>
-                  </g>
-                </a>
+                  <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 60).toFixed(2)}"
+                    font-size="72" fill="white" stroke="black" stroke-width="2"
+                    text-anchor="middle" alignment-baseline="middle">
+                    ${item.id}
+                  </text>
+                </g>
               `;
             }
           }
@@ -736,6 +748,22 @@
           }
         };
 
+        document.querySelectorAll(".astro-group").forEach(group => {
+          group.addEventListener("dblclick", (evt) => {
+            const query = group.dataset.query;
+            const url = group.dataset.search;
+
+            const confirmSearch = confirm(
+              `Search for:\n\n${query}\n\nProceed using your default search engine?`
+            );
+
+            if (confirmSearch) {
+              window.open(url, "_blank");
+            }
+
+            evt.stopPropagation();
+          });
+        });
 
         document.addEventListener("DOMContentLoaded", () => {
 
