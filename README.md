@@ -25,6 +25,7 @@ check out my Instance at:
 - 🗺️ **Equatorial Grid Overlay** – Overlay celestial coordinate grids for precise orientation  
 - 🔗 **Shareable Links with Tabular Acquisition Details** – Easily share your captures along with structured metadata  
 - 📈 **Explore DSO Contents with Plotly Graphs** – Interactively visualize SIMBAD and VizieR catalog queries. Plots a Hertzsprung Russel Diagram by default.
+- 🛠️ **Equipment Inventory System** - Track your telescopes, cameras, filters, and accessories
 
 ---
 
@@ -33,11 +34,13 @@ check out my Instance at:
 ### 🖼️ Image Gallery with Detailed Information Tabs
 Organize your astrophotography with rich metadata and detailed viewing options:
 
-<img width="1239" height="1215" alt="image" src="https://github.com/user-attachments/assets/a81628c6-39c0-4db0-a9c9-4ca643db51ac" />
+<img width="1410" height="1023" alt="image" src="https://github.com/user-attachments/assets/0a36167c-b738-4b41-96fa-1912d092af63" />
 
+### Details
 
-<img width="1236" height="1077" alt="image" src="https://github.com/user-attachments/assets/365d763e-64ca-4bb6-b8b7-3637342151c6" />
-
+<img width="824" height="541" alt="image" src="https://github.com/user-attachments/assets/d7a16145-bae8-40a7-a814-edd6833e8a32" /> 
+<img width="820" height="643" alt="image" src="https://github.com/user-attachments/assets/1f9241f4-a90a-4054-b571-1e0de79e608e" />
+<img width="825" height="745" alt="image" src="https://github.com/user-attachments/assets/d2fc8000-c606-43c7-8414-859faae2372b" />
 
 ### 📊 PHD2 Log Analysis
 Upload and analyze your autoguiding performance:
@@ -59,7 +62,6 @@ Create and share your astrophotography posts:
 
 ## 📌 Upcoming Features
 
-- 🛠️ **Equipment Inventory System** - Track your telescopes, cameras, filters, and accessories
 - 📝 **Advanced Blogging Platform** - Enhanced tools for documenting observations and techniques
 - ☀️ **Solar Photography Support** - Extended functionality for solar observation and imaging
 - 🌍 **Weather Integration** - Connect with weather APIs for observing conditions
