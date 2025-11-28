@@ -668,6 +668,23 @@
           }
           svg += "</svg>";
           svgOverlay.innerHTML = svg;
+
+          svgOverlay.querySelectorAll(".astro-group").forEach(group => {
+          group.addEventListener("dblclick", (evt) => {
+            const query = group.dataset.query;
+            const url = group.dataset.search;
+
+            const confirmSearch = confirm(
+              `Search for:\n\n${query}\n\nProceed using your default search engine?`
+            );
+
+            if (confirmSearch) {
+              window.open(url, "_blank");
+            }
+
+            evt.stopPropagation();
+          });
+        });
         }
 
         // Handle overlay toggle
@@ -747,23 +764,6 @@
             container.dataset.panzoomInitialized = "true";
           }
         };
-
-        document.querySelectorAll(".astro-group").forEach(group => {
-          group.addEventListener("dblclick", (evt) => {
-            const query = group.dataset.query;
-            const url = group.dataset.search;
-
-            const confirmSearch = confirm(
-              `Search for:\n\n${query}\n\nProceed using your default search engine?`
-            );
-
-            if (confirmSearch) {
-              window.open(url, "_blank");
-            }
-
-            evt.stopPropagation();
-          });
-        });
 
         document.addEventListener("DOMContentLoaded", () => {
 
