@@ -235,7 +235,7 @@ def delete_image(image_id):
     conn.commit()
     cur.close()
     flash("Post deleted successfully!")
-    return redirect(url_for("blog.list_images"))
+    return redirect(url_for("blog.collection"))
 
 
 def allowed_file(filename, allowed_extensions=ALLOWED_IMG_EXTENSIONS):

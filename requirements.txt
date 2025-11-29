@@ -1,0 +1,15 @@
+Flask
+flask-login
+flask_wtf
+psycopg2-binary
+numpy
+pandas
+requests
+ephem
+bokeh
+astroquery
+astropy
+photoutils
+pillow
+xisf
+bleach
