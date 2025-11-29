@@ -284,6 +284,7 @@ def save_image():
         header_json, thumbnail_path, pixel_scale = platesolve(
             image_path, user_id, fits_path
         )
+        svg_image = json.dumps(get_overlays(header_json))
         
     elif img_id:
         img_path_upload = form.get("prev_img")
