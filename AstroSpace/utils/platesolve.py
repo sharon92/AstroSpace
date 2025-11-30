@@ -1,6 +1,5 @@
 import os
 import re
-from astropy.io import fits
 from astropy.wcs import WCS
 
 import numpy as np
@@ -16,13 +15,26 @@ from flask import current_app, g
 from astroquery.astrometry_net import AstrometryNet
 from AstroSpace.utils.utils import resize_image
 from AstroSpace.utils.xisf_reader import xisf_header
-import json
+
 # import scipy
 
 pc_to_ly = 3.26156  # 1 parsec = 3.26156 light years
 
 # Vizier.ROW_LIMIT = -1 # No limit on the number of rows returned
 
+def fits_header_only(fits_file):
+    raw = fits_file.read()  # header-only bytes (from browser)
+    text = raw.decode("ascii", errors="ignore")
+    
+    cards = []
+    for i in range(0, len(text), 80):
+        card = text[i:i+80]
+        cards.append(card)
+        #print(card)
+        if card.startswith("END"):
+            break
+
+    return Header.fromstring("".join(cards))
 
 popular_catalogs = [
     r'\bM\s*\d+\b',                       # Messier (M31, M 31)
@@ -203,8 +215,7 @@ def platesolve(image_path, user_id, fits_file=None):
         if fits_name.endswith(".xisf"):
             wcs_header = xisf_header(fits_file)
         elif fits_name.endswith(".fits") or fits_name.endswith(".fit"):
-            with fits.open(fits_file, mode="update") as hdul:
-                wcs_header = hdul[0].header
+            wcs_header = fits_header_only(fits_file)
 
     else:
         print("Plate solving using AstrometryNet...")
@@ -220,7 +231,7 @@ def platesolve(image_path, user_id, fits_file=None):
     if "CRPIX1" not in wcs_header:
         raise ValueError("FITS file does not contain WCS information. Plate Solve the Fits file first!")
     
-    wcs = WCS(wcs_header)
+    wcs = WCS(wcs_header, naxis=2)
     try:
         wcs = wcs.dropaxis(2)  # Drop any unused axes
         #wcs_header = wcs.to_header()
@@ -300,7 +311,7 @@ favs = [
 def get_overlays(wcs_header):
     print("Generating overlays...")
     wcs_header = Header.fromstring(wcs_header)
-    wcs = WCS(wcs_header)
+    wcs = WCS(wcs_header, naxis=2)
     try:
         wcs = wcs.dropaxis(2)  # Drop any unused axes
         #wcs_header = wcs.to_header()

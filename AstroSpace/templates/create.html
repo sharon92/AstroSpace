@@ -462,6 +462,93 @@
                     }
                 }
             }
+
+            async function readXISFHeader(file) {
+                const signatureLength = 8;        // "XISF0100" etc.
+                const headerLengthField = 4;      // uint32 little-endian
+                const reservedLength = 56;        // standard XISF
+
+                // Read the initial bytes to determine header size
+                const initialSize = signatureLength + headerLengthField + reservedLength;
+                let initialChunk = await file.slice(0, initialSize).arrayBuffer();
+                let dataView = new DataView(initialChunk);
+
+                // Read header length (starts immediately after signature)
+                const headerLength = dataView.getUint32(signatureLength, true);
+
+                // Now read the header itself
+                const headerStart = initialSize;
+                const headerEnd = headerStart + headerLength;
+
+                let headerChunk = await file.slice(headerStart, headerEnd).arrayBuffer();
+                return new Uint8Array(headerChunk);
+            }
+
+            async function readFITSHeader(file) {
+                const CHUNK = 2880; // FITS headers use 2880-byte blocks
+                let offset = 0;
+
+                while (true) {
+                    const block = await file.slice(offset, offset + CHUNK).arrayBuffer();
+                    const text = new TextDecoder().decode(block);
+
+                    if (text.includes("END")) {
+                        const endPos = text.indexOf("END") + 80; // END card is 80 chars
+                        const headerEnd = offset + endPos;
+                        return new Uint8Array(await file.slice(0, headerEnd).arrayBuffer());
+                    }
+
+                    offset += CHUNK;
+                }
+            }
+
+            const form = document.querySelector("postForm"); // or give your form an id
+            const fitsInput = document.querySelector("input[name='fits_file']");
+
+            form.addEventListener("submit", async function (e) {
+                // If user didn’t pick a fits/xif file → normal submit
+                if (!fitsInput || fitsInput.files.length === 0) return;
+
+                const file = fitsInput.files[0];
+                const ext = file.name.toLowerCase();
+
+                // Only intercept for XISF/FITS
+                if (!(ext.endsWith(".xisf") || ext.endsWith(".fits") || ext.endsWith(".fit"))) return;
+
+                e.preventDefault(); // Stop default full-file upload
+
+                // --- Header extraction ---
+                let headerBytes;
+                let newName;
+                if (ext.endsWith(".xisf")) {
+                    headerBytes = await readXISFHeader(file);
+                    newName = file.name + ".header.xisf";
+                } else {
+                    // FITS: Header ends with "END" padded to 2880-byte blocks
+                    headerBytes = await readFITSHeader(file);
+                    newName = file.name + ".header.fits";
+                }
+
+                // --- Build modified FormData with header only ---
+                const formData = new FormData(form);
+
+                // Replace full file with small header blob
+                formData.set(
+                    "fits_file",
+                    new Blob([headerBytes], { type: "application/octet-stream" }),
+                    newName   // keep filename distinct
+                );
+
+                // Submit using fetch
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData
+                });
+
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+            });
         });
 
     </script>

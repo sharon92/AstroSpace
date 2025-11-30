@@ -276,6 +276,7 @@ def save_image():
     file = request.files.get("image_path")
     fits_path = request.files.get("fits_file")
     #print("Performing plate solving...")
+    svg_image = None
     if file.filename and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
@@ -284,7 +285,6 @@ def save_image():
         header_json, thumbnail_path, pixel_scale = platesolve(
             image_path, user_id, fits_path
         )
-        svg_image = json.dumps(get_overlays(header_json))
         
     elif img_id:
         img_path_upload = form.get("prev_img")
@@ -300,13 +300,14 @@ def save_image():
             header_json = tmp_img["header_json"]
             thumbnail_path = tmp_img["image_thumbnail"]
             pixel_scale = tmp_img["pixel_scale"]
-            svg_image = json.dumps(get_overlays(header_json))
         else:
             header_json = tmp_img["header_json"]
             svg_image = tmp_img["overlays_json"]
             thumbnail_path = tmp_img["image_thumbnail"]
             pixel_scale = tmp_img["pixel_scale"]
 
+    if svg_image is None:
+        svg_image = json.dumps(get_overlays(header_json))
     guide_logs = request.files.getlist("guide_logs")
     new_guide_logs = any(i.filename for i in guide_logs)
 
@@ -326,7 +327,6 @@ def save_image():
         guide_logs = ",".join(iguide_logs)
         guiding_html, calibration_html = bokeh_phd2(guide_logs)
         guide_logs = ",".join(iguide_logs_upload)
-        print("Done.")
     elif img_id:
         guide_logs = form.get("prev_guide_logs")
         if form.get("redo_graphs") == "on":
@@ -409,6 +409,7 @@ def save_image():
 
     if img_id:
         # editing updating
+        print("Updating existing image...")
         column_list = [col.strip() for col in columns.split(",") if col.strip()]
         set_clause = ", ".join([f"{col} = %s" for col in column_list])
 
@@ -436,6 +437,7 @@ def save_image():
             cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
 
     else:
+        print("Inserting new image...")
         query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
         cur.execute(
             query,
@@ -481,5 +483,6 @@ def save_image():
 
     conn.commit()
     cur.close()
+    print("Done.")
     flash("Post updated successfully!")
     return redirect(url_for("private.profile"))
