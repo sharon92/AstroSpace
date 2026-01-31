@@ -215,18 +215,18 @@ def platesolve(image_path, user_id, fits_file=None):
         if fits_name.endswith(".xisf"):
             wcs_header = xisf_header(fits_file)
         elif fits_name.endswith(".fits") or fits_name.endswith(".fit"):
-            wcs_header = fits_header_only(fits_file)
-
-    else:
-        print("Plate solving using AstrometryNet...")
-        # Initialize AstrometryNet with your API key
-        ast = AstrometryNet()
-        ast.api_key = g.user["astrometry_api_key"]
-        try:
-            wcs_header = ast.solve_from_image(image_path, solve_timeout=1800, force_image_upload=True)
-        except Exception as e:
-            print("Astrometry.net will not accept the image for plate solving... try with FITS/xisf file.")
-            raise RuntimeError(f"Plate solving failed: {str(e)}")
+            try:
+                wcs_header = fits_header_only(fits_file)
+            except:
+                print("Plate solving using AstrometryNet...")
+                # Initialize AstrometryNet with your API key
+                ast = AstrometryNet()
+                ast.api_key = g.user["astrometry_api_key"]
+                try:
+                    wcs_header = ast.solve_from_image(fits_file, solve_timeout=1800)
+                except Exception as e:
+                    print("Astrometry.net will not accept the image for plate solving... try with xisf file.")
+                    raise RuntimeError(f"Plate solving failed: {str(e)}")
 
     if "CRPIX1" not in wcs_header:
         raise ValueError("FITS file does not contain WCS information. Plate Solve the Fits file first!")

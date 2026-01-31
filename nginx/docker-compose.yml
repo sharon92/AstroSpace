@@ -1,0 +1,33 @@
+services:
+  astrospace_app:
+    image: sharonshaji92/astrospace:v1.2.1
+    container_name: astrospace_app
+    expose:
+      - "9000"
+    environment:
+      SECRET_KEY: "${SECRET_KEY}"
+      DB_NAME: "${DB_NAME}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_PORT: "${DB_PORT}"
+      DB_HOST: "${DB_HOST}"
+      TITLE: "${TITLE}"
+      MAX_USERS: "${MAX_USERS}"
+      UPLOAD_PATH: "/uploads"
+    volumes:
+      - /mnt/user/AstroSpaceUploads:/uploads
+      - /mnt/user/Astro/_web_/AstroSpace/AstroSpace/static:/static
+    restart: unless-stopped
+
+  astrospace_nginx:
+    image: nginx:stable
+    container_name: astrospace_nginx
+    ports:
+      - "8181:8181"
+    volumes:
+      - /mnt/user/Astro/_web_/AstroSpaceNginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /mnt/user/AstroSpaceUploads:/uploads
+      - /mnt/user/Astro/_web_/AstroSpace/AstroSpace/static:/static
+    depends_on:
+      - astrospace_app
+    restart: unless-stopped

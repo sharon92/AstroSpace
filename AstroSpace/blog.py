@@ -40,6 +40,7 @@ from AstroSpace.utils.utils import (
 )
 
 from werkzeug.utils import secure_filename
+from uuid import uuid4
 
 bp = Blueprint("blog", __name__)
 
@@ -250,239 +251,244 @@ def save_image():
     user_id = str(g.user["id"])
 
     os.makedirs(os.path.join(current_app.config["UPLOAD_PATH"], user_id), exist_ok=True)
-
-    #print("Processing form data...")
-    form = request.form
-    img_id = form.get("image_id")
-    if img_id:
-        tmp_img = get_image_by_id(img_id)
-
-    lat = form.get("location_latitude") or None
-    lon = form.get("location_longitude") or None
-    if not lat or not lon:
-        lat, lon = geocode(form["location"])
     
-    title = form.get("title")
-    Simbad.reset_votable_fields()
-    Simbad.add_votable_fields("otype_txt")
-        
-    print("Performing object lookup...")
-    query = Simbad.query_object(title)
-    object_type = "Unknown"
-    if query and len(query) > 0:
-        title = query[0]["main_id"].replace("NAME", "").strip()
-        object_type = query[0]["otype_txt"]
+    try:
+        #print("Processing form data...")
+        form = request.form
+        img_id = form.get("image_id")
+        if img_id:
+            tmp_img = get_image_by_id(img_id)
 
-    file = request.files.get("image_path")
-    fits_path = request.files.get("fits_file")
-    #print("Performing plate solving...")
-    svg_image = None
-    if file.filename and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
-        img_path_upload = f"{user_id}/{filename}"
-        file.save(image_path)
-        header_json, thumbnail_path, pixel_scale = platesolve(
-            image_path, user_id, fits_path
-        )
+        lat = form.get("location_latitude") or None
+        lon = form.get("location_longitude") or None
+        if not lat or not lon:
+            lat, lon = geocode(form["location"])
         
-    elif img_id:
-        img_path_upload = form.get("prev_img")
-        if form.get("redo_plate_solve") == "on":
-            full_img_path = os.path.join(
-                current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
-            )
+        title = form.get("title")
+        Simbad.reset_votable_fields()
+        Simbad.add_votable_fields("otype_txt")
+            
+        print("Performing object lookup...")
+        query = Simbad.query_object(title)
+        object_type = "Unknown"
+        if query and len(query) > 0:
+            title = query[0]["main_id"].replace("NAME", "").strip()
+            object_type = query[0]["otype_txt"]
+
+        file = request.files.get("image_path")
+        fits_path = request.files.get("fits_file")
+        #print("Performing plate solving...")
+        svg_image = None
+        if file.filename and allowed_file(file.filename):
+            filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
+            image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
+            img_path_upload = f"{user_id}/{filename}"
+            file.save(image_path)
             header_json, thumbnail_path, pixel_scale = platesolve(
-                full_img_path, user_id, fits_path
+                image_path, user_id, fits_path
             )
             
-        elif form.get("regenerate_overlays") == "on":
-            header_json = tmp_img["header_json"]
-            thumbnail_path = tmp_img["image_thumbnail"]
-            pixel_scale = tmp_img["pixel_scale"]
-        else:
-            header_json = tmp_img["header_json"]
-            svg_image = tmp_img["overlays_json"]
-            thumbnail_path = tmp_img["image_thumbnail"]
-            pixel_scale = tmp_img["pixel_scale"]
-
-    if svg_image is None:
-        svg_image = json.dumps(get_overlays(header_json))
-    guide_logs = request.files.getlist("guide_logs")
-    new_guide_logs = any(i.filename for i in guide_logs)
-
-    if new_guide_logs:
-        print("Generating guide log plot...")
-        iguide_logs = []
-        iguide_logs_upload = []
-        for file in guide_logs:
-            if file and allowed_file(file.filename, ALLOWED_TXT_EXTENSIONS):
-                filename = secure_filename(file.filename)
-                guide_log_path = os.path.join(
-                    current_app.config["UPLOAD_PATH"], user_id, filename
+        elif img_id:
+            img_path_upload = form.get("prev_img")
+            if form.get("redo_plate_solve") == "on":
+                full_img_path = os.path.join(
+                    current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
                 )
-                file.save(guide_log_path)
-                iguide_logs.append(guide_log_path)
-                iguide_logs_upload.append(f"{user_id}/{filename}")
-        guide_logs = ",".join(iguide_logs)
-        guiding_html, calibration_html = bokeh_phd2(guide_logs)
-        guide_logs = ",".join(iguide_logs_upload)
-    elif img_id:
-        guide_logs = form.get("prev_guide_logs")
-        if form.get("redo_graphs") == "on":
-            full_guide_logs = ",".join(
-                [
-                    os.path.join(
-                        current_app.config["UPLOAD_PATH"], i.replace("/", "\\")
+                header_json, thumbnail_path, pixel_scale = platesolve(
+                    full_img_path, user_id, fits_path
+                )
+                
+            elif form.get("regenerate_overlays") == "on":
+                header_json = tmp_img["header_json"]
+                thumbnail_path = tmp_img["image_thumbnail"]
+                pixel_scale = tmp_img["pixel_scale"]
+            else:
+                header_json = tmp_img["header_json"]
+                svg_image = tmp_img["overlays_json"]
+                thumbnail_path = tmp_img["image_thumbnail"]
+                pixel_scale = tmp_img["pixel_scale"]
+
+        if svg_image is None:
+            svg_image = json.dumps(get_overlays(header_json))
+        guide_logs = request.files.getlist("guide_logs")
+        new_guide_logs = any(i.filename for i in guide_logs)
+
+        if new_guide_logs:
+            print("Generating guide log plot...")
+            iguide_logs = []
+            iguide_logs_upload = []
+            for file in guide_logs:
+                if file and allowed_file(file.filename, ALLOWED_TXT_EXTENSIONS):
+                    filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
+                    guide_log_path = os.path.join(
+                        current_app.config["UPLOAD_PATH"], user_id, filename
                     )
-                    for i in guide_logs.split(",")
-                ]
+                    file.save(guide_log_path)
+                    iguide_logs.append(guide_log_path)
+                    iguide_logs_upload.append(f"{user_id}/{filename}")
+            guide_logs = ",".join(iguide_logs)
+            guiding_html, calibration_html = bokeh_phd2(guide_logs)
+            guide_logs = ",".join(iguide_logs_upload)
+        elif img_id:
+            guide_logs = form.get("prev_guide_logs")
+            if form.get("redo_graphs") == "on":
+                full_guide_logs = ",".join(
+                    [
+                        os.path.join(
+                            current_app.config["UPLOAD_PATH"], i.replace("/", "\\")
+                        )
+                        for i in guide_logs.split(",")
+                    ]
+                )
+                guiding_html, calibration_html = bokeh_phd2(full_guide_logs)
+            else:
+                guiding_html = tmp_img["guiding_html"]
+                calibration_html = tmp_img["calibration_html"]
+        else:
+            guide_logs = ""
+            guiding_html, calibration_html = "", ""
+
+        table_ids = []
+        for table in DB_TABLES:
+            if form.get(f"{table}_id") == "0":
+                table_ids.append(None)
+            else:
+                table_ids.append(form.get(f"{table}_id"))
+
+        created_at = form.get("created_at")
+        edited_at = datetime.now().strftime("%Y-%m-%d")
+
+        # Get raw description from form
+        desc = form.get("description")
+
+        # Sanitize it
+        print("Sanitizing description...")
+        clean_desc = bleach.clean(
+            desc,
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+            strip=True   # strips disallowed tags completely (instead of escaping)
+        )
+
+        conn = get_conn()
+        cur = conn.cursor()
+
+        columns = """
+            title, short_description, description, author, slug,
+            created_at, edited_at,
+            image_path, image_thumbnail, pixel_scale, object_type,
+            header_json, overlays_json, location,
+            location_latitude, location_longitude, location_elevation,
+            guide_log, guiding_html, calibration_html,
+        """.strip()
+        columns += ",".join([f"{i}_id" for i in DB_TABLES])
+
+        placeholders = ", ".join(["%s"] * len(columns.split(",")))
+
+        values = [
+            title,
+            form.get("short_description"),
+            clean_desc,
+            user,
+            slugify(title),
+            created_at,
+            edited_at,
+            img_path_upload,
+            thumbnail_path,
+            pixel_scale,
+            object_type,
+            header_json,
+            svg_image,
+            form.get("location"),
+            lat,
+            lon,
+            form.get("location_elevation"),
+            guide_logs,
+            guiding_html,
+            calibration_html,
+            *table_ids,
+        ]
+
+        if img_id:
+            # editing updating
+            print("Updating existing image...")
+            column_list = [col.strip() for col in columns.split(",") if col.strip()]
+            set_clause = ", ".join([f"{col} = %s" for col in column_list])
+
+            query = f"""
+                UPDATE images
+                SET {set_clause}
+                WHERE id = %s
+            """
+            cur.execute(
+                query,
+                (
+                    *values,
+                    img_id,
+                ),
             )
-            guiding_html, calibration_html = bokeh_phd2(full_guide_logs)
+            # Clear and reinsert related tables
+            for table in [
+                "image_views",
+                "image_likes",
+                "image_comments",
+                "capture_dates",
+                "image_lights",
+                "image_software",
+            ]:
+                cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
+
         else:
-            guiding_html = tmp_img["guiding_html"]
-            calibration_html = tmp_img["calibration_html"]
-    else:
-        guide_logs = ""
-        guiding_html, calibration_html = "", ""
+            print("Inserting new image...")
+            query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
+            cur.execute(
+                query,
+                (*values,),
+            )
 
-    table_ids = []
-    for table in DB_TABLES:
-        if form.get(f"{table}_id") == "0":
-            table_ids.append(None)
-        else:
-            table_ids.append(form.get(f"{table}_id"))
+            img_id = cur.fetchone()["id"]
 
-    created_at = form.get("created_at")
-    edited_at = datetime.now().strftime("%Y-%m-%d")
+        # Caputre dates
+        dates = json.loads(form.get("capture_dates", "[]"))
+        for d in dates:
+            # print(d)
+            d_obj = datetime.strptime(d, "%Y-%m-%d")
+            illumination, phase_name = get_moon_illumination(d_obj)
+            cur.execute(
+                "INSERT INTO capture_dates (image_id, capture_date, moon_illumination, moon_phase) VALUES (%s,%s,%s,%s)",
+                (img_id, d, illumination, phase_name),
+            )
 
-    # Get raw description from form
-    desc = form.get("description")
+        # image lights
+        idx = 0
+        while True:
+            filt = form.get(f"filter_{idx}")
+            cnt = form.get(f"count_{idx}")
+            exp = form.get(f"exposure_{idx}")
+            gain = form.get(f"gain_{idx}")
+            offset = form.get(f"offset_{idx}")
+            temp = form.get(f"temperature_{idx}")
+            if not filt:
+                break
+            cur.execute(
+                "INSERT INTO image_lights (image_id, cam_filter, light_count, exposure_time, gain, offset_cam, temperature) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (img_id, filt, cnt, exp, gain, offset, temp),
+            )
+            idx += 1
 
-    # Sanitize it
-    print("Sanitizing description...")
-    clean_desc = bleach.clean(
-        desc,
-        tags=ALLOWED_TAGS,
-        attributes=ALLOWED_ATTRIBUTES,
-        strip=True   # strips disallowed tags completely (instead of escaping)
-    )
+        # software
+        for sid in form.getlist("software_ids"):
+            cur.execute(
+                "INSERT INTO image_software (image_id, software_id) VALUES (%s,%s)",
+                (img_id, sid),
+            )
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    columns = """
-        title, short_description, description, author, slug,
-        created_at, edited_at,
-        image_path, image_thumbnail, pixel_scale, object_type,
-        header_json, overlays_json, location,
-        location_latitude, location_longitude, location_elevation,
-        guide_log, guiding_html, calibration_html,
-    """.strip()
-    columns += ",".join([f"{i}_id" for i in DB_TABLES])
-
-    placeholders = ", ".join(["%s"] * len(columns.split(",")))
-
-    values = [
-        title,
-        form.get("short_description"),
-        clean_desc,
-        user,
-        slugify(title),
-        created_at,
-        edited_at,
-        img_path_upload,
-        thumbnail_path,
-        pixel_scale,
-        object_type,
-        header_json,
-        svg_image,
-        form.get("location"),
-        lat,
-        lon,
-        form.get("location_elevation"),
-        guide_logs,
-        guiding_html,
-        calibration_html,
-        *table_ids,
-    ]
-
-    if img_id:
-        # editing updating
-        print("Updating existing image...")
-        column_list = [col.strip() for col in columns.split(",") if col.strip()]
-        set_clause = ", ".join([f"{col} = %s" for col in column_list])
-
-        query = f"""
-            UPDATE images
-            SET {set_clause}
-            WHERE id = %s
-        """
-        cur.execute(
-            query,
-            (
-                *values,
-                img_id,
-            ),
-        )
-        # Clear and reinsert related tables
-        for table in [
-            "image_views",
-            "image_likes",
-            "image_comments",
-            "capture_dates",
-            "image_lights",
-            "image_software",
-        ]:
-            cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
-
-    else:
-        print("Inserting new image...")
-        query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
-        cur.execute(
-            query,
-            (*values,),
-        )
-
-        img_id = cur.fetchone()["id"]
-
-    # Caputre dates
-    dates = json.loads(form.get("capture_dates", "[]"))
-    for d in dates:
-        # print(d)
-        d_obj = datetime.strptime(d, "%Y-%m-%d")
-        illumination, phase_name = get_moon_illumination(d_obj)
-        cur.execute(
-            "INSERT INTO capture_dates (image_id, capture_date, moon_illumination, moon_phase) VALUES (%s,%s,%s,%s)",
-            (img_id, d, illumination, phase_name),
-        )
-
-    # image lights
-    idx = 0
-    while True:
-        filt = form.get(f"filter_{idx}")
-        cnt = form.get(f"count_{idx}")
-        exp = form.get(f"exposure_{idx}")
-        gain = form.get(f"gain_{idx}")
-        offset = form.get(f"offset_{idx}")
-        temp = form.get(f"temperature_{idx}")
-        if not filt:
-            break
-        cur.execute(
-            "INSERT INTO image_lights (image_id, cam_filter, light_count, exposure_time, gain, offset_cam, temperature) VALUES (%s,%s,%s,%s,%s,%s,%s)",
-            (img_id, filt, cnt, exp, gain, offset, temp),
-        )
-        idx += 1
-
-    # software
-    for sid in form.getlist("software_ids"):
-        cur.execute(
-            "INSERT INTO image_software (image_id, software_id) VALUES (%s,%s)",
-            (img_id, sid),
-        )
-
-    conn.commit()
-    cur.close()
-    print("Done.")
-    flash("Post updated successfully!")
-    return redirect(url_for("private.profile"))
+        conn.commit()
+        cur.close()
+        print("Done.")
+        flash("Post updated successfully!")
+        return redirect(url_for("private.profile"))
+    except Exception as e:
+        print("Error:", str(e))
+        flash(f"An error occurred: {str(e)}", "error")
+        return redirect(url_for("blog.new_image"))

@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 hatch.bat
+nginx/.env
 # C extensions
 *.so
 dist/

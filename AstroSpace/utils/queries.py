@@ -30,14 +30,17 @@ def get_all_images(unique=False, limit=None):
     if limit:
         ilimit = f"LIMIT {limit}"
     if unique:
-        cur.execute(f"""
-    SELECT * FROM (
-    SELECT DISTINCT ON (title) id, title, short_description, slug, image_path, image_thumbnail, created_at
-    FROM images
-    ORDER BY title, created_at DESC
-    {ilimit}
-        ) t ORDER BY created_at DESC
-""")
+        cur.execute("""
+        SELECT id, title, short_description, slug, image_path, image_thumbnail, created_at
+        FROM (
+            SELECT DISTINCT ON (title)
+                id, title, short_description, slug, image_path, image_thumbnail, created_at
+            FROM images
+            ORDER BY title, created_at DESC
+        ) t
+        ORDER BY created_at DESC
+        LIMIT %s
+        """, (limit,))
     else:
         cur.execute(
             "SELECT id, title, slug, image_path, image_thumbnail FROM images " \

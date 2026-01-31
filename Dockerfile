@@ -14,4 +14,4 @@ RUN pip install --upgrade pip \
 # Expose app port
 EXPOSE 9000
 
-CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:9000", "--timeout", "120", "--worker-class", "gevent", "AstroSpace:create_app()"]
+CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:9000", "--timeout", "1000", "--worker-class", "gevent", "AstroSpace:create_app()"]
