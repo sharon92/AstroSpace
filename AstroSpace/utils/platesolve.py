@@ -1,16 +1,17 @@
 import os
-import re
+import re 
+import json 
+import math
+import hashlib
 from astropy.wcs import WCS
 
 import numpy as np
-import math
 # from astroquery.vizier import Vizier
 from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from astropy.io.fits import Header
 import pandas as pd
-import hashlib
 from flask import current_app, g
 from astroquery.astrometry_net import AstrometryNet
 from AstroSpace.utils.utils import resize_image
@@ -22,19 +23,25 @@ pc_to_ly = 3.26156  # 1 parsec = 3.26156 light years
 
 # Vizier.ROW_LIMIT = -1 # No limit on the number of rows returned
 
-def fits_header_only(fits_file):
+def fits_header_only(fits_file, return_dict = False):
     raw = fits_file.read()  # header-only bytes (from browser)
     text = raw.decode("ascii", errors="ignore")
-    
     cards = []
     for i in range(0, len(text), 80):
         card = text[i:i+80]
         cards.append(card)
-        #print(card)
         if card.startswith("END"):
             break
+    
+    hdr = Header.fromstring("".join(cards))
 
-    return Header.fromstring("".join(cards))
+    if return_dict:
+        j = {}
+        for k,v,c in hdr.cards:
+            j[k] = {'v':v, 'c':c}
+        return j
+    else:
+        return hdr
 
 popular_catalogs = [
     r'\bM\s*\d+\b',                       # Messier (M31, M 31)

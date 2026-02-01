@@ -76,6 +76,68 @@
                  file:text-sm file:font-semibold
                  file:bg-blue-50 file:text-blue-700
                  hover:file:bg-blue-100" {% if not is_edit %} required {% endif %}/>
+            
+            <div id="lightFramesContainer" class="my-4">
+                <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
+                    <p>Upload WBPP log file from Pixinsight [optional]</p>
+                </label>
+                <div class="flex space-x-2 items-center">
+                    <input id="wbppLogInput"name="wbpp_log_file" type="file" accept=".log" class="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"/>
+                </div>
+
+                <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
+                    <p>Extract Metadata from Light Frames [optional]</p>
+                </label>
+
+                <div class="flex space-x-2 items-center">
+                    <input
+                        type="file"
+                        id="lightFramesInput"
+                        multiple
+                        accept=".fits,.fit"
+                        class="flex-1 text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100"
+                    />
+                    <button
+                        id="analyseLightsBtn"
+                        type="button"
+                        class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                        Extract Fits Metadata + WBPP Log and add
+                    </button>
+                </div>
+            </div>
+
+            <h3 class="mt-4 font-semibold text-gray-700 dark:text-white">Constant Keywords</h3>
+            <div class="mt-2 border rounded max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
+                <table id="constantsTable" class="min-w-full text-sm border-collapse">
+                    <thead class="sticky top-0 bg-gray-100 text-black">
+                        <tr>
+                            <th class="border px-2 py-1 text-left">Keyword</th>
+                            <th class="border px-2 py-1 text-left">Value</th>
+                            <th class="border px-2 py-1 text-left">Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <h3 class="mt-4 font-semibold  text-gray-700 dark:text-gray-300">Variable Keywords</h3>
+            <div class="mt-2 border rounded max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
+                <table id="variablesTable" class="min-w-full text-sm border-collapse">
+                    <thead class="sticky top-0 bg-gray-100"></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Location Row -->
@@ -314,7 +376,11 @@
             type="submit">{{ "Edit" if is_edit else "Create" }}</button>
     </form>
 
-    <script>
+    <script type="module">
+        import { bindLocationInput, metaStore,
+         bindLightFramesAnalyse } from "{{ url_for('static', filename='js/binds.js') }}";
+        import * as fitsUtils from "{{ url_for('static', filename='js/fitsUtils.js') }}";
+
         const input_container_style = `w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
         let dates = {{ capture_dates| safe }};
@@ -405,6 +471,9 @@
             renderDateList();
             existingLights.forEach(addLight); // prefill
 
+            bindLocationInput();
+            bindLightFramesAnalyse();
+
             const redo = document.getElementById("redo_plate_solve");
             const regen = document.getElementById("regenerate_overlays");
 
@@ -429,80 +498,7 @@
                 link.className = input_container_style;
             });
 
-            const locInput = document.getElementById('locationInput');
-
-            if (!locInput) return; // Prevent error if element not found
-
-            // Run when the user changes the input
-            locInput.addEventListener('change', () => {
-                const q = locInput.value;
-                if (q.trim()) updateLocationDetails(q);
-            });
-
-            // Also run on page load if value already exists
-            const q = locInput.value;
-            if (q.trim()) updateLocationDetails(q);
-
-            async function updateLocationDetails(q) {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-                const data = await res.json();
-
-                if (data[0]) {
-                    const lat = data[0].lat;
-                    const lon = data[0].lon;
-
-                    document.getElementById('location_lat').value = lat;
-                    document.getElementById('location_lng').value = lon;
-
-                    const elevRes = await fetch(`/get_elevation?lat=${lat}&lon=${lon}`);
-                    const elevData = await elevRes.text();
-
-                    if (elevData) {
-                        document.getElementById('location_elev').value = elevData;
-                    }
-                }
-            }
-
-            async function readXISFHeader(file) {
-                const signatureLength = 8;        // "XISF0100" etc.
-                const headerLengthField = 4;      // uint32 little-endian
-                const reservedLength = 56;        // standard XISF
-
-                // Read the initial bytes to determine header size
-                const initialSize = signatureLength + headerLengthField + reservedLength;
-                let initialChunk = await file.slice(0, initialSize).arrayBuffer();
-                let dataView = new DataView(initialChunk);
-
-                // Read header length (starts immediately after signature)
-                const headerLength = dataView.getUint32(signatureLength, true);
-
-                // Now read the header itself
-                const headerStart = initialSize;
-                const headerEnd = headerStart + headerLength;
-
-                let headerChunk = await file.slice(headerStart, headerEnd).arrayBuffer();
-                return new Uint8Array(headerChunk);
-            }
-
-            async function readFITSHeader(file) {
-                const CHUNK = 2880; // FITS headers use 2880-byte blocks
-                let offset = 0;
-
-                while (true) {
-                    const block = await file.slice(offset, offset + CHUNK).arrayBuffer();
-                    const text = new TextDecoder().decode(block);
-
-                    if (text.includes("END")) {
-                        const endPos = text.indexOf("END") + 80; // END card is 80 chars
-                        const headerEnd = offset + endPos;
-                        return new Uint8Array(await file.slice(0, headerEnd).arrayBuffer());
-                    }
-
-                    offset += CHUNK;
-                }
-            }
-
-            const form = document.querySelector("postForm"); // or give your form an id
+            const form = document.querySelector("#postForm"); // or give your form an id
             const fitsInput = document.querySelector("input[name='fits_file']");
 
             form.addEventListener("submit", async function (e) {
@@ -521,11 +517,11 @@
                 let headerBytes;
                 let newName;
                 if (ext.endsWith(".xisf")) {
-                    headerBytes = await readXISFHeader(file);
+                    headerBytes = await fitsUtils.readXISFHeader(file);
                     newName = file.name + ".header.xisf";
                 } else {
                     // FITS: Header ends with "END" padded to 2880-byte blocks
-                    headerBytes = await readFITSHeader(file);
+                    headerBytes = await fitsUtils.readFITSHeader(file);
                     newName = file.name + ".header.fits";
                 }
 
@@ -538,6 +534,18 @@
                     new Blob([headerBytes], { type: "application/octet-stream" }),
                     newName   // keep filename distinct
                 );
+
+                // --- Attach metaStore if it exists ---
+                if (metaStore) {
+                    formData.set(
+                        "meta_store",
+                        new Blob(
+                            [JSON.stringify(metaStore)],
+                            { type: "application/json" }
+                        ),
+                        "meta_store.json"
+                    );
+                }
 
                 // Submit using fetch
                 const response = await fetch(form.action, {

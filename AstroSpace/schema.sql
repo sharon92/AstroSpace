@@ -163,6 +163,7 @@ CREATE TABLE images (
     object_type TEXT, -- e.g., galaxy, nebula, star cluster
     header_json TEXT, -- JSON string with FITS header information
     overlays_json TEXT, -- JSON string with overlay information (e.g., annotations, labels)
+    meta_json TEXT, -- JSON string with extracted metadata from FITS and WBPP
 
     location TEXT, -- e.g., observatory name or location
     location_latitude FLOAT, -- in degrees

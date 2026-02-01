@@ -1,4 +1,5 @@
 import os
+from numpy import log
 import requests
 import json
 from datetime import datetime
@@ -14,7 +15,9 @@ from flask import (
     current_app,
     g,
     send_from_directory,
+    jsonify
 )
+from collections import defaultdict
 
 # from werkzeug.exceptions import abort
 from astroquery.simbad import Simbad
@@ -22,7 +25,7 @@ from AstroSpace.auth import login_required
 from AstroSpace.db import get_conn
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import bokeh_phd2
-from AstroSpace.utils.platesolve import platesolve, get_overlays
+from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
 from AstroSpace.utils.queries import (
     DB_TABLES,
     get_image_tables,
@@ -80,6 +83,115 @@ def collection():
         "collection.html", images=images
         )
 
+@bp.route("/extract_stats", methods=["POST"])
+def extract_stats():
+    file = request.files.get("wbpp_log_file")
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    # with open(log) as f:
+    #     content = f.readlines()
+    content = file.read().decode("utf-8").splitlines()
+
+    stats = {}
+    wts = []
+    for n,line in enumerate(content):
+        if " FWHM              :" in line:
+            Name = os.path.basename(content[n-2].split(" ")[-1].strip()).replace("_c","").replace("_d","").replace(".xisf","")
+            FWHM = float(line.split(" ")[-2].strip())
+            stats[Name] = {"FWHM": FWHM}
+        elif " Eccentricity      :" in line:
+            stats[Name]["Eccentricity"] = float(line.split(" ")[-1].strip())
+        elif " Number of stars   :" in line:
+            stats[Name]["Number of stars"] = int(line.split(" ")[-1].strip())
+        elif " PSF Signal Weight :" in line:
+            stats[Name]["PSF Signal Weight"] = float(line.split(" ")[-1].strip())   
+        elif " PSF SNR           :" in line:
+            stats[Name]["PSF SNR"] = float(line.split(" ")[-1].strip())
+        elif " SNR               :" in line:
+            stats[Name]["SNR"] = float(line.split(" ")[-1].strip())
+        elif " Median (ADU)      :" in line:
+            stats[Name]["Median (ADU)"] = float(line.split(" ")[-1].strip())
+        elif " MAD (ADU)         : " in line:
+            stats[Name]["MAD (ADU)"] = float(line.split(" ")[-1].strip())
+        elif " Mstar (ADU)       : " in line:
+            stats[Name]["Mstar (ADU)"] = float(line.split(" ")[-1].strip())
+        elif " Normalized image weights:" in line: 
+            wts += [n]
+
+    for line in content[wts[-1]+1:]:
+        if " Integration of " in line:
+            break
+        ls = line.split(" ")
+        if '.xisf' in line:
+            Name = os.path.basename(ls[-1].strip()).replace("_c","").replace("_d","").replace("_r","").replace(".xisf","")
+        elif len(ls) > 3: 
+            weights  = list(map(float, ls[-3:]))
+            stats[Name]["WBPP weight 1"] = weights[0]
+            stats[Name]["WBPP weight 2"] = weights[1]
+            stats[Name]["WBPP weight 3"] = weights[2]
+
+    return jsonify(stats)
+
+
+@bp.route("/extract_meta", methods=["POST"])
+def extract_keywords():
+    files = request.files.getlist("header_files")
+    if not files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    try:
+        
+        if 'meta_store' in request.files:
+            meta_store = json.load(request.files['meta_store'])
+            all_meta = meta_store.get("meta", [])
+            filenames = meta_store.get("filenames", [])
+            wbpp_stats = meta_store.get("wbpp_stats", {})
+        else:
+            all_meta = []
+            filenames = []
+            wbpp_stats = {}
+
+        for f in files:
+            meta = fits_header_only(f, return_dict=True)
+            name = os.path.splitext(f.filename.replace(".header", ""))[0]
+            filenames.append(name)
+            for key in wbpp_stats.keys():
+                if key.startswith(name):
+                    for k,v in wbpp_stats[key].items():
+                        if k not in meta:
+                            meta[k] = {"v": v, "c": ""}
+            all_meta.append(meta)
+
+        if not all_meta:
+            return jsonify({"error": "No valid headers received"}), 400
+
+        constant = {}
+        variable = defaultdict(list)
+        comments = {k: v["c"] for k, v in all_meta[0].items()}
+        keys = all_meta[0].keys()
+
+        for key in keys:
+            values = [m[key]["v"] for m in all_meta if key in m]
+
+            # all values identical → constant
+            if all(v == values[0] for v in values):
+                constant[key] = values[0]
+            else:
+                variable[key] = values
+
+        variable["_files"] = filenames
+
+        return jsonify({
+            "meta": all_meta,
+            "filenames": filenames,
+            "constant": constant,
+            "variable": variable,
+            "comments": comments
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @bp.route("/get_elevation")
 def get_elevation():
@@ -253,18 +365,20 @@ def save_image():
     os.makedirs(os.path.join(current_app.config["UPLOAD_PATH"], user_id), exist_ok=True)
     
     try:
-        #print("Processing form data...")
+        print("Processing form data...")
         form = request.form
         img_id = form.get("image_id")
+        
         if img_id:
             tmp_img = get_image_by_id(img_id)
-
+        
         lat = form.get("location_latitude") or None
         lon = form.get("location_longitude") or None
         if not lat or not lon:
             lat, lon = geocode(form["location"])
         
         title = form.get("title")
+        
         Simbad.reset_votable_fields()
         Simbad.add_votable_fields("otype_txt")
             
@@ -347,6 +461,15 @@ def save_image():
         else:
             guide_logs = ""
             guiding_html, calibration_html = "", ""
+        
+        meta_json = ''
+        if "meta_store" in request.files:
+            meta_store = json.load(request.files["meta_store"])
+            meta_json = json.dumps({
+                'constant': meta_store.get("constant", {}),
+                'variable': meta_store.get("variable", {}),
+                'comments': meta_store.get("comments", {}),
+            })
 
         table_ids = []
         for table in DB_TABLES:
@@ -377,7 +500,7 @@ def save_image():
             title, short_description, description, author, slug,
             created_at, edited_at,
             image_path, image_thumbnail, pixel_scale, object_type,
-            header_json, overlays_json, location,
+            header_json, overlays_json, meta_json, location,
             location_latitude, location_longitude, location_elevation,
             guide_log, guiding_html, calibration_html,
         """.strip()
@@ -399,6 +522,7 @@ def save_image():
             object_type,
             header_json,
             svg_image,
+            meta_json,
             form.get("location"),
             lat,
             lon,
