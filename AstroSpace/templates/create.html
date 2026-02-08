@@ -115,6 +115,7 @@
                         Extract Fits Metadata + WBPP Log and add
                     </button>
                 </div>
+                <input type="hidden" name="meta_store" id="meta_store_input" value="" />
             </div>
 
             <h3 class="mt-4 font-semibold text-gray-700 dark:text-white">Constant Keywords</h3>
@@ -206,7 +207,7 @@
 
         <h5 class="label">Capture Dates</h5>
         <div class="gap-4 flex">
-            <input type="date" id="datePicker" class="input_container" {% if not is_edit %} required {% endif %}>
+            <input type="date" id="datePicker" class="input_container">
             <button type="button"
                 class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
                 id="addDateBtn">Add</button>
@@ -385,6 +386,15 @@
 
         let dates = {{ capture_dates| safe }};
 
+        // If dates is empty, initialize with today's date
+        if (!dates || dates.length === 0) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+            const dd = String(today.getDate()).padStart(2, '0');
+            dates = [`${yyyy}-${mm}-${dd}`]; // format as YYYY-MM-DD
+        }
+
         function renderDateList() {
             const list = document.getElementById('dateList');
             list.innerHTML = '';
@@ -446,11 +456,11 @@
             div.innerHTML = `
             <div class="gap-4 flex ...">
                 <div class="w32 flex-none">${select.outerHTML.replace('<select', `<select name="filter_${idx}" class="${input_container_style}"`).replace(light.cam_filter + '">', light.cam_filter + '" selected>')}</div>
-                <div class="w32 flex-1"><input name="count_${idx}" type="number" step="1" placeholder="Subs" class="${input_container_style}" value="${light.light_count || ''}" required></div>
-                <div class="w32 flex-1"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || ''}" required></div>
-                <div class="w32 flex-1"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" class="${input_container_style}" value="${light.gain || ''}"></div>
-                <div class="w32 flex-1"><input name="offset_${idx}" type="number" step="1" placeholder="Offset" class="${input_container_style}" value="${light.offset_cam || ''}"></div>
-                <div class="w32 flex-1"><input name="temperature_${idx}" type="number" step="1" placeholder="Temp (°C)" class="${input_container_style}" value="${light.temperature || ''}"></div>
+                <div class="w32 flex-1"><input name="count_${idx}" type="number" step="1" placeholder="Subs" class="${input_container_style}" value="${light.light_count || '10'}" required></div>
+                <div class="w32 flex-1"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || '300'}" required></div>
+                <div class="w32 flex-1"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" class="${input_container_style}" value="${light.gain || '101'}"></div>
+                <div class="w32 flex-1"><input name="offset_${idx}" type="number" step="1" placeholder="Offset" class="${input_container_style}" value="${light.offset_cam || '200'}"></div>
+                <div class="w32 flex-1"><input name="temperature_${idx}" type="number" step="1" placeholder="Temp (°C)" class="${input_container_style}" value="${light.temperature || '-10'}"></div>
                 <div class="w32 flex-1"><button type="button" class="remove-light ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded">Remove</button></div>
             </div>
             `;
@@ -469,7 +479,11 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             renderDateList();
+            if (existingLights.length === 0) {
+                addLight(); // start with one empty row
+            } else {
             existingLights.forEach(addLight); // prefill
+            }
 
             bindLocationInput();
             bindLightFramesAnalyse();
@@ -502,6 +516,17 @@
             const fitsInput = document.querySelector("input[name='fits_file']");
 
             form.addEventListener("submit", async function (e) {
+
+                const lightFramesInput = document.getElementById("lightFramesInput");
+                const wbppLogInput = document.getElementById("wbppLogInput");
+                // After you intercept/prepare FormData:
+                if (lightFramesInput) {
+                    lightFramesInput.value = "";  // clears all selected files
+                }
+                if (wbppLogInput) {
+                    wbppLogInput.value = "";  // clears all selected files
+                }
+                
                 // If user didn’t pick a fits/xif file → normal submit
                 if (!fitsInput || fitsInput.files.length === 0) return;
 
@@ -535,17 +560,7 @@
                     newName   // keep filename distinct
                 );
 
-                // --- Attach metaStore if it exists ---
-                if (metaStore) {
-                    formData.set(
-                        "meta_store",
-                        new Blob(
-                            [JSON.stringify(metaStore)],
-                            { type: "application/json" }
-                        ),
-                        "meta_store.json"
-                    );
-                }
+                fitsInput.value = "";
 
                 // Submit using fetch
                 const response = await fetch(form.action, {

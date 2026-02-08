@@ -246,6 +246,7 @@ def image_detail(image_id, image_name):
         "guiding_html",
         "calibration_html",
         "svg_image",
+        "meta_json",
     ]
     # image, equipment_list, dates, lights, software_list, guiding_html, calibration_html,svg_image = tables
     images = [dict(zip(table_names, tables))]
@@ -309,7 +310,7 @@ def edit_image(image_id):
     if len(tables) == 1:
         return tables
 
-    image, equipment_list, dates, lights, software_list, _, _, _ = tables
+    image, equipment_list, dates, lights, software_list, _, _, _, _ = tables
 
     capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates]
 
@@ -462,14 +463,22 @@ def save_image():
             guide_logs = ""
             guiding_html, calibration_html = "", ""
         
-        meta_json = ''
-        if "meta_store" in request.files:
-            meta_store = json.load(request.files["meta_store"])
-            meta_json = json.dumps({
-                'constant': meta_store.get("constant", {}),
-                'variable': meta_store.get("variable", {}),
-                'comments': meta_store.get("comments", {}),
-            })
+        if "meta_store" in request.form:
+            file = request.form["meta_store"]
+            try:
+                meta_store = json.loads(file)
+
+                meta_json = json.dumps({
+                    "constant": meta_store.get("constant", {}),
+                    "variable": meta_store.get("variable", {}),
+                    "comments": meta_store.get("comments", {}),
+                })
+            except json.JSONDecodeError:
+                meta_json = '{}'
+                print("Invalid meta_store JSON, saving empty meta_json.")
+        else:
+            meta_json = '{}'
+            print("No meta store provided, saving empty meta_json.")
 
         table_ids = []
         for table in DB_TABLES:
@@ -613,6 +622,8 @@ def save_image():
         flash("Post updated successfully!")
         return redirect(url_for("private.profile"))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print("Error:", str(e))
-        flash(f"An error occurred: {str(e)}", "error")
-        return redirect(url_for("blog.new_image"))
+        #flash(f"An error occurred: {str(e)}", "error")
+        return '', 204

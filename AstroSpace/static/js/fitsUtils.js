@@ -1,3 +1,4 @@
+const MAX_HEADER_SIZE = 5 * 1024 * 1024;
 
 export async function readXISFHeader(file) {
     const signatureLength = 8;        // "XISF0100" etc.
@@ -17,17 +18,21 @@ export async function readXISFHeader(file) {
     }
 
     // Now read the header itself
-    const headerStart = initialSize;
-    const headerEnd = headerStart + headerLength;
+    const headerEnd = initialSize + headerLength;
 
-    let headerChunk = await file.slice(headerStart, headerEnd).arrayBuffer();
+    let headerChunk = await file.slice(0, headerEnd).arrayBuffer();
+    const decoder = new TextDecoder("utf-8");
+
+    //console.log("initialChunk text:", decoder.decode(initialChunk));
+    //console.log(decoder.decode(headerChunk.slice(64))); // 8+4+56 = 68
+    //console.log(new Uint8Array(headerChunk));
+    //console.log("headerChunk text:", decoder.decode(headerChunk));
     return new Uint8Array(headerChunk);
 }
 
 export async function readFITSHeader(file) {
     const CHUNK = 2880;
     const CARD = 80;
-    const MAX_HEADER_SIZE = 500 * 1024;
 
     let offset = 0;
     let collected = [];

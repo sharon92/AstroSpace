@@ -63,6 +63,11 @@
   <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-1 mx-auto">
     <!-- Main Card Container -->
     <div x-data="{ mainTab: 'image', detailTab: 'lights',showObjects: false }"
+      x-init="
+        if (window.innerWidth < 768 && mainTab === 'analyse') {
+          mainTab = 'image'
+        }
+      "
       class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
       <!-- Main Tabs -->
@@ -72,12 +77,16 @@
         ('image', 'Image'),
         ('details', 'Details'),
         ('explore', 'Explore')
-      ] %}
+        ] %}
+
+        {% if il.meta_json %}
+          {% set main_tabs = main_tabs + [('analyse', 'Analyse')] %}
+        {% endif %}
 
         {% for tab_id, tab_label in main_tabs %}
         <button @click="mainTab = '{{ tab_id }}'; if('{{ tab_id }}' === 'details'){ detailTab = 'lights' }"
           :class="mainTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
-          class="px-4 py-2 text-sm font-medium">
+          class="px-4 py-2 text-sm font-medium {% if tab_id == 'analyse' %}hidden md:inline-flex{% endif %}">
           {{ tab_label }}
         </button>
         {% endfor %}
@@ -85,7 +94,7 @@
 
       <!-- Sub Tabs for Details -->
       <div x-show="mainTab === 'details'" x-cloak
-        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-start md:justify-center items-center whitespace-nowrap mt-2">
+        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-center items-center whitespace-nowrap mt-2">
 
         {% set detail_tabs = [
           ('lights', 'Lights'),
@@ -103,7 +112,7 @@
         {% for tab_id, tab_label in detail_tabs %}
         <button @click="detailTab = '{{ tab_id }}'"
           :class="detailTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
-          class="px-4 py-2 text-sm font-medium">
+          class="px-4 py-2 text-sm font-medium {% if tab_id in ['guiding', 'calibration'] %}hidden md:inline-flex{% endif %}">
           {{ tab_label }}
         </button>
         {% endfor %}
@@ -375,9 +384,9 @@
             </tbody>
           </table>
         </div>
-      </div>
+          </div>
 
-      <div x-show=" detailTab==='equipment'" class=" p-6 dark:text-white">
+          <div x-show=" detailTab==='equipment'" class=" p-6 dark:text-white">
                       <div class="flex border-b mb-4">
                         <table html-id="equipment-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
                           <tbody>
@@ -397,9 +406,9 @@
                           </tbody>
                         </table>
                       </div>
-            </div>
+          </div>
 
-            <div x-show="detailTab === 'software'" class="p-6 dark:text-white">
+          <div x-show="detailTab === 'software'" class="p-6 dark:text-white">
               <div class="flex border-b mb-4">
                 <table html-id="software-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
                   <tbody>
@@ -431,10 +440,10 @@
                   </tbody>
                 </table>
               </div>
-            </div>
+          </div>
 
             <!-- Guiding Tab -->
-            <div x-show="detailTab === 'guiding'">
+          <div x-show="detailTab === 'guiding'" class="hidden md:block">
               <div class="p-6">
                 <!-- Bokeh Graph Embed -->
                 <div class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6">
@@ -443,9 +452,9 @@
 
                 </div>
               </div>
-            </div>
+          </div>
 
-            <div x-show="detailTab === 'calibration'">
+          <div x-show="detailTab === 'calibration'" class="hidden md:block">
               <div class="p-6">
                 <!-- Bokeh Graph Embed -->
                 <div class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6">
@@ -454,25 +463,89 @@
 
                 </div>
               </div>
-            </div>
           </div>
         </div>
+      </div>
 
-        <div x-show="mainTab === 'explore'"
+      <div x-show="mainTab === 'explore'"
           class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
           <!-- Hertzsprung–Russell diagram container -->
           <div id="dist-scatter"
             class="w-full rounded-xl bg-white/70 dark:bg-white/70 mx-auto aspect-[3/4] sm:aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/3] max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px]">
           </div>
-        </div>
       </div>
+
+      <div x-show="mainTab === 'analyse'"
+        class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
+
+        <div class="flex flex-wrap gap-4 items-center mb-4 text-black dark:text-white">
+
+          <label for="xAxisSelect">X axis:</label>
+          <select id="xAxisSelect"
+                  class="input_container bg-white dark:bg-gray-700 text-black dark:text-white"></select>
+
+          <!-- Y AXIS 1 -->
+          <div class="flex flex-col gap-1">
+            <label>Y axis 1:</label>
+
+            <select id="yAxisType1"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" value="line">
+              <option value="line">Line</option>
+              <option value="scatter">Scatter</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+          <select id="yAxisSelect1" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+
+          <!-- Y AXIS 2 -->
+          <div class="flex flex-col gap-1">
+            <label>Y axis 2:</label>
+            <select id="yAxisType2"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+              <option value="scatter">Scatter</option>
+              <option value="line">Line</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+
+          <select id="yAxisSelect2"
+                  class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+
+          <!-- Y AXIS 3 -->
+          <div class="flex flex-col gap-1">
+            <label>Y axis 3:</label>
+            <select id="yAxisType3"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+              <option value="scatter">Scatter</option>
+              <option value="line">Line</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+          <select id="yAxisSelect3"
+        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+
+          <button id="updatePlotBtn"
+                  class="px-4 py-2 bg-blue-500 text-white rounded">
+            Update Plot
+          </button>
+        </div>
+
+
+        <div id="framesPlot" style="width:100%;height:500px;"></div>
+
+      </div>
+
+    </div>
 
       <div class="relative flex flex-col items-center justify-center">
         <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
         </div>
       </div>
 
-      <script>
+
+      <script type="module">
+      import { drawHRDiagram } from "{{ url_for('static', filename='js/plotHR.js') }}";
+      import { populateAxisSelects, drawVariablePlot } from "{{ url_for('static', filename='js/subFramePlot.js') }}";
         (function () {
           const img = document.getElementById('zoomable-image-{{il.image.id}}');
           const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
@@ -766,110 +839,50 @@
         };
 
         document.addEventListener("DOMContentLoaded", () => {
+            drawHRDiagram(overlayData);
 
-          db1 = overlayData.overlays;
-          db2 = overlayData.plots;
-          const db = db2["hr"];
-          //const scaledSize = db.size.map(v => v * 20);
+            {% if il.meta_json %}
+            const metaVariable = {{ il.meta_json.variable | safe }};
+            const metaComments = {{ il.meta_json.comments | tojson | safe }};
 
-          function drawPlot() {
-            // Define spectral type labels for reference ticks
+            populateAxisSelects(metaVariable);
 
-            const trace = {
-              x: db.x,
-              y: db.y,
-              text: db.name.map(
-                (n, i) =>
-                  `${n}<br>B–V: ${db.x[i]}<br>Mv: ${db.y[i]}<br>${db["Spectral Class"][i] || ""}`
-              ),
-              mode: "markers",
-              type: "scatter",
-              marker: {
-                size: 5,
-                color: db.color,
-                line: {
-                  color: 'rgba(0, 0, 0, 1)',
-                  width: 1
-                }
-              },
-              hovertemplate:
-                "%{text}<extra></extra>", // clean hover box
+            const update = () => {
+                const xKey = document.getElementById("xAxisSelect").value;
+
+                const getSelectedValues = (id) =>
+                    Array.from(document.getElementById(id).selectedOptions)
+                        .map(o => o.value);
+
+                const yKeys = [
+                    getSelectedValues("yAxisSelect1"),
+                    getSelectedValues("yAxisSelect2"),
+                    getSelectedValues("yAxisSelect3")
+                ]
+
+                const chartTypes = [
+                    document.getElementById("yAxisType1").value,
+                    document.getElementById("yAxisType2").value,
+                    document.getElementById("yAxisType3").value
+                ];
+
+                drawVariablePlot(
+                    metaVariable,
+                    metaComments,
+                    xKey,
+                    yKeys,
+                    chartTypes
+                );
             };
 
-            const layout = {
-              title: {
-                text: "Hertzsprung–Russell Diagram",
-                x: 0.5,
-                font: { size: 20 },
-              },
-              xaxis: {
-                title: { text: "Color Index (B–V)  →  Spectral Class" },
-                //tickvals: spectralLabels.map(d => d.value),
-                //ticktext: spectralLabels.map(d => d.label),
-                range: [Math.min(...db.x), Math.max(...db.x)],
-                showgrid: false,
-                zeroline: false,
-                showline: true,
-                linecolor: 'black',
-                linewidth: 3,
-                mirror: true,   // draws top and right borders too
-                // scaleanchor: "y",
-                //scaleratio: 1.25
-              },
-              yaxis: {
-                title: { text: "Absolute Magnitude (Mv)" },
-                range: [20, -15],
-                showgrid: false,
-                zeroline: false,
-                showline: true,
-                linecolor: 'black',
-                linewidth: 3,
-                mirror: true,
+            document
+                .getElementById("updatePlotBtn")
+                .addEventListener("click", update);
 
-              },
-              paper_bgcolor: "rgba(0,0,0,0)",
-              plot_bgcolor: "rgba(0,0,0,0)",
-              hovermode: "closest",
-              margin: { l: 60, r: 40, b: 60, t: 80 },
-              annotations: [
-                {
-                  x: 0.6, y: 6.5,
-                  text: 'main sequence',
-                  font: { size: 12, color: 'black' },
-                  showarrow: true,
-                  arrowcolor: 'yellow',
-                  ax: 40, ay: 60   // offset in pixels
-                },
-                {
-                  x: 1.8, y: -1,
-                  text: 'giants',
-                  font: { size: 15, color: 'black' },
-                  showarrow: true,
-                  arrowcolor: 'orange',
-                  ax: 30, ay: -50
-                },
-                {
-                  x: 0.5, y: -14,
-                  text: 'supergiants',
-                  font: { size: 20, color: 'black' },
-                  showarrow: false
-                },
-                {
-                  x: 0, y: 16,
-                  text: 'white dwarfs',
-                  font: { size: 8, color: 'black' },
-                  showarrow: false
-                }
-              ]
-            };
-
-            Plotly.newPlot("dist-scatter", [trace], layout, { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['zoom2d', 'toImage', 'pan2d', 'lasso2d', 'zoomin2d', 'zoomOut2d', 'autoscale2d', 'select2d'] });
-          }
-
-          // Init
-          drawPlot();
+            update(); // initial plot 
+            {% endif %}
         });
-      }) ();
+      })();
       </script>
 
 

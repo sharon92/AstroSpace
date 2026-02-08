@@ -200,5 +200,6 @@ export function bindLightFramesAnalyse() {
 
             tbody.appendChild(tr);
         });
+        document.getElementById("meta_store_input").value = JSON.stringify(metaStore);
     });
 }

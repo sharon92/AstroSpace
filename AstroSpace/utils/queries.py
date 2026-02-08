@@ -147,8 +147,11 @@ def get_image_tables(image_id, keep_original=False,bokeh_testing=False, testing=
     
     #print(software)
     cur.close()
-
-    guiding_html, calibration_html, svg_image = "", "",""
+    meta_json = image.get("meta_json", "{}")
+    if not meta_json:
+        meta_json = "{}"
+    meta_json = json.loads(meta_json)
+    guiding_html, calibration_html, svg_image =   "", "",""
     if not keep_original:
         # guide log plot
         if bokeh_testing:
@@ -166,5 +169,6 @@ def get_image_tables(image_id, keep_original=False,bokeh_testing=False, testing=
         else:
             svg_image = json.loads(image["overlays_json"])
 
+
     
-    return image, equipment_list, dates, lights, software_list, guiding_html, calibration_html,svg_image
+    return image, equipment_list, dates, lights, software_list, guiding_html, calibration_html,svg_image, meta_json

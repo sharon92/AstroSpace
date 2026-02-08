@@ -1,6 +1,8 @@
 from astropy.io import fits
 from xisf import XISF
 import xml.etree.ElementTree as ET
+import numpy as np
+import ast 
 
 class customXISF(XISF):
     def _read(self):
@@ -12,6 +14,7 @@ class customXISF(XISF):
         # Check XISF signature
         signature = f.read(len(self._signature))
         if signature != self._signature:
+            print(signature, self._signature)
             raise ValueError("File doesn't have XISF signature")
 
         # Get header length
@@ -23,7 +26,9 @@ class customXISF(XISF):
         _ = f.read(self._reserved_len)
 
         # Get XISF (XML) Header
+        #print('header length',self._headerlength)
         self._xisf_header = f.read(self._headerlength)
+        #print(self._xisf_header[:100])
         self._xisf_header_xml = ET.fromstring(self._xisf_header)
 
         if isinstance(self._fname, str):
@@ -31,8 +36,58 @@ class customXISF(XISF):
 
         self._analyze_header()
 
+    def _process_property(self, p_et):
+        p_dict = p_et.attrib.copy()
+
+        if p_dict["type"] == "TimePoint":
+            # Timepoint 'value' attribute already set (as str)
+            # TODO: convert to datetime?
+            pass
+        elif p_dict["type"] == "String":
+            p_dict["value"] = p_et.text
+            if "location" in p_dict:
+                # Process location and compression attributes to find data block
+                self._process_location_compression(p_dict)
+                p_dict["value"] = self._read_data_block(p_dict).decode("utf-8")
+        elif p_dict["type"] == "Boolean":
+            # Boolean valid values are "true" and "false"
+            p_dict["value"] = p_dict["value"] == "true"
+        elif "value" in p_et.attrib:
+            # Scalars (Float64, UInt32, etc.) and Complex*
+            p_dict["value"] = ast.literal_eval(p_dict["value"])
+        elif "Vector" in p_dict["type"]:
+            p_dict["value"] = p_et.text
+            p_dict["length"] = int(p_dict["length"])
+            p_dict["dtype"] = self._parse_vector_dtype(p_dict["type"])
+            self._process_location_compression(p_dict)
+            raw_data = self._read_data_block(p_dict)
+            if raw_data == b'':
+                p_dict["value"] = None
+            else: 
+                p_dict["value"] = np.frombuffer(raw_data, dtype=p_dict["dtype"], count=p_dict["length"])
+        elif "Matrix" in p_dict["type"]:
+            p_dict["value"] = p_et.text
+            p_dict["rows"] = int(p_dict["rows"])
+            p_dict["columns"] = int(p_dict["columns"])
+            length = p_dict["rows"] * p_dict["columns"]
+            p_dict["dtype"] = self._parse_vector_dtype(p_dict["type"])
+            self._process_location_compression(p_dict)
+            raw_data = self._read_data_block(p_dict)
+            if raw_data == b'':
+                p_dict["value"] = None
+            else: 
+                p_dict["value"] = np.frombuffer(raw_data, dtype=p_dict["dtype"], count=length)
+                p_dict["value"] = p_dict["value"].reshape((p_dict["rows"], p_dict["columns"]))
+
+        else:
+            print(f"Unsupported Property type {p_dict['type']}: {p_et}")
+            p_dict = False
+
+        return p_dict
+
     def _read_attached_data_block(self, elem):
         # Position and size of the Data Block containing the image data
+        
         method, pos, size = elem["location"]
 
         assert method == "attachment"
@@ -42,7 +97,16 @@ class customXISF(XISF):
         else:
             f = self._fname  # Assume it's a file-like object
 
+        print('Current Position',f.tell())
+        f.seek(0,2)
+        if pos > f.tell():
+            print('Total Bytes',f.tell())
+            print('Position asked',pos)
+            print(elem)
+            return b''
+        
         f.seek(pos)
+        print('Current Position',f.tell())
         data = f.read(size)
 
         if isinstance(self._fname, str):
