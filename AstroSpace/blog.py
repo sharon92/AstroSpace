@@ -14,7 +14,7 @@ from flask import (
     current_app,
     g,
     send_from_directory,
-    jsonify
+    jsonify,
 )
 from collections import defaultdict
 
@@ -29,19 +29,17 @@ from AstroSpace.repositories.images import (
     get_image_by_id,
     get_image_tables,
 )
+from AstroSpace.repositories.blog_posts import list_blogs
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import build_plotly_payloads
 from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
 from AstroSpace.utils.utils import geocode, slugify
-from AstroSpace.utils.blog_form import BlogForm
 from AstroSpace.utils.utils import (
     ALLOWED_IMG_EXTENSIONS,
     ALLOWED_TXT_EXTENSIONS,
 )
-
-from werkzeug.utils import secure_filename
 
 bp = Blueprint("blog", __name__)
 
@@ -62,6 +60,7 @@ def upload(filename):
 @bp.route("/home")
 def home():
     top_images = get_all_images(unique=True, limit=10)
+    latest_blogs = list_blogs(limit=3)
     for img in top_images:
         # If you want thumbnails, use `image_thumbnail` instead
         img["blog_url"] = url_for(
@@ -70,7 +69,7 @@ def home():
         img["url"] = url_for("blog.upload", filename=img["image_path"])
     # print("Top images:", top_images)
     return render_template(
-        "home.html",top_images=top_images
+        "home.html", top_images=top_images, latest_blogs=latest_blogs
     )
 
 
@@ -203,30 +202,9 @@ def get_elevation():
         return "0"
 
 
-@bp.route("/blog", methods=["GET", "POST"])
-@login_required
+@bp.route("/blog")
 def new_blog():
-    form = BlogForm()
-    if form.validate_on_submit():
-        title = form.title.data
-        content = request.form.get("content")  # This is from Quill's hidden input
-        image = form.image.data
-
-        image_path = None
-        if image:
-            filename = secure_filename(image.filename)
-            image_path = os.path.join(current_app.config["UPLOAD_PATH"], filename)
-            image.save(image_path)
-
-        # Save blog post (in database, for example)
-        # Blog(title=title, content=content, image_path=image_path).save()
-
-        flash("Blog post created successfully!")
-        return redirect(url_for("your_blog_listing_view"))
-
-    return render_template(
-        "create_blog.html", form=form, WebName=current_app.config["TITLE"]
-    )
+    return redirect(url_for("blog_posts.blog_index"))
 
 
 @bp.route("/image/<int:image_id>/<string:image_name>")

@@ -7,7 +7,7 @@
 {{ top_images | tojson }}
 </script>
 
-<div class="h-screen w-full overflow-hidden relative" x-data="{
+<div class="min-h-screen w-full overflow-hidden relative" x-data="{
          images: [],
          currentIndex: 0,
          touchStartX: 0,
@@ -90,5 +90,42 @@
         <p class="text-5xl text-gray-200 font-scribble">{{web_info.site_name}}</p>
     </div>
 </div>
+
+<section class="bg-white dark:bg-gray-900 py-16">
+    <div class="max-w-6xl mx-auto px-4 space-y-8">
+        <div class="flex items-end justify-between gap-4">
+            <div>
+                <h2 class="text-3xl font-bold dark:text-white">Latest Blogs</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-300">A quick look at the newest observing notes and writeups.</p>
+            </div>
+            <a href="{{ url_for('blog_posts.blog_index') }}" class="text-blue-600 dark:text-blue-400 hover:underline">Browse all</a>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-3">
+            {% for blog in latest_blogs %}
+            <article class="rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-md">
+                {% if blog.image_thumbnail %}
+                <img src="{{ url_for('blog.upload', filename=blog.image_thumbnail|replace('\\', '/')) }}"
+                     alt="{{ blog.title }}"
+                     class="h-48 w-full object-cover">
+                {% endif %}
+                <div class="space-y-3 p-5">
+                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        {{ blog.author }} • {{ blog.created_at.strftime("%d %B %Y") if blog.created_at else "" }}
+                    </div>
+                    <h3 class="text-xl font-semibold dark:text-white">
+                        <a href="{{ url_for('blog_posts.blog_detail', slug=blog.slug) }}" class="hover:text-blue-600 dark:hover:text-blue-400">
+                            {{ blog.title }}
+                        </a>
+                    </h3>
+                    <p class="text-gray-700 dark:text-gray-300">{{ blog.excerpt }}</p>
+                </div>
+            </article>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">No blogs published yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
 
 {% endblock %}
