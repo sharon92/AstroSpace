@@ -4,10 +4,9 @@ from psycopg2 import sql
 
 from AstroSpace.constants import DB_TABLES
 from AstroSpace.db import get_conn
-from AstroSpace.utils.phd2logparser import bokeh_phd2
+from AstroSpace.utils.phd2logparser import deserialize_plot_payload
 from AstroSpace.utils.platesolve import get_overlays
 from AstroSpace.utils.utils import print_time
-from flask import current_app
 
 
 OPTION_TABLES = {*DB_TABLES, "software", "cam_filter"}
@@ -92,7 +91,7 @@ def fetch_options(table):
     return options
 
 
-def get_image_tables(image_id, keep_original=False, bokeh_testing=False, testing=False):
+def get_image_tables(image_id, keep_original=False, testing=False):
     image = get_image_by_id(image_id)
     if not image:
         return "Image not found!, 404"
@@ -168,13 +167,8 @@ def get_image_tables(image_id, keep_original=False, bokeh_testing=False, testing
 
     guiding_html, calibration_html, svg_image = "", "", ""
     if not keep_original:
-        if bokeh_testing:
-            if image["guide_log"]:
-                root_path = current_app.config["root_path"]
-                guiding_html, calibration_html = bokeh_phd2(image["guide_log"], root_path)
-        else:
-            guiding_html = image["guiding_html"]
-            calibration_html = image["calibration_html"]
+        guiding_html = deserialize_plot_payload(image["guiding_html"], "Guiding")
+        calibration_html = deserialize_plot_payload(image["calibration_html"], "Calibration")
 
         if testing:
             if image["header_json"]:

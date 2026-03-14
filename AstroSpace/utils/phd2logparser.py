@@ -1,38 +1,22 @@
 import json
-import numpy as np
+
 import pandas as pd
-from bokeh.layouts import column, row
-from bokeh.models import (
-    ColumnDataSource,
-    Select,
-    Div,
-    CustomJS,
-    LabelSet,
-    WheelZoomTool,
-    BoxZoomTool,
-    PanTool,
-    ResetTool,
-)
-from bokeh.plotting import figure
-from bokeh.embed import file_html
-from bokeh.resources import CDN
 
 
 def parser(phd_log_file: str) -> dict:
     print(f"Parsing PHD2 log file: {phd_log_file}")
-    with open(phd_log_file, "r") as f:
-        lines = f.readlines()
+    with open(phd_log_file, "r", encoding="utf-8", errors="ignore") as handle:
+        lines = handle.readlines()
 
-    idx = []
-    for i, line in enumerate(lines):
-        if "Begins at" in line:
-            idx += [i]
-    idx += [len(lines)]
-
-    logs = [lines[s:e] for s, e in zip(idx[:-1], idx[1:])]
+    indices = [i for i, line in enumerate(lines) if "Begins at" in line]
+    indices.append(len(lines))
+    logs = [lines[start:end] for start, end in zip(indices[:-1], indices[1:])]
 
     log_dict = {}
     for log in logs:
+        if not log:
+            continue
+
         log_type, log_date_begin = log[0].strip().split(" Begins at ")
         section_heading = []
         for i in range(len(log)):
@@ -40,31 +24,36 @@ def parser(phd_log_file: str) -> dict:
                 break
             if log[i].startswith("Frame,Time,mount,dx"):
                 break
-            section_heading += [log[i]]
+            section_heading.append(log[i].strip())
+        else:
+            continue
 
         header = log[i].strip().split(",")
         block = []
         events = []
         for i in range(i + 1, len(log)):
-            if "calibration complete" in log[i]:
-                section_heading += [log[i]]
+            line = log[i].strip()
+            if not line:
+                continue
 
-            elif log_type == "Guiding" and log[i].startswith("INFO: "):
-                event = log[i].replace("INFO: ", "").strip()
-                if len(block) == 0:
-                    events += [[1, event]]
-                else:
-                    events += [[int(block[-1][0]), event]]
-
-            elif log[i][0].isdigit() or any(
-                log[i].lower().startswith(side)
+            if "calibration complete" in line.lower():
+                section_heading.append(line)
+            elif log_type == "Guiding" and line.startswith("INFO: "):
+                event = line.replace("INFO: ", "").strip()
+                frame = 1 if not block else int(block[-1][0])
+                events.append([frame, event])
+            elif line[0].isdigit() or any(
+                line.lower().startswith(side)
                 for side in ["north,", "east,", "west,", "south,", "backlash,"]
             ):
-                block += [log[i].strip().split(",")]
+                block.append(line.split(","))
+
+        if not block:
+            continue
 
         if log_type == "Guiding":
             header += ["error_msg"]
-            block = [b if len(b) == 19 else [*b, ""] for b in block]
+            block = [row if len(row) == 19 else [*row, ""] for row in block]
             df = pd.DataFrame(block, columns=header)
 
             int_cols = [0, 17]
@@ -76,349 +65,195 @@ def parser(phd_log_file: str) -> dict:
             )
 
             df.set_index("Frame", inplace=True)
+            df["event"] = 0
+            df["event_text"] = ""
 
-            start, end = [], []
+            start_frames, end_frames = [], []
             for frame, event in events:
                 if "started" in event.lower():
-                    start += [frame]
-                elif any(
-                    [finish in event.lower() for finish in ["complete", "failed"]]
-                ):
-                    end += [frame]
-            idx = [se for s, e in zip(start, end) for se in range(s, e + 1)]
-            df["event"] = 0
-            df.loc[idx, "event"] = 1
+                    start_frames.append(frame)
+                elif any(finish in event.lower() for finish in ["complete", "failed"]):
+                    end_frames.append(frame)
 
-            df["event_text"] = ""
+            for start, end in zip(start_frames, end_frames):
+                df.loc[start:end, "event"] = 1
+
             for frame, event in events:
-                df.loc[frame, "event_text"] += event + "|"
-
+                if frame in df.index:
+                    df.loc[frame, "event_text"] += event + "|"
         else:
             df = pd.DataFrame(block, columns=header)
             df["Step"] = df["Step"].astype(int)
             df[df.columns[2:]] = df[df.columns[2:]].astype(float)
-        log_dict[log_type, log_date_begin] = df, section_heading
+
+        log_dict[(log_type, log_date_begin)] = (df, section_heading)
+
     return log_dict
 
-def get_data(log_dict, p_type):
-    px_scale = 1
-    initial_stats = ""
-    stats_dict = {}
-    data_dict = {}
-    heading_dict = {}
-    cal_dict = {}
-    # --- Extract data for plotting ---
-    for (l_type, l_date), (df, heading) in log_dict.items():
-        options_key = l_type + " " + l_date
-        if l_type == p_type:
-            if p_type == "Calibration":
 
-                df["color"] = df["Direction"].map(
+def _pixel_scale_from_heading(heading_lines):
+    for line in heading_lines:
+        if line.startswith("Pixel Scale"):
+            try:
+                return float(line.split("Pixel Scale = ")[1].split(" arc-sec")[0])
+            except (IndexError, ValueError):
+                return 1.0
+    return 1.0
+
+
+def _build_guiding_payload(log_dict):
+    sessions = []
+    for (log_type, log_date), (df, heading_lines) in log_dict.items():
+        if log_type != "Guiding":
+            continue
+
+        if "Time" not in df.columns:
+            continue
+
+        px_scale = _pixel_scale_from_heading(heading_lines)
+        frame = df.copy()
+        frame["Time"] = (
+            pd.Timestamp(log_date) + pd.to_timedelta(frame["Time"].values, unit="s")
+        )
+        frame["RARawDistance"] = frame.get("RARawDistance", 0.0) * -1
+        if "DECGuideDistance" in frame.columns:
+            frame["DECGuideDistance"] = frame["DECGuideDistance"] * -1
+
+        event_rows = frame[frame["event_text"].astype(str) != ""]
+        metrics = frame[frame["event"] == 0]
+        rms_ra = float((metrics["RARawDistance"] ** 2).mean() ** 0.5) if not metrics.empty else 0.0
+        rms_dec = float((metrics["DECRawDistance"] ** 2).mean() ** 0.5) if not metrics.empty else 0.0
+        rms_total = float((rms_ra**2 + rms_dec**2) ** 0.5)
+        peak_ra = float(metrics["RARawDistance"].abs().max()) if not metrics.empty else 0.0
+        peak_dec = float(metrics["DECRawDistance"].abs().max()) if not metrics.empty else 0.0
+
+        sessions.append(
+            {
+                "key": f"{log_type} {log_date}",
+                "heading_lines": heading_lines,
+                "stats": {
+                    "pixel_scale": px_scale,
+                    "rms_ra_arcsec": round(rms_ra * px_scale, 3),
+                    "rms_dec_arcsec": round(rms_dec * px_scale, 3),
+                    "rms_total_arcsec": round(rms_total * px_scale, 3),
+                    "peak_ra_arcsec": round(peak_ra * px_scale, 3),
+                    "peak_dec_arcsec": round(peak_dec * px_scale, 3),
+                    "rms_ra_pixels": round(rms_ra, 3),
+                    "rms_dec_pixels": round(rms_dec, 3),
+                    "rms_total_pixels": round(rms_total, 3),
+                    "peak_ra_pixels": round(peak_ra, 3),
+                    "peak_dec_pixels": round(peak_dec, 3),
+                },
+                "series": {
+                    "time": [value.isoformat() for value in frame["Time"]],
+                    "ra_raw": frame["RARawDistance"].round(4).tolist(),
+                    "dec_raw": frame["DECRawDistance"].round(4).tolist(),
+                    "ra_guide": frame["RAGuideDistance"].round(4).tolist(),
+                    "dec_guide": frame["DECGuideDistance"].round(4).tolist(),
+                },
+                "events": [
                     {
-                        "West": "blue",
-                        "East": "blue",
-                        "North": "red",
-                        "South": "red",
-                        "Backlash": "red",
+                        "time": time.isoformat(),
+                        "label": "|".join(part for part in text.split("|") if part),
                     }
-                )
-                df["alpha"] = 1.0
-                df.loc[
-                    df["Direction"].isin(["East", "South", "Backlash"]), "alpha"
-                ] = 0.5
-                df["label"] = df["Direction"].str[0] + df["Step"].astype(str)
-
-                try:
-                    wdf = df.query("Direction == 'West'")
-                    wx, wy = wdf.loc[wdf.index[wdf["Step"].argmax()], ["dx", "dy"]]
-                    ndf = df.query("Direction == 'North'")
-                    nx, ny = ndf.loc[ndf.index[ndf["Step"].argmax()], ["dx", "dy"]]
-                except Exception:
-                    wx, wy, nx, ny = 0, 0, 0, 0
-
-                cal_dict[options_key] = {
-                            "west_angle_x": [0, wx],
-                            "west_angle_y": [0, wy],
-                            "north_angle_x": [0, nx],
-                            "north_angle_y": [0, ny],
-                            }
-
-            for il in heading:
-                if il.startswith("Pixel Scale"):
-                    px_scale = float(
-                        il.split("Pixel Scale = ")[1].split(" arc-sec")[0]
-                    )
-            if "Time" in df.columns:
-                df["Time"] = (
-                    pd.Timestamp(l_date)
-                    + pd.to_timedelta(df["Time"].values, unit="s")
-                ).astype(np.int64) // 10**6  # milliseconds
-                df["Twidth"] = np.diff(
-                    df["Time"].values, prepend=df["Time"].values[0]
-                )
-                idf = df.query("event == 0")
-                rms_ra = (idf["RARawDistance"] ** 2).mean() ** 0.5
-                rms_dec = (idf["DECRawDistance"] ** 2).mean() ** 0.5
-                rms = (rms_ra**2 + rms_dec**2) ** 0.5
-                peak_ra = idf["RARawDistance"].abs().max()
-                peak_dec = idf["DECRawDistance"].abs().max()
-
-                stats_dict[options_key] = f"""
-                <table>
-                    <tr><td></td><th>RMS</th><th>Peak</th></tr>                    
-
-                    <tr><th>RA</th><td>{rms_ra * px_scale:.2f}" ({rms_ra:.2f} px)</td><td>{peak_ra * px_scale:.2f}" ({peak_ra:.2f} px)</td></tr>      
-                    <tr><th>Dec</th><td>{rms_dec * px_scale:.2f}" ({rms_dec:.2f} px)</td><td>{peak_dec * px_scale:.2f}" ({peak_dec:.2f} px)</td></tr>               
-                    <tr><th>Total</th><td>{rms * px_scale:.2f}" ({rms:.2f} px)</td><td></td></tr>    
-
-                </table>
-                """
-
-            if "RARawDistance" in df.columns:
-                df["RARawDistance"] = df["RARawDistance"] * -1
-            if "DECGuideDistance" in df.columns:
-                df["DECGuideDistance"] = df["DECGuideDistance"] * -1
-            data_dict[options_key] = df.to_dict(orient="list")
-            heading_dict[options_key] = "".join(
-                ["<pre>" + ih + "</pre>" for ih in heading]
-                )
-
-        # --- Extract JS-safe JSON string for embedding in CustomJS ---
-    data_js = json.dumps(data_dict)
-    keys = [k for k in data_dict if k.startswith(p_type)]
-    source = ColumnDataSource(data_dict[keys[0]])
-    initial_heading = heading_dict[keys[0]]
-    heading_js = json.dumps(heading_dict)
-    if stats_dict != {}:
-        initial_stats = stats_dict[keys[0]]
-    stats_js = json.dumps(stats_dict)
-    return (
-        data_js,
-        keys,
-        source,
-        initial_heading,
-        heading_js,
-        px_scale,
-        initial_stats,
-        stats_js,
-        cal_dict
-    )
-    
-def bokeh_phd2(log_paths):
-    logs = log_paths.split(",")
-    log_dict = {}
-    for log in logs:
-        log_dict.update(parser(log))
-
-    #%% Guiding Plots
-    (
-    data_js,
-    keys,
-    source,
-    initial_heading,
-    heading_js,
-    px_scale,
-    initial_stats,
-    stats_js,
-    _
-    ) = get_data(log_dict, "Guiding")
-    
-    p1 = figure(title="Guiding", x_axis_type="datetime", height=400)
-    p1.yaxis.axis_label = "pixels"
-    # for y_col, color, label in zip(y_cols, ["blue", "red"], legend_labels):
-    p1.line(
-        "Time",
-        "RARawDistance",
-        source=source,
-        line_color="blue",
-        legend_label="RA",
-    )
-
-    p1.line(
-        "Time",
-        "DECRawDistance",
-        source=source,
-        line_color="red",
-        legend_label="Dec",
-    )
-
-    p1.vbar(
-        x="Time",
-        top="RAGuideDistance",
-        source=source,
-        line_color="blue",
-        line_width=0.5,
-        fill_color=None,
-        width="Twidth",
-    )
-    p1.vbar(
-        x="Time",
-        top="DECGuideDistance",
-        source=source,
-        line_color="red",
-        line_width=0.5,
-        fill_color=None,
-        width="Twidth",
-    )
-
-    # Define interaction tools
-    wheel_zoom = WheelZoomTool(dimensions="width")  # Scroll = zoom X
-    box_zoom_y = BoxZoomTool(dimensions="height")  # Drag up/down = zoom Y
-    pan_x = PanTool(dimensions="width")  # Drag left/right = pan X
-    reset = ResetTool()
-
-    # Add tools to plot
-    p1.add_tools(wheel_zoom, box_zoom_y, pan_x, reset)
-
-    # Set active tools
-    p1.toolbar.active_scroll = wheel_zoom  # Scroll = zoom X
-    p1.toolbar.active_drag = None  # Let both pan and box_zoom_y respond
-
-    dropdown = Select(value=keys[0], options=keys)
-
-    # Create a text widget
-    sec_heading = Div(
-        text=initial_heading,
-        height=200,
-    styles={
-        "overflow": "auto",  # keep this if content may be long
-        "border": "1px solid lightgray",
-        "padding": "5px",
-        "white-space": "normal",     # ✅ allow text to wrap
-        "word-wrap": "break-word",   # ✅ break long words if needed
-        "color": "grey",
-    },
-    sizing_mode="stretch_width",     # ✅ make it responsive to container
-)
-
-    # Create a text widget
-    stats_div = Div(
-        text=initial_stats,
-        styles={
-            "overflow": "auto",
-            "border": "1px solid lightgray",
-            "padding": "5px",
-            "color": "grey",
-        },
-    )
-
-    callback = CustomJS(
-        args=dict(source=source, select=dropdown, div=sec_heading, s_div=stats_div),
-        code=f"""
-            const datasets = {data_js};
-            const heads = {heading_js};
-            
-            const selected = select.value;
-        
-            source.data = datasets[selected];
-            source.change.emit();
-            div.text = heads[selected];
-
-            const stats = {stats_js};
-            s_div.text = stats[selected];
-        """,
-    )
-
-    dropdown.js_on_change("value", callback)
-    p1.sizing_mode = "stretch_width"
-    col1 = column(row(column(dropdown,stats_div), sec_heading), p1, sizing_mode="stretch_width"
-    )
-
-    ##################################################
-    #%%calibration Plots
-    (
-    c_data_js,
-    c_keys,
-    c_source,
-    c_initial_heading,
-    c_heading_js,
-    c_px_scale,
-    _,
-    _,
-    cal_dict
-) = get_data(log_dict, "Calibration")
-    
-    cal_source = ColumnDataSource(cal_dict[c_keys[0]])
-    cal_source_js = json.dumps(cal_dict)    
-    p2 = figure(
-        title="Calibration",
-        height=400,
-        width=400,
-        # x_range=(-max_radius, max_radius),
-        # y_range=(-max_radius, max_radius),
-        match_aspect=True,
-        # sizing_mode="stretch_width",
-    )
-    p2.scatter(
-        "dx", "dy", source=c_source, color="color", fill_alpha="alpha", size=10
-    )
-    labels = LabelSet(
-        x="dx",
-        y="dy",
-        text="label",
-        source=c_source,
-        x_offset=5,
-        y_offset=5,
-        text_font_size="8pt",
-    )
-    p2.add_layout(labels)
-
-    # Circular grid rings
-    for r in range(5, int(30) + 5, 5):
-        p2.circle(
-            x=0,
-            y=0,
-            radius=r,
-            fill_color=None,
-            line_color="grey",
-            line_dash="dotted",
+                    for time, text in zip(event_rows["Time"], event_rows["event_text"])
+                ],
+            }
         )
 
-    # Calibration angles (degrees to radians)
-    p2.line("west_angle_x","west_angle_y", source=cal_source, line_color="blue", line_width=2, legend_label="West")
-    p2.line("north_angle_x","north_angle_y", source=cal_source, line_color="red", line_width=2, legend_label="North")
-
-    p2.legend.location = "bottom_right"
-
-    c_dropdown = Select(value=c_keys[0], options=c_keys)
-    
-    # Create a text widget
-    c_sec_heading = Div(
-        text=c_initial_heading,
-            styles={
-        "overflow": "auto",  # keep this if content may be long
-        "border": "1px solid lightgray",
-        "padding": "5px",
-        "white-space": "normal",     # ✅ allow text to wrap
-        "word-wrap": "break-word",   # ✅ break long words if needed
-        "color": "grey",
-    },
-    css_classes=["calibration-heading"],
-    )
-
-    c_callback = CustomJS(
-        args=dict(c_source=c_source, c_select=c_dropdown, div=c_sec_heading,cal_source=cal_source),
-        code=f"""
-            const datasets = {c_data_js};
-            const heads = {c_heading_js};
-            const cal = {cal_source_js};
-            
-            const selected = c_select.value;
-        
-            c_source.data = datasets[selected];
-            c_source.change.emit();
-
-            cal_source.data = cal[selected];
-            cal_source.change.emit();
-
-            div.text = heads[selected];
-        """,
-    )
-    c_dropdown.js_on_change("value", c_callback)
-
-    col2 = column(c_dropdown, c_sec_heading, p2, sizing_mode="stretch_width")
+    return {
+        "kind": "guiding",
+        "default_session": sessions[0]["key"] if sessions else None,
+        "sessions": sessions,
+    }
 
 
-    html1 = file_html(col1, CDN, "PHD2 Guiding Graphs")
-    html2 = file_html(col2, CDN, "PHD2 Calibration Graphs")
-    return (html1, html2)
+def _build_calibration_payload(log_dict):
+    sessions = []
+    for (log_type, log_date), (df, heading_lines) in log_dict.items():
+        if log_type != "Calibration":
+            continue
+
+        frame = df.copy()
+        frame["color"] = frame["Direction"].map(
+            {
+                "West": "#2563eb",
+                "East": "#2563eb",
+                "North": "#dc2626",
+                "South": "#dc2626",
+                "Backlash": "#dc2626",
+            }
+        )
+        frame["alpha"] = 1.0
+        frame.loc[frame["Direction"].isin(["East", "South", "Backlash"]), "alpha"] = 0.5
+        frame["label"] = frame["Direction"].str[0] + frame["Step"].astype(str)
+
+        west = frame.query("Direction == 'West'")
+        north = frame.query("Direction == 'North'")
+        wx, wy = west.loc[west["Step"].idxmax(), ["dx", "dy"]] if not west.empty else (0.0, 0.0)
+        nx, ny = north.loc[north["Step"].idxmax(), ["dx", "dy"]] if not north.empty else (0.0, 0.0)
+        axis_limit = max(
+            5.0,
+            float(frame[["dx", "dy"]].abs().max().max()) + 5,
+            abs(float(wx)) + 5,
+            abs(float(wy)) + 5,
+            abs(float(nx)) + 5,
+            abs(float(ny)) + 5,
+        )
+
+        sessions.append(
+            {
+                "key": f"{log_type} {log_date}",
+                "heading_lines": heading_lines,
+                "axis_limit": round(axis_limit, 3),
+                "vectors": {
+                    "west": [0.0, float(wx), 0.0, float(wy)],
+                    "north": [0.0, float(nx), 0.0, float(ny)],
+                },
+                "points": {
+                    "dx": frame["dx"].round(4).tolist(),
+                    "dy": frame["dy"].round(4).tolist(),
+                    "direction": frame["Direction"].tolist(),
+                    "label": frame["label"].tolist(),
+                    "color": frame["color"].tolist(),
+                    "alpha": frame["alpha"].tolist(),
+                },
+            }
+        )
+
+    return {
+        "kind": "calibration",
+        "default_session": sessions[0]["key"] if sessions else None,
+        "sessions": sessions,
+    }
+
+
+def build_plotly_payloads(log_paths):
+    log_dict = {}
+    for path in filter(None, log_paths.split(",")):
+        log_dict.update(parser(path))
+
+    return _build_guiding_payload(log_dict), _build_calibration_payload(log_dict)
+
+
+def deserialize_plot_payload(raw_payload, title):
+    if not raw_payload:
+        return None
+
+    try:
+        payload = json.loads(raw_payload)
+    except (TypeError, json.JSONDecodeError):
+        return {
+            "kind": title.lower(),
+            "legacy": True,
+            "message": f"{title} plot was generated with a legacy renderer. Re-save the image to regenerate it.",
+        }
+
+    if isinstance(payload, dict):
+        return payload
+
+    return {
+        "kind": title.lower(),
+        "legacy": True,
+        "message": f"Stored {title.lower()} payload is not valid JSON.",
+    }

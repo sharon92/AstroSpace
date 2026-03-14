@@ -2,17 +2,12 @@
 {% block content %}
 
 <head>
-  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
 </head>
 <!-- Import TailwindCSS and Headless UI via CDN (or use local build pipeline in production) -->
 <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@headlessui/react@1.7.15/dist/headlessui.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
-<script src="https://cdn.bokeh.org/bokeh/release/bokeh-3.7.3.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.7.3.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.7.3.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.7.3.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-3.7.3.min.js" crossorigin="anonymous"></script>
 
 <script>
   function alignTable(rows) {
@@ -79,7 +74,7 @@
         ('explore', 'Explore')
         ] %}
 
-        {% if il.meta_json %}
+        {% if il.meta_json and 'variable' in il.meta_json %}
           {% set main_tabs = main_tabs + [('analyse', 'Analyse')] %}
         {% endif %}
 
@@ -348,19 +343,23 @@
                 'Lights': 'light_count',
                 'Single Exposure': 'exposure_time',
                 'Total Exposure': 'total_time',
+                'Weighted Total Exposure': 'effective_total',
+                'Weighted Red Channel Exposure': 'effective_red',
+                'Weighted Green Channel Exposure': 'effective_green',
+                'Weighted Blue Channel Exposure': 'effective_blue',
                 'Gain': 'gain',
                 'Offset': 'offset_cam',
                 'Temp (°C)': 'temperature'
               } %}
 
-                  {% for label, field in rows.items() %}
-                  <tr class="border-b dark:border-gray-700">
-                    <td class="p-2 font-semibold capitalize">{{ label }}</td>
-                    {% for light in il.lights %}
-                    <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
-                    {% endfor %}
-                  </tr>
+                {% for label, field in rows.items() if field in il.lights[0] %}
+                <tr class="border-b dark:border-gray-700">
+                  <td class="p-2 font-semibold capitalize">{{ label }}</td>
+                  {% for light in il.lights %}
+                      <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
                   {% endfor %}
+                </tr>
+                {% endfor %}
 
                 </tbody>
               </table>
@@ -445,22 +444,35 @@
             <!-- Guiding Tab -->
           <div x-show="detailTab === 'guiding'" class="hidden md:block">
               <div class="p-6">
-                <!-- Bokeh Graph Embed -->
-                <div class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6">
-
-                  {{il.guiding_html | safe}}
-
+                <div id="guiding-root-{{il.image.id}}" class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6 space-y-4">
+                  <div class="flex flex-col xl:flex-row gap-4">
+                    <div class="xl:w-80 space-y-3">
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Guiding Session</label>
+                        <select data-role="session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full"></select>
+                      </div>
+                      <div data-role="stats" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3"></div>
+                      <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto"></div>
+                    </div>
+                    <div data-role="plot" class="min-h-[440px] flex-1"></div>
+                  </div>
                 </div>
               </div>
           </div>
 
           <div x-show="detailTab === 'calibration'" class="hidden md:block">
               <div class="p-6">
-                <!-- Bokeh Graph Embed -->
-                <div class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6">
-
-                  {{il.calibration_html | safe}}
-
+                <div id="calibration-root-{{il.image.id}}" class="p-4 rounded-lg shadow-lg items-center dark:bg-gray-800 mb-6 space-y-4">
+                  <div class="flex flex-col xl:flex-row gap-4">
+                    <div class="xl:w-80 space-y-3">
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Calibration Session</label>
+                        <select data-role="session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full"></select>
+                      </div>
+                      <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto"></div>
+                    </div>
+                    <div data-role="plot" class="min-h-[440px] flex-1"></div>
+                  </div>
                 </div>
               </div>
           </div>
@@ -511,19 +523,6 @@
           <select id="yAxisSelect2"
                   class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
 
-          <!-- Y AXIS 3 -->
-          <div class="flex flex-col gap-1">
-            <label>Y axis 3:</label>
-            <select id="yAxisType3"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
-              <option value="scatter">Scatter</option>
-              <option value="line">Line</option>
-              <option value="bar">Bar</option>
-            </select>
-          </div>
-          <select id="yAxisSelect3"
-        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
           <button id="updatePlotBtn"
                   class="px-4 py-2 bg-blue-500 text-white rounded">
             Update Plot
@@ -545,6 +544,7 @@
 
       <script type="module">
       import { drawHRDiagram } from "{{ url_for('static', filename='js/plotHR.js') }}";
+      import { renderGuidingPlot, renderCalibrationPlot } from "{{ url_for('static', filename='js/phd2Plotly.js') }}";
       import { populateAxisSelects, drawVariablePlot } from "{{ url_for('static', filename='js/subFramePlot.js') }}";
         (function () {
           const img = document.getElementById('zoomable-image-{{il.image.id}}');
@@ -840,6 +840,8 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             drawHRDiagram(overlayData);
+            renderGuidingPlot("guiding-root-{{il.image.id}}", {{ il.guiding_html | tojson | safe }});
+            renderCalibrationPlot("calibration-root-{{il.image.id}}", {{ il.calibration_html | tojson | safe }});
 
             {% if il.meta_json %}
             const metaVariable = {{ il.meta_json.variable | safe }};
@@ -857,13 +859,11 @@
                 const yKeys = [
                     getSelectedValues("yAxisSelect1"),
                     getSelectedValues("yAxisSelect2"),
-                    getSelectedValues("yAxisSelect3")
                 ]
 
                 const chartTypes = [
                     document.getElementById("yAxisType1").value,
                     document.getElementById("yAxisType2").value,
-                    document.getElementById("yAxisType3").value
                 ];
 
                 drawVariablePlot(

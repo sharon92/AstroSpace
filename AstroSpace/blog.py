@@ -32,7 +32,7 @@ from AstroSpace.repositories.images import (
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
 from AstroSpace.utils.moon_phase import get_moon_illumination
-from AstroSpace.utils.phd2logparser import bokeh_phd2
+from AstroSpace.utils.phd2logparser import build_plotly_payloads
 from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
 from AstroSpace.utils.utils import geocode, slugify
 from AstroSpace.utils.blog_form import BlogForm
@@ -430,7 +430,9 @@ def save_image():
                     iguide_logs.append(stored_log.absolute_path)
                     iguide_logs_upload.append(stored_log.public_path)
             guide_logs = ",".join(iguide_logs)
-            guiding_html, calibration_html = bokeh_phd2(guide_logs)
+            guiding_plot, calibration_plot = build_plotly_payloads(guide_logs)
+            guiding_html = json.dumps(guiding_plot)
+            calibration_html = json.dumps(calibration_plot)
             guide_logs = ",".join(iguide_logs_upload)
         elif img_id:
             guide_logs = form.get("prev_guide_logs")
@@ -443,7 +445,9 @@ def save_image():
                         for i in guide_logs.split(",")
                     ]
                 )
-                guiding_html, calibration_html = bokeh_phd2(full_guide_logs)
+                guiding_plot, calibration_plot = build_plotly_payloads(full_guide_logs)
+                guiding_html = json.dumps(guiding_plot)
+                calibration_html = json.dumps(calibration_plot)
             else:
                 guiding_html = tmp_img["guiding_html"]
                 calibration_html = tmp_img["calibration_html"]
