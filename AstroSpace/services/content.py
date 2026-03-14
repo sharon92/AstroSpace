@@ -1,8 +1,12 @@
 import json
 
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 
-from AstroSpace.constants import ALLOWED_ATTRIBUTES, ALLOWED_TAGS
+from AstroSpace.constants import ALLOWED_ATTRIBUTES, ALLOWED_STYLES, ALLOWED_TAGS
+
+
+CSS_SANITIZER = CSSSanitizer(allowed_css_properties=ALLOWED_STYLES)
 
 
 def sanitize_rich_text(value):
@@ -13,6 +17,7 @@ def sanitize_rich_text(value):
         value,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
+        css_sanitizer=CSS_SANITIZER,
         strip=True,
     )
 

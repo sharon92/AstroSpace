@@ -1,6 +1,9 @@
 import os
 from flask import Flask, jsonify, g
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import RequestEntityTooLarge
+
+csrf = CSRFProtect()
 
 
 def create_app(test_config=None):
@@ -41,6 +44,10 @@ def create_app(test_config=None):
     for key in ['SECRET_KEY', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']:
         if key not in app.config:
             raise ValueError(f"{key} must be set in the configuration", app.config)
+    if not app.config.get("SECRET_KEY"):
+        raise ValueError("SECRET_KEY must be set in the configuration")
+
+    csrf.init_app(app)
 
     from . import db
     if not skip_db_init:

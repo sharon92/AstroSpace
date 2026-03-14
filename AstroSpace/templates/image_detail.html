@@ -844,7 +844,7 @@
             renderCalibrationPlot("calibration-root-{{il.image.id}}", {{ il.calibration_html | tojson | safe }});
 
             {% if il.meta_json %}
-            const metaVariable = {{ il.meta_json.variable | safe }};
+            const metaVariable = {{ il.meta_json.variable | tojson | safe }};
             const metaComments = {{ il.meta_json.comments | tojson | safe }};
 
             populateAxisSelects(metaVariable);

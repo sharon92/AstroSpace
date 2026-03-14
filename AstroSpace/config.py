@@ -1,12 +1,16 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev")
+    SECRET_KEY = os.environ.get("SECRET_KEY")
     
     TITLE = os.environ.get("TITLE", "AstroSpace")
     MAX_USERS = int(os.environ.get("MAX_USERS", 1))
 
     UPLOAD_PATH = os.environ.get("UPLOAD_PATH", os.path.abspath("uploads"))
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "").lower() in {"1", "true", "yes"}
+    WTF_CSRF_TIME_LIMIT = None
 
     if "DB_NAME" in os.environ:
         DB_NAME = os.environ['DB_NAME']

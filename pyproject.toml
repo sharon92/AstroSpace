@@ -25,7 +25,8 @@ dependencies = [
 "photoutils",
 "pillow",
 "xisf",
-"bleach"
+"bleach",
+"tinycss2"
 ]
 
 [project.optional-dependencies]

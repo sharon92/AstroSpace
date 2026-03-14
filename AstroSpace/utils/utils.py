@@ -57,6 +57,7 @@ def geocode(place):
         "https://nominatim.openstreetmap.org/search",
         params={"q": place, "format": "json", "limit": 1},
         headers={"User-Agent": "AstroApp"},
+        timeout=10,
     )
     if r.ok and r.json():
         loc = r.json()[0]

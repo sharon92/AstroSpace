@@ -12,3 +12,4 @@ photoutils
 pillow
 xisf
 bleach
+tinycss2

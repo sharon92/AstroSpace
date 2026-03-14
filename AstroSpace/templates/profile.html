@@ -131,7 +131,8 @@
             const response = await fetch("/private/update_inventory", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
                 },
                 body: JSON.stringify(payload)
             });
@@ -371,6 +372,9 @@
 
     const response = await fetch("/private/update_settings", {
         method: "POST",
+        headers: {
+            "X-CSRFToken": csrfToken
+        },
         body: form
     });
 

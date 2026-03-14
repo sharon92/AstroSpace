@@ -30,6 +30,7 @@ from AstroSpace.repositories.images import (
     get_image_tables,
 )
 from AstroSpace.repositories.blog_posts import list_blogs
+from AstroSpace.services.authorization import require_owner
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
 from AstroSpace.utils.moon_phase import get_moon_illumination
@@ -195,7 +196,7 @@ def get_elevation():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
     url = f"https://api.opentopodata.org/v1/test-dataset?locations={lat},{lon}"
-    r = requests.get(url)
+    r = requests.get(url, timeout=10)
     if r.status_code == 200:
         return str(round(r.json()["results"][0]["elevation"]))
     else:
@@ -287,6 +288,7 @@ def edit_image(image_id):
         return tables
 
     image, equipment_list, dates, lights, software_list, _, _, _, _ = tables
+    require_owner(image["author"])
 
     capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates]
 
@@ -308,6 +310,12 @@ def edit_image(image_id):
 @bp.route("/delete/<int:image_id>")
 @login_required
 def delete_image(image_id):
+    image = get_image_by_id(image_id)
+    if not image:
+        flash("Post not found.")
+        return redirect(url_for("blog.collection"))
+    require_owner(image["author"])
+
     conn = get_conn()
     cur = conn.cursor()
     # Clear and reinsert related tables
@@ -343,6 +351,8 @@ def save_image():
         
         if img_id:
             tmp_img = get_image_by_id(img_id)
+            if tmp_img:
+                require_owner(tmp_img["author"])
         
         lat = form.get("location_latitude") or None
         lon = form.get("location_longitude") or None

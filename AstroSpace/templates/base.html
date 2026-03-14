@@ -4,6 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{web_info.site_name}}</title>
 
         <link rel="preload" href="{{ url_for('static', filename='fonts/Lato-Medium.woff2') }}" as="font"
@@ -123,9 +124,11 @@
                             <li><a href="{{ url_for('private.profile') }}" class="nav-link">My
                                     Profile</a>
                             </li>
-                            <li><a href="{{ url_for('auth.logout') }}"
-                                    class="text-red-600 dark:text-red-400 nav-link">Log
-                                    Out</a>
+                            <li>
+                                <form method="post" action="{{ url_for('auth.logout') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="text-red-600 dark:text-red-400 nav-link">Log Out</button>
+                                </form>
                             </li>
                         </ul>
                     </div>
@@ -155,6 +158,7 @@
 
     </body>
     <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const themeToggle = document.getElementById('darkSwitch');
 
         themeToggle.addEventListener('click', () => {

@@ -86,7 +86,7 @@ def load_logged_in_user():
         )
         g.user = cur.fetchone()
 
-@bp.route('/logout')
+@bp.route('/logout', methods=('POST',))
 def logout():
     session.clear()
     return redirect(url_for('index'))

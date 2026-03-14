@@ -6,6 +6,7 @@
 <div class="max-w-5xl mx-auto px-4">
     <form method="post" action="{{ url_for('blog.save_image') }}" id="postForm" class="space-y-6"
         enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <h1 class="text-2xl font-bold mb-6 dark:text-white">{{ 'Edit' if is_edit else 'New' }} Post</h1>
         <!-- Title -->

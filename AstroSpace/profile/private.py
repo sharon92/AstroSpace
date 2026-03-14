@@ -1,9 +1,11 @@
 # private profile - what the user can see and edit
 import os
 from flask import Blueprint, render_template, current_app, g, request, jsonify
+from psycopg2 import sql
 from AstroSpace.constants import INVENTORY_TABLES
 from AstroSpace.db import get_conn
 from AstroSpace.auth import login_required
+from AstroSpace.services.authorization import current_user_is_admin, require_admin
 from AstroSpace.services.content import sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file
 from AstroSpace.utils.utils import (
@@ -85,9 +87,7 @@ def profile():
             # Add to inventory_dict
             inventory_dict[item]["➕ Add New"] = default_obj
 
-            cur.execute(
-                f"SELECT * FROM {item}",
-            )
+            cur.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(item)))
             values = cur.fetchall()
 
             for obj in values:
@@ -101,24 +101,34 @@ def profile():
         tabs=tabs,
         data_type=data_type,
         WebName=current_app.config["TITLE"],
-        web_info = web_info
+        web_info = web_info,
+        can_manage_site=current_user_is_admin(),
     )
 
 @bp.route("/update_inventory", methods=["POST"])
+@login_required
 def update_inventory():
+    require_admin()
     data = request.get_json()
     table = data.get("type")
     values = data.get("values")
+    if table not in INVENTORY_TABLES:
+        return jsonify({"message": "Unsupported inventory type"}), 400
     tid = values.pop("id")
     name = values["name"]
-    columns = ", ".join(values.keys())             
-    placeholders = ", ".join(["%s"] * len(values)) 
+    columns = list(values.keys())
+    column_identifiers = sql.SQL(", ").join(sql.Identifier(column) for column in columns)
+    placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in columns)
     
     db = get_conn()
     
     if tid == -1:
         print(f"Inserting {table} -> {name} with {values}")
-        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING id"
+        query = sql.SQL("INSERT INTO {} ({}) VALUES ({}) RETURNING id").format(
+            sql.Identifier(table),
+            column_identifiers,
+            placeholders,
+        )
        
         with db.cursor() as cur:
             cur.execute(
@@ -130,14 +140,16 @@ def update_inventory():
 
     else:
         print(f"Updating {table} -> {name} with {values}")
-        column_list = [col.strip() for col in columns.split(",") if col.strip()]
-        set_clause = ", ".join([f"{col} = %s" for col in column_list])
-
-        query = f"""
-            UPDATE {table}
-            SET {set_clause}
+        set_clause = sql.SQL(", ").join(
+            sql.SQL("{} = %s").format(sql.Identifier(column)) for column in columns
+        )
+        query = sql.SQL(
+            """
+            UPDATE {}
+            SET {}
             WHERE id = %s
-        """
+            """
+        ).format(sql.Identifier(table), set_clause)
 
         with db.cursor() as cur:
             cur.execute(
@@ -149,11 +161,11 @@ def update_inventory():
             )
     
     db.commit()
-    cur.close()
 
     return jsonify({"message": "Inventory updated successfully"}), 200
 
 @bp.route("/update_settings", methods=["POST"])
+@login_required
 def update_settings():
     db = get_conn()
 
@@ -268,7 +280,7 @@ def update_settings():
             exists = cur.fetchone()["exists"]
             print("web_info exists:", exists)
 
-            if not exists:
+            if not exists and current_user_is_admin():
                 print("Creating web_info table...")
                 cur.execute("""
                     CREATE TABLE web_info (
@@ -282,7 +294,7 @@ def update_settings():
                 """)
                 db.commit()
 
-            else:
+            elif current_user_is_admin():
                 print("Checking web_info columns...")
                 cur.execute("""
                     SELECT column_name
@@ -301,31 +313,32 @@ def update_settings():
 
     db.commit()
 
-    print("Updating web_info content...")
+    if current_user_is_admin():
+        print("Updating web_info content...")
 
-    try:
-        with db.cursor() as cur:
-            cur.execute("SELECT id FROM web_info LIMIT 1")
-            row = cur.fetchone()
+        try:
+            with db.cursor() as cur:
+                cur.execute("SELECT id FROM web_info LIMIT 1")
+                row = cur.fetchone()
 
-            if row:
-                cur.execute("""
-                    UPDATE web_info
-                    SET welcome_message = %s,
-                            site_name = %s
-                    WHERE id = %s
-                """, (welcome_note, site_name, row["id"]))
-            else:
-                cur.execute("""
-                    INSERT INTO web_info (welcome_message, site_name)
-                    VALUES (%s, %s)
-                """, (welcome_note, site_name))
+                if row:
+                    cur.execute("""
+                        UPDATE web_info
+                        SET welcome_message = %s,
+                                site_name = %s
+                        WHERE id = %s
+                    """, (welcome_note, site_name, row["id"]))
+                else:
+                    cur.execute("""
+                        INSERT INTO web_info (welcome_message, site_name)
+                        VALUES (%s, %s)
+                    """, (welcome_note, site_name))
 
-        db.commit()
-        print("web_info updated.")
+            db.commit()
+            print("web_info updated.")
 
-    except Exception as e:
-        print("ERROR updating web_info:", e)
+        except Exception as e:
+            print("ERROR updating web_info:", e)
 
     print("=== DONE ===")
     return jsonify({"status": "ok"})

@@ -10,6 +10,7 @@ from AstroSpace.repositories.blog_posts import (
     list_blogs,
     save_blog,
 )
+from AstroSpace.services.authorization import require_owner
 from AstroSpace.services.content import sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file, save_user_upload
 from AstroSpace.utils.blog_form import BlogForm
@@ -76,6 +77,7 @@ def edit_blog(blog_id):
     blog = get_blog_by_id(blog_id)
     if not blog:
         abort(404)
+    require_owner(blog["author"])
 
     form = BlogForm(data={"title": blog["title"], "excerpt": blog.get("excerpt", "")})
     if form.validate_on_submit():
@@ -105,6 +107,7 @@ def remove_blog(blog_id):
     blog = get_blog_by_id(blog_id)
     if not blog:
         abort(404)
+    require_owner(blog["author"])
 
     delete_blog(blog_id)
     flash("Blog post deleted.")
