@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from AstroSpace.utils.queries import get_conn
+from AstroSpace.db import get_conn
 
 bp = Blueprint("profile", __name__, url_prefix="/profile")
 

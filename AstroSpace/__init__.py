@@ -30,6 +30,7 @@ def create_app(test_config=None):
 
     #app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_PATH'],exist_ok=True)
+    skip_db_init = app.config.get("SKIP_DB_INIT", False)
 
     # ensure the instance folder exists
     try:
@@ -42,16 +43,21 @@ def create_app(test_config=None):
             raise ValueError(f"{key} must be set in the configuration", app.config)
 
     from . import db
-    db.init_app(app)
+    if not skip_db_init:
+        db.init_app(app)
 
-    with app.app_context():
-        exists = db.check_images_table_exists()
-        if not exists:
-            print("Table does not exist. Initializing database...")
-            db.init_db()
+        with app.app_context():
+            exists = db.check_images_table_exists()
+            if not exists:
+                print("Table does not exist. Initializing database...")
+                db.init_db()
     
     @app.before_request
     def load_web_info():
+        if skip_db_init:
+            g.web_info = {}
+            return
+
         conn = db.get_conn()
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM web_info LIMIT 1")
