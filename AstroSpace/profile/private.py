@@ -1,21 +1,18 @@
 # private profile - what the user can see and edit
 import os
-import bleach
 from flask import Blueprint, render_template, current_app, g, request, jsonify
+from AstroSpace.constants import INVENTORY_TABLES
 from AstroSpace.db import get_conn
 from AstroSpace.auth import login_required
+from AstroSpace.services.content import sanitize_rich_text
+from AstroSpace.services.uploads import allowed_file
 from AstroSpace.utils.utils import (
     ALLOWED_IMG_EXTENSIONS,
     resize_image,
-    ALLOWED_TAGS,
-    ALLOWED_ATTRIBUTES,
 )
 from werkzeug.utils import secure_filename
 
 bp = Blueprint("private", __name__, url_prefix="/private")
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMG_EXTENSIONS
 
 @bp.route("/profile")
 @login_required
@@ -52,25 +49,9 @@ def profile():
     except Exception:
         web_info = {}
 
-    inventory = [   
-        "telescope",
-        "reducer",
-        "camera",
-        "mount",
-        "tripod",
-        "guider",
-        "cam_filter",
-        "filter_wheel",
-        "rotator",
-        "dew_heater",
-        "flat_panel",
-        "eaf",
-        "software"
-    ]
-
     inventory_dict = {}
     with db.cursor() as cur:
-        for item in inventory:
+        for item in INVENTORY_TABLES:
             inventory_dict[item] = {}
             
             # Pull schema info for defaults
@@ -208,18 +189,13 @@ def update_settings():
     open_weather_api_key = request.form.get("owm_api")
     telescopius_api_key = request.form.get("telescopius_api")
 
-    bio = bleach.clean(
-        bio,
-        tags=ALLOWED_TAGS,
-        attributes=ALLOWED_ATTRIBUTES,
-        strip=True   # strips disallowed tags completely (instead of escaping)
-    )
+    bio = sanitize_rich_text(bio)
 
     display_image = request.files.get("display_image")
     filename_to_store = ""
 
     # ---- Image Upload ----
-    if display_image and display_image.filename and allowed_file(display_image.filename):
+    if display_image and display_image.filename and allowed_file(display_image.filename, ALLOWED_IMG_EXTENSIONS):
 
         user_dir = os.path.join(current_app.config["UPLOAD_PATH"], user_id)
         os.makedirs(user_dir, exist_ok=True)
@@ -273,12 +249,7 @@ def update_settings():
 
     # ---- WEB INFO ----
     welcome_note = request.form.get("welcome_note")
-    welcome_note = bleach.clean(
-        welcome_note,
-        tags=ALLOWED_TAGS,
-        attributes=ALLOWED_ATTRIBUTES,
-        strip=True   # strips disallowed tags completely (instead of escaping)
-    )
+    welcome_note = sanitize_rich_text(welcome_note)
 
 
     site_name = request.form.get("site_name")

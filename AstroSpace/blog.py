@@ -4,7 +4,6 @@ import requests
 import json
 from datetime import datetime
 import time
-import bleach
 from flask import (
     Blueprint,
     flash,
@@ -22,28 +21,27 @@ from collections import defaultdict
 # from werkzeug.exceptions import abort
 from astroquery.simbad import Simbad
 from AstroSpace.auth import login_required
+from AstroSpace.constants import DB_TABLES
 from AstroSpace.db import get_conn
+from AstroSpace.repositories.images import (
+    fetch_options,
+    get_all_images,
+    get_image_by_id,
+    get_image_tables,
+)
+from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
+from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import bokeh_phd2
 from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
-from AstroSpace.utils.queries import (
-    DB_TABLES,
-    get_image_tables,
-    get_all_images,
-    get_image_by_id,
-    fetch_options,
-)
 from AstroSpace.utils.utils import geocode, slugify
 from AstroSpace.utils.blog_form import BlogForm
 from AstroSpace.utils.utils import (
     ALLOWED_IMG_EXTENSIONS,
     ALLOWED_TXT_EXTENSIONS,
-    ALLOWED_TAGS,
-    ALLOWED_ATTRIBUTES,
 )
 
 from werkzeug.utils import secure_filename
-from uuid import uuid4
 
 bp = Blueprint("blog", __name__)
 
@@ -262,7 +260,7 @@ def image_detail(image_id, image_name):
     for i in prev_images:
         if i["id"] != image_id:
             images += [dict(zip(table_names, get_image_tables(i["id"])))]
-
+    
     return render_template(
         "image_detail.html",
         background_image=background_image,
@@ -351,11 +349,6 @@ def delete_image(image_id):
     flash("Post deleted successfully!")
     return redirect(url_for("blog.collection"))
 
-
-def allowed_file(filename, allowed_extensions=ALLOWED_IMG_EXTENSIONS):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
-
-
 @bp.route("/create", methods=["POST"])
 @login_required
 def save_image():
@@ -363,7 +356,7 @@ def save_image():
     user = g.user["username"]
     user_id = str(g.user["id"])
 
-    os.makedirs(os.path.join(current_app.config["UPLOAD_PATH"], user_id), exist_ok=True)
+    ensure_directory(os.path.join(current_app.config["UPLOAD_PATH"], user_id))
     
     try:
         print("Processing form data...")
@@ -394,11 +387,10 @@ def save_image():
         fits_path = request.files.get("fits_file")
         #print("Performing plate solving...")
         svg_image = None
-        if file.filename and allowed_file(file.filename):
-            filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
-            image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
-            img_path_upload = f"{user_id}/{filename}"
-            file.save(image_path)
+        if file.filename and allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
+            stored_image = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
+            image_path = stored_image.absolute_path
+            img_path_upload = stored_image.public_path
             header_json, thumbnail_path, pixel_scale = platesolve(
                 image_path, user_id, fits_path
             )
@@ -434,13 +426,9 @@ def save_image():
             iguide_logs_upload = []
             for file in guide_logs:
                 if file and allowed_file(file.filename, ALLOWED_TXT_EXTENSIONS):
-                    filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
-                    guide_log_path = os.path.join(
-                        current_app.config["UPLOAD_PATH"], user_id, filename
-                    )
-                    file.save(guide_log_path)
-                    iguide_logs.append(guide_log_path)
-                    iguide_logs_upload.append(f"{user_id}/{filename}")
+                    stored_log = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
+                    iguide_logs.append(stored_log.absolute_path)
+                    iguide_logs_upload.append(stored_log.public_path)
             guide_logs = ",".join(iguide_logs)
             guiding_html, calibration_html = bokeh_phd2(guide_logs)
             guide_logs = ",".join(iguide_logs_upload)
@@ -463,22 +451,9 @@ def save_image():
             guide_logs = ""
             guiding_html, calibration_html = "", ""
         
-        if "meta_store" in request.form:
-            file = request.form["meta_store"]
-            try:
-                meta_store = json.loads(file)
-
-                meta_json = json.dumps({
-                    "constant": meta_store.get("constant", {}),
-                    "variable": meta_store.get("variable", {}),
-                    "comments": meta_store.get("comments", {}),
-                })
-            except json.JSONDecodeError:
-                meta_json = '{}'
-                print("Invalid meta_store JSON, saving empty meta_json.")
-        else:
-            meta_json = '{}'
-            print("No meta store provided, saving empty meta_json.")
+        meta_json = parse_meta_store(request.form.get("meta_store"))
+        if meta_json == "{}" and img_id:
+            meta_json = tmp_img["meta_json"]
 
         table_ids = []
         for table in DB_TABLES:
@@ -495,12 +470,7 @@ def save_image():
 
         # Sanitize it
         print("Sanitizing description...")
-        clean_desc = bleach.clean(
-            desc,
-            tags=ALLOWED_TAGS,
-            attributes=ALLOWED_ATTRIBUTES,
-            strip=True   # strips disallowed tags completely (instead of escaping)
-        )
+        clean_desc = sanitize_rich_text(desc)
 
         conn = get_conn()
         cur = conn.cursor()
