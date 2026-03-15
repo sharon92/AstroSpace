@@ -1,4 +1,5 @@
 import json
+import re
 
 import pandas as pd
 
@@ -119,10 +120,11 @@ def parser(phd_log_file: str) -> dict:
 
 def _pixel_scale_from_heading(heading_lines):
     for line in heading_lines:
-        if line.startswith("Pixel Scale"):
+        match = re.search(r"pixel\s+scale\s*=\s*([0-9]+(?:\.[0-9]+)?)", line, re.IGNORECASE)
+        if match:
             try:
-                return float(line.split("Pixel Scale = ")[1].split(" arc-sec")[0])
-            except (IndexError, ValueError):
+                return float(match.group(1))
+            except ValueError:
                 return 1.0
     return 1.0
 

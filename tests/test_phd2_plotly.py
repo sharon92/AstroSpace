@@ -1,6 +1,9 @@
 from pathlib import Path
 
-from AstroSpace.utils.phd2logparser import build_plotly_payloads, deserialize_plot_payload
+from AstroSpace.utils.phd2logparser import (
+    build_plotly_payloads,
+    deserialize_plot_payload,
+)
 
 
 def test_build_plotly_payloads_parses_guiding_and_calibration():
@@ -47,3 +50,22 @@ def test_build_plotly_payloads_tolerates_incomplete_guiding_rows(tmp_path):
     assert guiding["sessions"]
     assert calibration["sessions"] == []
     assert guiding["sessions"][0]["series"]["ra_raw"] == [-0.1, -0.0]
+
+
+def test_build_plotly_payloads_reads_case_insensitive_pixel_scale(tmp_path):
+    log_path = tmp_path / "pixel_scale_case.log"
+    log_path.write_text(
+        "\n".join(
+            [
+                "Guiding Begins at 2025-01-01 22:00:00",
+                "Pixel scale = 1.61 arc-sec/px",
+                "Frame,Time,mount,dx,dy,RARawDistance,DECRawDistance,RAGuideDistance,DECGuideDistance,RADuration,RADirection,DECDuration,DECDirection,XStep,YStep,StarMass,SNR,ErrorCode",
+                "1,0.0,mount,0.0,0.0,0.10,-0.20,0.05,-0.02,50,West,0,North,1.0,1.0,100,10,0",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    guiding, _ = build_plotly_payloads(str(log_path))
+
+    assert guiding["sessions"][0]["stats"]["pixel_scale"] == 1.61
