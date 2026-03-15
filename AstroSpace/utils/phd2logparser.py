@@ -3,6 +3,15 @@ import json
 import pandas as pd
 
 
+def legacy_plot_payload(title, message=None):
+    return {
+        "kind": title.lower(),
+        "legacy": True,
+        "message": message
+        or f"{title} plot was generated with a legacy renderer. Re-save the image to regenerate it.",
+    }
+
+
 def parser(phd_log_file: str) -> dict:
     print(f"Parsing PHD2 log file: {phd_log_file}")
     with open(phd_log_file, "r", encoding="utf-8", errors="ignore") as handle:
@@ -240,20 +249,15 @@ def deserialize_plot_payload(raw_payload, title):
     if not raw_payload:
         return None
 
+    if isinstance(raw_payload, dict):
+        return raw_payload
+
     try:
         payload = json.loads(raw_payload)
     except (TypeError, json.JSONDecodeError):
-        return {
-            "kind": title.lower(),
-            "legacy": True,
-            "message": f"{title} plot was generated with a legacy renderer. Re-save the image to regenerate it.",
-        }
+        return legacy_plot_payload(title)
 
     if isinstance(payload, dict):
         return payload
 
-    return {
-        "kind": title.lower(),
-        "legacy": True,
-        "message": f"Stored {title.lower()} payload is not valid JSON.",
-    }
+    return legacy_plot_payload(title, f"Stored {title.lower()} payload is not valid JSON.")

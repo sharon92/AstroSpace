@@ -97,10 +97,10 @@
           ('equipment', 'Equipment'),
           ('software', 'Software')
         ] %}
-        {% if il.guiding_html %}
+        {% if il.guiding_plot %}
         {% set detail_tabs = detail_tabs + [('guiding', 'Guiding')] %}
         {% endif %}
-        {% if il.calibration_html %}
+        {% if il.calibration_plot %}
         {% set detail_tabs = detail_tabs + [('calibration', 'Calibration')] %}
         {% endif %}
 
@@ -840,8 +840,8 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             drawHRDiagram(overlayData);
-            renderGuidingPlot("guiding-root-{{il.image.id}}", {{ il.guiding_html | tojson | safe }});
-            renderCalibrationPlot("calibration-root-{{il.image.id}}", {{ il.calibration_html | tojson | safe }});
+            renderGuidingPlot("guiding-root-{{il.image.id}}", {{ il.guiding_plot | tojson | safe }});
+            renderCalibrationPlot("calibration-root-{{il.image.id}}", {{ il.calibration_plot | tojson | safe }});
 
             {% if il.meta_json %}
             const metaVariable = {{ il.meta_json.variable | tojson | safe }};

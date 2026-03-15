@@ -58,6 +58,7 @@ def create_app(test_config=None):
             if not exists:
                 print("Table does not exist. Initializing database...")
                 db.init_db()
+            db.ensure_runtime_schema()
     
     @app.before_request
     def load_web_info():

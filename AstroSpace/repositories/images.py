@@ -165,10 +165,10 @@ def get_image_tables(image_id, keep_original=False, testing=False):
 
     cur.close()
 
-    guiding_html, calibration_html, svg_image = "", "", ""
+    guiding_plot, calibration_plot, svg_image = "", "", ""
     if not keep_original:
-        guiding_html = deserialize_plot_payload(image["guiding_html"], "Guiding")
-        calibration_html = deserialize_plot_payload(image["calibration_html"], "Calibration")
+        guiding_plot = deserialize_plot_payload(image.get("guiding_plot_json"), "Guiding")
+        calibration_plot = deserialize_plot_payload(image.get("calibration_plot_json"), "Calibration")
 
         if testing:
             if image["header_json"]:
@@ -182,8 +182,8 @@ def get_image_tables(image_id, keep_original=False, testing=False):
         dates,
         lights,
         software_list,
-        guiding_html,
-        calibration_html,
+        guiding_plot,
+        calibration_plot,
         svg_image,
         meta_json,
     )

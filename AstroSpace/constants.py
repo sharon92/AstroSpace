@@ -72,8 +72,8 @@ IMAGE_DETAIL_TABLE_NAMES = [
     "dates",
     "lights",
     "software_list",
-    "guiding_html",
-    "calibration_html",
+    "guiding_plot",
+    "calibration_plot",
     "svg_image",
     "meta_json",
 ]

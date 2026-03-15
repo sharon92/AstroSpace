@@ -18,3 +18,8 @@ def test_build_plotly_payloads_parses_guiding_and_calibration():
 def test_deserialize_plot_payload_marks_legacy_html():
     payload = deserialize_plot_payload("<div>legacy</div>", "Guiding")
     assert payload["legacy"] is True
+
+
+def test_deserialize_plot_payload_accepts_dict_payloads():
+    payload = {"kind": "guiding", "sessions": []}
+    assert deserialize_plot_payload(payload, "Guiding") == payload

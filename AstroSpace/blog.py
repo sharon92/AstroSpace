@@ -4,6 +4,7 @@ import requests
 import json
 from datetime import datetime
 import time
+from psycopg2.extras import Json
 from flask import (
     Blueprint,
     flash,
@@ -21,7 +22,7 @@ from collections import defaultdict
 # from werkzeug.exceptions import abort
 from astroquery.simbad import Simbad
 from AstroSpace.auth import login_required
-from AstroSpace.constants import DB_TABLES
+from AstroSpace.constants import DB_TABLES, IMAGE_DETAIL_TABLE_NAMES
 from AstroSpace.db import get_conn
 from AstroSpace.repositories.images import (
     fetch_options,
@@ -205,19 +206,7 @@ def image_detail(image_id, image_name):
     if len(tables) == 1:
         return tables
     background_image = tables[0]["image_path"]
-    table_names = [
-        "image",
-        "equipment_list",
-        "dates",
-        "lights",
-        "software_list",
-        "guiding_html",
-        "calibration_html",
-        "svg_image",
-        "meta_json",
-    ]
-    # image, equipment_list, dates, lights, software_list, guiding_html, calibration_html,svg_image = tables
-    images = [dict(zip(table_names, tables))]
+    images = [dict(zip(IMAGE_DETAIL_TABLE_NAMES, tables))]
 
     db = get_conn()
     with db.cursor() as cur:
@@ -229,7 +218,7 @@ def image_detail(image_id, image_name):
 
     for i in prev_images:
         if i["id"] != image_id:
-            images += [dict(zip(table_names, get_image_tables(i["id"])))]
+            images += [dict(zip(IMAGE_DETAIL_TABLE_NAMES, get_image_tables(i["id"])))]
     
     return render_template(
         "image_detail.html",
@@ -366,7 +355,7 @@ def save_image():
         fits_path = request.files.get("fits_file")
         #print("Performing plate solving...")
         svg_image = None
-        if file.filename and allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
+        if file and file.filename and allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
             stored_image = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
             image_path = stored_image.absolute_path
             img_path_upload = stored_image.public_path
@@ -403,18 +392,18 @@ def save_image():
             print("Generating guide log plot...")
             iguide_logs = []
             iguide_logs_upload = []
-            for file in guide_logs:
-                if file and allowed_file(file.filename, ALLOWED_TXT_EXTENSIONS):
-                    stored_log = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
+            for guide_log in guide_logs:
+                if guide_log and allowed_file(guide_log.filename, ALLOWED_TXT_EXTENSIONS):
+                    stored_log = save_user_upload(guide_log, current_app.config["UPLOAD_PATH"], user_id)
                     iguide_logs.append(stored_log.absolute_path)
                     iguide_logs_upload.append(stored_log.public_path)
             guide_logs = ",".join(iguide_logs)
             guiding_plot, calibration_plot = build_plotly_payloads(guide_logs)
-            guiding_html = json.dumps(guiding_plot)
-            calibration_html = json.dumps(calibration_plot)
+            guiding_plot_json = Json(guiding_plot)
+            calibration_plot_json = Json(calibration_plot)
             guide_logs = ",".join(iguide_logs_upload)
         elif img_id:
-            guide_logs = form.get("prev_guide_logs")
+            guide_logs = form.get("prev_guide_logs") or ""
             if form.get("redo_graphs") == "on":
                 full_guide_logs = ",".join(
                     [
@@ -425,14 +414,14 @@ def save_image():
                     ]
                 )
                 guiding_plot, calibration_plot = build_plotly_payloads(full_guide_logs)
-                guiding_html = json.dumps(guiding_plot)
-                calibration_html = json.dumps(calibration_plot)
+                guiding_plot_json = Json(guiding_plot)
+                calibration_plot_json = Json(calibration_plot)
             else:
-                guiding_html = tmp_img["guiding_html"]
-                calibration_html = tmp_img["calibration_html"]
+                guiding_plot_json = Json(tmp_img["guiding_plot_json"]) if tmp_img.get("guiding_plot_json") else None
+                calibration_plot_json = Json(tmp_img["calibration_plot_json"]) if tmp_img.get("calibration_plot_json") else None
         else:
             guide_logs = ""
-            guiding_html, calibration_html = "", ""
+            guiding_plot_json, calibration_plot_json = None, None
         
         meta_json = parse_meta_store(request.form.get("meta_store"))
         if meta_json == "{}" and img_id:
@@ -458,17 +447,32 @@ def save_image():
         conn = get_conn()
         cur = conn.cursor()
 
-        columns = """
-            title, short_description, description, author, slug,
-            created_at, edited_at,
-            image_path, image_thumbnail, pixel_scale, object_type,
-            header_json, overlays_json, meta_json, location,
-            location_latitude, location_longitude, location_elevation,
-            guide_log, guiding_html, calibration_html,
-        """.strip()
-        columns += ",".join([f"{i}_id" for i in DB_TABLES])
+        column_list = [
+            "title",
+            "short_description",
+            "description",
+            "author",
+            "slug",
+            "created_at",
+            "edited_at",
+            "image_path",
+            "image_thumbnail",
+            "pixel_scale",
+            "object_type",
+            "header_json",
+            "overlays_json",
+            "meta_json",
+            "location",
+            "location_latitude",
+            "location_longitude",
+            "location_elevation",
+            "guide_log",
+            "guiding_plot_json",
+            "calibration_plot_json",
+            *[f"{i}_id" for i in DB_TABLES],
+        ]
 
-        placeholders = ", ".join(["%s"] * len(columns.split(",")))
+        placeholders = ", ".join(["%s"] * len(column_list))
 
         values = [
             title,
@@ -490,15 +494,14 @@ def save_image():
             lon,
             form.get("location_elevation"),
             guide_logs,
-            guiding_html,
-            calibration_html,
+            guiding_plot_json,
+            calibration_plot_json,
             *table_ids,
         ]
 
         if img_id:
             # editing updating
             print("Updating existing image...")
-            column_list = [col.strip() for col in columns.split(",") if col.strip()]
             set_clause = ", ".join([f"{col} = %s" for col in column_list])
 
             query = f"""
@@ -526,7 +529,7 @@ def save_image():
 
         else:
             print("Inserting new image...")
-            query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
+            query = f"INSERT INTO images ({', '.join(column_list)}) VALUES ({placeholders}) RETURNING id"
             cur.execute(
                 query,
                 (*values,),

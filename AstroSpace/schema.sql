@@ -168,8 +168,8 @@ CREATE TABLE images (
     location_elevation FLOAT, -- in meters above sea level
 
     guide_log TEXT, -- path to the guiding log file
-    guiding_html TEXT, -- bokeh HTML file for interactive visualization
-    calibration_html TEXT, -- bokeh HTML file for calibration visualization
+    guiding_plot_json JSONB, -- structured Plotly payload for guiding visualization
+    calibration_plot_json JSONB, -- structured Plotly payload for calibration visualization
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
