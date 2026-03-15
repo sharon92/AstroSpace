@@ -31,18 +31,36 @@ function setStats(container, stats) {
         return;
     }
 
+    const normalizeZero = value => Math.abs(Number(value) || 0) < 0.0005 ? 0 : Number(value);
+    const formatNumber = (value, digits = 2) => normalizeZero(value).toFixed(digits);
+    const formatMetric = (arcsec, pixels) => `${formatNumber(arcsec)}" (${formatNumber(pixels)} px)`;
     const rows = [
-        ["Pixel scale", `${stats.pixel_scale}" / px`],
-        ["RA RMS", `${stats.rms_ra_arcsec}" (${stats.rms_ra_pixels} px)`],
-        ["Dec RMS", `${stats.rms_dec_arcsec}" (${stats.rms_dec_pixels} px)`],
-        ["Total RMS", `${stats.rms_total_arcsec}" (${stats.rms_total_pixels} px)`],
-        ["RA Peak", `${stats.peak_ra_arcsec}" (${stats.peak_ra_pixels} px)`],
-        ["Dec Peak", `${stats.peak_dec_arcsec}" (${stats.peak_dec_pixels} px)`],
+        ["RA", formatMetric(stats.rms_ra_arcsec, stats.rms_ra_pixels), formatMetric(stats.peak_ra_arcsec, stats.peak_ra_pixels)],
+        ["Dec", formatMetric(stats.rms_dec_arcsec, stats.rms_dec_pixels), formatMetric(stats.peak_dec_arcsec, stats.peak_dec_pixels)],
+        ["Total", formatMetric(stats.rms_total_arcsec, stats.rms_total_pixels), formatMetric(stats.peak_total_arcsec, stats.peak_total_pixels)],
     ];
 
+    const scale = document.createElement("p");
+    scale.className = "mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300";
+    scale.textContent = `Pixel scale: ${formatNumber(stats.pixel_scale)}" / px`;
+    container.appendChild(scale);
+
     const table = document.createElement("table");
-    table.className = "w-full text-sm text-left";
-    rows.forEach(([label, value]) => {
+    table.className = "w-full table-auto text-sm text-left border-collapse";
+
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    ["", "RMS", "Peak"].forEach((label, index) => {
+        const cell = document.createElement(index === 0 ? "th" : "td");
+        cell.className = "border-b border-gray-200 py-1 pr-4 font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200";
+        cell.textContent = label;
+        headerRow.appendChild(cell);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    rows.forEach(([label, rmsValue, peakValue]) => {
         const row = document.createElement("tr");
         row.className = "border-b border-gray-200 dark:border-gray-700";
 
@@ -50,13 +68,18 @@ function setStats(container, stats) {
         labelCell.className = "py-1 pr-4 font-semibold text-gray-700 dark:text-gray-200";
         labelCell.textContent = label;
 
-        const valueCell = document.createElement("td");
-        valueCell.className = "py-1 text-gray-600 dark:text-gray-300";
-        valueCell.textContent = value;
+        const rmsCell = document.createElement("td");
+        rmsCell.className = "py-1 pr-4 text-gray-600 dark:text-gray-300";
+        rmsCell.textContent = rmsValue;
 
-        row.append(labelCell, valueCell);
-        table.appendChild(row);
+        const peakCell = document.createElement("td");
+        peakCell.className = "py-1 text-gray-600 dark:text-gray-300";
+        peakCell.textContent = peakValue;
+
+        row.append(labelCell, rmsCell, peakCell);
+        tbody.appendChild(row);
     });
+    table.appendChild(tbody);
 
     container.appendChild(table);
 }

@@ -12,6 +12,8 @@ def test_build_plotly_payloads_parses_guiding_and_calibration():
     assert guiding["sessions"]
     assert calibration["sessions"]
     assert guiding["sessions"][0]["stats"]["pixel_scale"] == 1.5
+    assert guiding["sessions"][0]["stats"]["peak_ra_arcsec"] < 0
+    assert guiding["sessions"][0]["stats"]["peak_total_arcsec"] > 0
     assert calibration["sessions"][0]["axis_limit"] >= 5
 
 

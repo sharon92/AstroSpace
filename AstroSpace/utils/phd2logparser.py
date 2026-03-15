@@ -152,6 +152,14 @@ def _series_values(frame, column, default=0.0):
     return frame[column].fillna(default).round(4).tolist()
 
 
+def _signed_peak(series):
+    if series.empty:
+        return 0.0
+
+    peak_index = series.abs().idxmax()
+    return float(series.loc[peak_index])
+
+
 def _build_guiding_payload(log_dict):
     sessions = []
     for (log_type, log_date), (df, heading_lines) in log_dict.items():
@@ -175,8 +183,13 @@ def _build_guiding_payload(log_dict):
         rms_ra = float((metrics["RARawDistance"] ** 2).mean() ** 0.5) if not metrics.empty else 0.0
         rms_dec = float((metrics["DECRawDistance"] ** 2).mean() ** 0.5) if not metrics.empty else 0.0
         rms_total = float((rms_ra**2 + rms_dec**2) ** 0.5)
-        peak_ra = float(metrics["RARawDistance"].abs().max()) if not metrics.empty else 0.0
-        peak_dec = float(metrics["DECRawDistance"].abs().max()) if not metrics.empty else 0.0
+        peak_ra = _signed_peak(metrics["RARawDistance"]) if not metrics.empty else 0.0
+        peak_dec = _signed_peak(metrics["DECRawDistance"]) if not metrics.empty else 0.0
+        peak_total = (
+            float((((metrics["RARawDistance"] ** 2) + (metrics["DECRawDistance"] ** 2)) ** 0.5).max())
+            if not metrics.empty
+            else 0.0
+        )
 
         sessions.append(
             {
@@ -189,11 +202,13 @@ def _build_guiding_payload(log_dict):
                     "rms_total_arcsec": round(rms_total * px_scale, 3),
                     "peak_ra_arcsec": round(peak_ra * px_scale, 3),
                     "peak_dec_arcsec": round(peak_dec * px_scale, 3),
+                    "peak_total_arcsec": round(peak_total * px_scale, 3),
                     "rms_ra_pixels": round(rms_ra, 3),
                     "rms_dec_pixels": round(rms_dec, 3),
                     "rms_total_pixels": round(rms_total, 3),
                     "peak_ra_pixels": round(peak_ra, 3),
                     "peak_dec_pixels": round(peak_dec, 3),
+                    "peak_total_pixels": round(peak_total, 3),
                 },
                 "series": {
                     "time": [value.isoformat() for value in frame["Time"]],
