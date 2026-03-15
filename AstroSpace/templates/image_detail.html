@@ -463,10 +463,14 @@
           <div x-show="detailTab === 'calibration'" class="hidden md:block">
               <div class="p-6">
                 <div id="calibration-root-{{il.image.id}}" class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6 space-y-4">
-                  <div class="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)] xl:grid-rows-[auto_minmax(0,1fr)] items-start">
-                    <select data-role="session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full xl:col-start-1 xl:row-start-1"></select>
-                    <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto w-full xl:col-start-1 xl:row-start-2"></div>
-                    <div data-role="plot" class="w-full min-h-[440px] aspect-square xl:col-start-2 xl:row-start-1 xl:row-span-2 self-start"></div>
+                  <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+                    <div class="w-full space-y-4 lg:w-[22rem] lg:shrink-0">
+                      <select data-role="session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full"></select>
+                      <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto w-full"></div>
+                    </div>
+                    <div class="w-full lg:min-w-0 lg:flex-1">
+                      <div data-role="plot" class="w-full aspect-square min-h-[440px]"></div>
+                    </div>
                   </div>
                 </div>
               </div>
