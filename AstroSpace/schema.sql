@@ -20,10 +20,7 @@ DROP TABLE IF EXISTS
     telescope,
     tripod,
     users,
-    blogs,
-    blog_views,
-    blog_likes,
-    blog_comments
+    web_info
 CASCADE;
 
 
@@ -245,38 +242,6 @@ CREATE TABLE image_software (
     id SERIAL PRIMARY KEY,
     image_id INT REFERENCES images(id) ON DELETE CASCADE,
     software_id INT REFERENCES software(id) ON DELETE CASCADE
-);
-
-CREATE TABLE blogs (
-  id SERIAL PRIMARY KEY,
-  blog_html TEXT NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  metadata TEXT
-);
-
-CREATE TABLE blog_views (
-    id SERIAL PRIMARY KEY,
-    blog_id INTEGER REFERENCES blogs(id),
-    user_id TEXT,
-    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE blog_likes (
-    id SERIAL PRIMARY KEY,
-    blog_id INTEGER REFERENCES blogs(id),
-    user_id TEXT,
-    liked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(blog_id, user_id)  -- prevents multiple likes from same IP
-);
-
-CREATE TABLE blog_comments (
-    id SERIAL PRIMARY KEY,
-    blog_id INTEGER REFERENCES blogs(id),
-    ip_address TEXT,
-    comment TEXT NOT NULL,
-    commented_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    commented_by TEXT -- username or email of the commenter
 );
 
 CREATE TABLE users (

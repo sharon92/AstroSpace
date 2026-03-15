@@ -84,9 +84,6 @@ def create_app(test_config=None):
     from . import blog
     app.register_blueprint(blog.bp)
 
-    from . import blog_posts
-    app.register_blueprint(blog_posts.bp)
-
     from .profile import private, public
     app.register_blueprint(private.bp)
     app.register_blueprint(public.bp)

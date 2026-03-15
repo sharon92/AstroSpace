@@ -29,7 +29,6 @@ from AstroSpace.repositories.images import (
     get_image_by_id,
     get_image_tables,
 )
-from AstroSpace.repositories.blog_posts import list_blogs
 from AstroSpace.services.authorization import require_owner
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
@@ -61,7 +60,6 @@ def upload(filename):
 @bp.route("/home")
 def home():
     top_images = get_all_images(unique=True, limit=10)
-    latest_blogs = list_blogs(limit=3)
     for img in top_images:
         # If you want thumbnails, use `image_thumbnail` instead
         img["blog_url"] = url_for(
@@ -69,9 +67,7 @@ def home():
         )
         img["url"] = url_for("blog.upload", filename=img["image_path"])
     # print("Top images:", top_images)
-    return render_template(
-        "home.html", top_images=top_images, latest_blogs=latest_blogs
-    )
+    return render_template("home.html", top_images=top_images)
 
 
 @bp.route("/collection")
@@ -201,11 +197,6 @@ def get_elevation():
         return str(round(r.json()["results"][0]["elevation"]))
     else:
         return "0"
-
-
-@bp.route("/blog")
-def new_blog():
-    return redirect(url_for("blog_posts.blog_index"))
 
 
 @bp.route("/image/<int:image_id>/<string:image_name>")

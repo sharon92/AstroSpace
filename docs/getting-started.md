@@ -72,5 +72,4 @@ npx tailwindcss -i ./static/input.css -o ./static/styles.css
 1. Register the first user.
 2. Open `My Profile` to set the site name and welcome note.
 3. Create an image post from `New Post`.
-4. Create a blog post from `New Blog`.
-5. Upload guiding logs again for older posts if you want the new Plotly graphs instead of legacy plot placeholders.
+4. Upload guiding logs again for older posts if you want the new Plotly graphs instead of legacy plot placeholders.

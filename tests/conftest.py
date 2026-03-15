@@ -1,31 +1,11 @@
-from datetime import datetime
-
 import pytest
 
 
 @pytest.fixture
-def sample_blog():
-    return {
-        "id": 1,
-        "title": "First Light",
-        "slug": "first-light",
-        "excerpt": "A short observing report.",
-        "author": "astro",
-        "image_path": "",
-        "image_thumbnail": "",
-        "content_html": "<p>Hello world</p>",
-        "created_at": datetime(2025, 1, 1, 22, 0, 0),
-    }
-
-
-@pytest.fixture
-def app(monkeypatch, tmp_path, sample_blog):
+def app(monkeypatch, tmp_path):
     from AstroSpace import create_app
 
     monkeypatch.setattr("AstroSpace.blog.get_all_images", lambda *args, **kwargs: [])
-    monkeypatch.setattr("AstroSpace.blog.list_blogs", lambda *args, **kwargs: [sample_blog])
-    monkeypatch.setattr("AstroSpace.blog_posts.list_blogs", lambda *args, **kwargs: [sample_blog])
-    monkeypatch.setattr("AstroSpace.blog_posts.get_blog_by_slug", lambda slug: sample_blog if slug == sample_blog["slug"] else None)
 
     return create_app(
         {
