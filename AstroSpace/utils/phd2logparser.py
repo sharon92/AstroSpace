@@ -62,18 +62,31 @@ def parser(phd_log_file: str) -> dict:
 
         if log_type == "Guiding":
             header += ["error_msg"]
-            block = [row if len(row) == 19 else [*row, ""] for row in block]
+            block = _normalize_rows(block, len(header))
             df = pd.DataFrame(block, columns=header)
 
-            int_cols = [0, 17]
-            df[df.columns[int_cols]] = df[df.columns[int_cols]].astype(int)
-
-            float_cols = [1, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16]
-            df[df.columns[float_cols]] = (
-                df[df.columns[float_cols]].replace("", "0.0").astype(float)
+            _coerce_numeric_columns(
+                df,
+                int_columns=[df.columns[0], df.columns[17]],
+                float_columns=[
+                    df.columns[1],
+                    df.columns[3],
+                    df.columns[4],
+                    df.columns[5],
+                    df.columns[6],
+                    df.columns[7],
+                    df.columns[8],
+                    df.columns[9],
+                    df.columns[11],
+                    df.columns[13],
+                    df.columns[14],
+                    df.columns[15],
+                    df.columns[16],
+                ],
             )
 
-            df.set_index("Frame", inplace=True)
+            df.set_index(df.columns[0], inplace=True)
+            df.index.name = "Frame"
             df["event"] = 0
             df["event_text"] = ""
 
@@ -91,9 +104,13 @@ def parser(phd_log_file: str) -> dict:
                 if frame in df.index:
                     df.loc[frame, "event_text"] += event + "|"
         else:
+            block = _normalize_rows(block, len(header))
             df = pd.DataFrame(block, columns=header)
-            df["Step"] = df["Step"].astype(int)
-            df[df.columns[2:]] = df[df.columns[2:]].astype(float)
+            _coerce_numeric_columns(
+                df,
+                int_columns=["Step"],
+                float_columns=df.columns[2:],
+            )
 
         log_dict[(log_type, log_date_begin)] = (df, section_heading)
 
@@ -108,6 +125,31 @@ def _pixel_scale_from_heading(heading_lines):
             except (IndexError, ValueError):
                 return 1.0
     return 1.0
+
+
+def _normalize_rows(rows, expected_length):
+    normalized = []
+    for row in rows:
+        if len(row) < expected_length:
+            row = [*row, *([""] * (expected_length - len(row)))]
+        elif len(row) > expected_length:
+            row = [*row[: expected_length - 1], ",".join(row[expected_length - 1 :])]
+        normalized.append(row)
+    return normalized
+
+
+def _coerce_numeric_columns(frame, int_columns=None, float_columns=None):
+    for column in ([] if int_columns is None else int_columns):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(0).astype(int)
+
+    for column in ([] if float_columns is None else float_columns):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(0.0).astype(float)
+
+
+def _series_values(frame, column, default=0.0):
+    if column not in frame.columns:
+        return [default] * len(frame.index)
+    return frame[column].fillna(default).round(4).tolist()
 
 
 def _build_guiding_payload(log_dict):
@@ -155,10 +197,10 @@ def _build_guiding_payload(log_dict):
                 },
                 "series": {
                     "time": [value.isoformat() for value in frame["Time"]],
-                    "ra_raw": frame["RARawDistance"].round(4).tolist(),
-                    "dec_raw": frame["DECRawDistance"].round(4).tolist(),
-                    "ra_guide": frame["RAGuideDistance"].round(4).tolist(),
-                    "dec_guide": frame["DECGuideDistance"].round(4).tolist(),
+                    "ra_raw": _series_values(frame, "RARawDistance"),
+                    "dec_raw": _series_values(frame, "DECRawDistance"),
+                    "ra_guide": _series_values(frame, "RAGuideDistance"),
+                    "dec_guide": _series_values(frame, "DECGuideDistance"),
                 },
                 "events": [
                     {

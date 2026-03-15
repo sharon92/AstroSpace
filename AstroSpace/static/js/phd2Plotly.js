@@ -66,12 +66,37 @@ function buildSessionMap(payload) {
     return new Map(sessions.map(session => [session.key, session]));
 }
 
+function toFiniteNumber(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizedGuidingRows(session) {
+    const time = Array.isArray(session?.series?.time) ? session.series.time : [];
+    return time.map((timestamp, index) => ({
+        time: timestamp,
+        raRaw: toFiniteNumber(session?.series?.ra_raw?.[index]),
+        decRaw: toFiniteNumber(session?.series?.dec_raw?.[index]),
+        raGuide: toFiniteNumber(session?.series?.ra_guide?.[index]),
+        decGuide: toFiniteNumber(session?.series?.dec_guide?.[index]),
+    }));
+}
+
 function buildGuidingTraces(session) {
-    const time = session.series.time;
+    const rows = normalizedGuidingRows(session);
+    if (rows.length === 0) {
+        return [];
+    }
+
+    const time = rows.map(row => row.time);
+    const raRaw = rows.map(row => row.raRaw);
+    const decRaw = rows.map(row => row.decRaw);
+    const raGuide = rows.map(row => row.raGuide);
+    const decGuide = rows.map(row => row.decGuide);
     const traces = [
         {
             x: time,
-            y: session.series.ra_raw,
+            y: raRaw,
             type: "scattergl",
             mode: "lines",
             name: "RA Raw",
@@ -79,34 +104,40 @@ function buildGuidingTraces(session) {
         },
         {
             x: time,
-            y: session.series.dec_raw,
+            y: decRaw,
             type: "scattergl",
             mode: "lines",
             name: "Dec Raw",
             line: { color: "#dc2626", width: 2 },
         },
-        {
+    ];
+
+    if (raGuide.some(value => value !== 0)) {
+        traces.push({
             x: time,
-            y: session.series.ra_guide,
+            y: raGuide,
             type: "bar",
             name: "RA Guide",
             marker: { color: "rgba(37,99,235,0.25)" },
             yaxis: "y2",
-        },
-        {
+        });
+    }
+
+    if (decGuide.some(value => value !== 0)) {
+        traces.push({
             x: time,
-            y: session.series.dec_guide,
+            y: decGuide,
             type: "bar",
             name: "Dec Guide",
             marker: { color: "rgba(220,38,38,0.25)" },
             yaxis: "y2",
-        },
-    ];
+        });
+    }
 
     if (Array.isArray(session.events) && session.events.length > 0) {
         const peak = Math.max(
-            ...session.series.ra_raw.map(value => Math.abs(value)),
-            ...session.series.dec_raw.map(value => Math.abs(value)),
+            ...raRaw.map(value => Math.abs(value)),
+            ...decRaw.map(value => Math.abs(value)),
             1,
         );
 
@@ -170,10 +201,27 @@ export function renderGuidingPlot(rootId, payload) {
 
         setStats(stats, session.stats);
         setPanelLines(heading, session.heading_lines);
+        const traces = buildGuidingTraces(session);
+        if (traces.length === 0) {
+            setMessage(stats, "No guiding data points were found in the uploaded logs.");
+            plot.replaceChildren();
+            return;
+        }
+
+        const rawValues = traces
+            .filter(trace => trace.yaxis !== "y2")
+            .flatMap(trace => trace.y ?? [])
+            .map(value => Math.abs(toFiniteNumber(value)));
+        const guideValues = traces
+            .filter(trace => trace.yaxis === "y2")
+            .flatMap(trace => trace.y ?? [])
+            .map(value => Math.abs(toFiniteNumber(value)));
+        const rawExtent = Math.max(...rawValues, 1);
+        const guideExtent = Math.max(...guideValues, 1);
 
         Plotly.react(
             plot,
-            buildGuidingTraces(session),
+            traces,
             {
                 barmode: "overlay",
                 hovermode: "x unified",
@@ -182,12 +230,18 @@ export function renderGuidingPlot(rootId, payload) {
                 margin: { t: 30, r: 60, b: 40, l: 50 },
                 legend: { orientation: "h", x: 0.5, y: 1.12, xanchor: "center" },
                 xaxis: { title: "Time" },
-                yaxis: { title: "Raw Error (px)", zeroline: true, gridcolor: "rgba(148,163,184,0.2)" },
+                yaxis: {
+                    title: "Raw Error (px)",
+                    zeroline: true,
+                    gridcolor: "rgba(148,163,184,0.2)",
+                    range: [-(rawExtent * 1.15), rawExtent * 1.15],
+                },
                 yaxis2: {
                     title: "Guide Pulses (px)",
                     overlaying: "y",
                     side: "right",
                     showgrid: false,
+                    range: [-(guideExtent * 1.15), guideExtent * 1.15],
                 },
             },
             { responsive: true, displaylogo: false }
@@ -218,6 +272,32 @@ function buildCalibrationShapes(axisLimit) {
         });
     }
     return shapes;
+}
+
+function normalizedCalibrationPoints(session) {
+    const dx = Array.isArray(session?.points?.dx) ? session.points.dx : [];
+    const dy = Array.isArray(session?.points?.dy) ? session.points.dy : [];
+    const direction = Array.isArray(session?.points?.direction) ? session.points.direction : [];
+    const label = Array.isArray(session?.points?.label) ? session.points.label : [];
+    const color = Array.isArray(session?.points?.color) ? session.points.color : [];
+    const alpha = Array.isArray(session?.points?.alpha) ? session.points.alpha : [];
+    const maxLength = Math.min(
+        dx.length,
+        dy.length,
+        direction.length || dx.length,
+        label.length || dx.length,
+        color.length || dx.length,
+        alpha.length || dx.length,
+    );
+
+    return Array.from({ length: maxLength }, (_, index) => ({
+        dx: toFiniteNumber(dx[index]),
+        dy: toFiniteNumber(dy[index]),
+        direction: direction[index],
+        label: label[index],
+        color: color[index],
+        alpha: toFiniteNumber(alpha[index], 1),
+    }));
 }
 
 export function renderCalibrationPlot(rootId, payload) {
@@ -256,20 +336,32 @@ export function renderCalibrationPlot(rootId, payload) {
         if (!session) return;
 
         setPanelLines(heading, session.heading_lines);
+        const points = normalizedCalibrationPoints(session);
+        if (points.length === 0) {
+            setMessage(heading, "No calibration points were found in the uploaded logs.");
+            plot.replaceChildren();
+            return;
+        }
+
+        const axisLimit = Math.max(
+            toFiniteNumber(session.axis_limit, 5),
+            ...points.map(point => Math.max(Math.abs(point.dx), Math.abs(point.dy))),
+            5,
+        );
 
         const traces = [
             {
-                x: session.points.dx,
-                y: session.points.dy,
+                x: points.map(point => point.dx),
+                y: points.map(point => point.dy),
                 type: "scatter",
-                mode: session.points.dx.length <= 30 ? "markers+text" : "markers",
-                text: session.points.label,
+                mode: points.length <= 30 ? "markers+text" : "markers",
+                text: points.map(point => point.label),
                 textposition: "top center",
                 hovertemplate: "%{text}<br>%{x}, %{y}<extra></extra>",
                 marker: {
                     size: 10,
-                    color: session.points.color,
-                    opacity: session.points.alpha,
+                    color: points.map(point => point.color),
+                    opacity: points.map(point => point.alpha),
                     line: { color: "#111827", width: 1 },
                 },
                 name: "Calibration Steps",
@@ -305,19 +397,19 @@ export function renderCalibrationPlot(rootId, payload) {
                 legend: { orientation: "h", x: 0.5, y: 1.12, xanchor: "center" },
                 xaxis: {
                     title: "dx (px)",
-                    range: [-session.axis_limit, session.axis_limit],
+                    range: [-axisLimit, axisLimit],
                     zeroline: true,
                     gridcolor: "rgba(148,163,184,0.2)",
                 },
                 yaxis: {
                     title: "dy (px)",
-                    range: [-session.axis_limit, session.axis_limit],
+                    range: [-axisLimit, axisLimit],
                     scaleanchor: "x",
                     scaleratio: 1,
                     zeroline: true,
                     gridcolor: "rgba(148,163,184,0.2)",
                 },
-                shapes: buildCalibrationShapes(Math.ceil(session.axis_limit / 5) * 5),
+                shapes: buildCalibrationShapes(Math.ceil(axisLimit / 5) * 5),
             },
             { responsive: true, displaylogo: false }
         );

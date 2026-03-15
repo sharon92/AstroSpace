@@ -2,16 +2,16 @@
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.12
 - PostgreSQL
 - Optional: Node.js if you want to rebuild Tailwind assets
 
 ## Install
 
 ```bash
-python -m venv .venv
+py -3.12 -m venv .venv
 .venv\Scripts\activate
-pip install -e .[dev]
+py -3.12 -m pip install -e .[dev]
 ```
 
 ## Configure
@@ -54,7 +54,7 @@ The application will start on `http://127.0.0.1:5000` by default.
 ## Run Tests
 
 ```bash
-pytest
+py -3.12 -m pytest
 ```
 
 ## Optional Frontend Build

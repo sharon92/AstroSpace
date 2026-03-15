@@ -23,3 +23,25 @@ def test_deserialize_plot_payload_marks_legacy_html():
 def test_deserialize_plot_payload_accepts_dict_payloads():
     payload = {"kind": "guiding", "sessions": []}
     assert deserialize_plot_payload(payload, "Guiding") == payload
+
+
+def test_build_plotly_payloads_tolerates_incomplete_guiding_rows(tmp_path):
+    log_path = tmp_path / "partial_phd2.log"
+    log_path.write_text(
+        "\n".join(
+            [
+                "Guiding Begins at 2025-01-01 22:00:00",
+                "Pixel Scale = 1.50 arc-sec/px",
+                "Frame,Time,mount,dx,dy,RARawDistance,DECRawDistance,RAGuideDistance,DECGuideDistance,RADuration,RADirection,DECDuration,DECDirection,XStep,YStep,StarMass,SNR,ErrorCode",
+                "1,0.0,mount,0.0,0.0,0.10,-0.20,0.05,-0.02,50,West,0,North,1.0,1.0,100,10,0",
+                "2,1.0,mount,0.0,0.0,bad,-0.18,0.06,-0.03,51,West,0,North,1.0,1.0,100,10",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    guiding, calibration = build_plotly_payloads(str(log_path))
+
+    assert guiding["sessions"]
+    assert calibration["sessions"] == []
+    assert guiding["sessions"][0]["series"]["ra_raw"] == [-0.1, -0.0]
