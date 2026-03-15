@@ -214,7 +214,7 @@ def _build_guiding_payload(log_dict):
 
     return {
         "kind": "guiding",
-        "default_session": sessions[0]["key"] if sessions else None,
+        "default_session": sessions[-1]["key"] if sessions else None,
         "sessions": sessions,
     }
 
@@ -274,7 +274,7 @@ def _build_calibration_payload(log_dict):
 
     return {
         "kind": "calibration",
-        "default_session": sessions[0]["key"] if sessions else None,
+        "default_session": sessions[-1]["key"] if sessions else None,
         "sessions": sessions,
     }
 

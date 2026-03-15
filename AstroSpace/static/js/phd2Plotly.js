@@ -66,6 +66,15 @@ function buildSessionMap(payload) {
     return new Map(sessions.map(session => [session.key, session]));
 }
 
+function defaultSessionKey(payload, sessionKeys, sessions) {
+    return sessionKeys[sessionKeys.length - 1];
+}
+
+function squarePlotHeight(plot, fallback = 640) {
+    const width = plot.clientWidth || plot.parentElement?.clientWidth || fallback;
+    return Math.max(320, Math.round(width));
+}
+
 function toFiniteNumber(value, fallback = 0) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -248,7 +257,7 @@ export function renderGuidingPlot(rootId, payload) {
         );
     };
 
-    select.value = payload.default_session ?? sessionKeys[0];
+    select.value = defaultSessionKey(payload, sessionKeys, sessions);
     select.onchange = render;
     render();
 }
@@ -393,6 +402,7 @@ export function renderCalibrationPlot(rootId, payload) {
                 paper_bgcolor: "transparent",
                 plot_bgcolor: "transparent",
                 hovermode: "closest",
+                height: squarePlotHeight(plot),
                 margin: { t: 30, r: 30, b: 50, l: 50 },
                 legend: { orientation: "h", x: 0.5, y: 1.12, xanchor: "center" },
                 xaxis: {
@@ -415,7 +425,7 @@ export function renderCalibrationPlot(rootId, payload) {
         );
     };
 
-    select.value = payload.default_session ?? sessionKeys[0];
+    select.value = defaultSessionKey(payload, sessionKeys, sessions);
     select.onchange = render;
     render();
 }
