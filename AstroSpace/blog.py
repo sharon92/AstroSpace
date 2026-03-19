@@ -321,8 +321,15 @@ def save_image():
     print("Saving/Updating image...")
     user = g.user["username"]
     user_id = str(g.user["id"])
+    img_id = None
 
     ensure_directory(os.path.join(current_app.config["UPLOAD_PATH"], user_id))
+
+    def image_form_redirect(message):
+        flash(message)
+        if img_id:
+            return redirect(url_for("blog.edit_image", image_id=img_id))
+        return redirect(url_for("blog.new_image"))
     
     try:
         print("Processing form data...")
@@ -355,7 +362,10 @@ def save_image():
         fits_path = request.files.get("fits_file")
         #print("Performing plate solving...")
         svg_image = None
-        if file and file.filename and allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
+        if file and file.filename:
+            if not allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
+                return image_form_redirect("Preview image must be a JPG or PNG file.")
+
             stored_image = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
             image_path = stored_image.absolute_path
             img_path_upload = stored_image.public_path
@@ -382,6 +392,8 @@ def save_image():
                 svg_image = tmp_img["overlays_json"]
                 thumbnail_path = tmp_img["image_thumbnail"]
                 pixel_scale = tmp_img["pixel_scale"]
+        else:
+            return image_form_redirect("A preview image is required when creating a post.")
 
         if svg_image is None:
             svg_image = json.dumps(get_overlays(header_json))
@@ -578,8 +590,5 @@ def save_image():
         flash("Post updated successfully!")
         return redirect(url_for("private.profile"))
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        print("Error:", str(e))
-        #flash(f"An error occurred: {str(e)}", "error")
-        return '', 204
+        current_app.logger.exception("Failed to save image")
+        return image_form_redirect(f"An error occurred while saving the post: {e}")

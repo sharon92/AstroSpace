@@ -571,7 +571,15 @@
 
                 if (response.redirected) {
                     window.location.href = response.url;
+                    return;
                 }
+
+                if (!response.ok) {
+                    alert("Failed to save the post.");
+                    return;
+                }
+
+                window.location.reload();
             });
         });
 

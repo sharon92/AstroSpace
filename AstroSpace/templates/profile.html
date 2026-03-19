@@ -90,9 +90,10 @@
             </div>
         </div>
 
-        <div x-data='{
+<div x-data='{
     inventory: {{ inventory | tojson }},
     dataType: {{ data_type | tojson }},
+    inventoryConstraints: {{ inventory_constraints | tojson }},
     selectedType: "",
     selectedName: "",
     currentNames: [],
@@ -110,7 +111,7 @@
     },
 
     inputTypeFor(key) {
-        const dtype = this.dataType[key];
+        const dtype = this.dataType[this.selectedType]?.[key];
         if (key === "id") return "hidden";
         if (!dtype) return "text";
         if (["integer", "numeric", "float", "double"].includes(dtype)) return "number";
@@ -120,11 +121,25 @@
         return "text";
     },
 
+    constraintHintFor(key) {
+        const allowed = this.inventoryConstraints[this.selectedType]?.[key];
+        if (!allowed || allowed.length === 0) return "";
+        return `Allowed values: ${allowed.join(", ")}`;
+    },
+
+    constraintOptionsFor(key) {
+        return this.inventoryConstraints[this.selectedType]?.[key] || [];
+    },
+
+    hasConstraintOptions(key) {
+        return this.constraintOptionsFor(key).length > 0;
+    },
+
     async saveInventory() {
         const payload = {
             type: this.selectedType,
             name: this.selectedName,
-            values: this.currentValues
+            values: { ...this.currentValues }
         };
 
         try {
@@ -136,12 +151,13 @@
                 },
                 body: JSON.stringify(payload)
             });
+            const data = await response.json().catch(() => ({}));
 
             if (response.ok) {
-                alert("Inventory saved successfully!");
+                alert(data.message || "Inventory saved successfully!");
                 location.reload(); 
             } else {
-                alert("Failed to save inventory.");
+                alert(data.message || "Failed to save inventory.");
             }
         } catch (error) {
             console.error(error);
@@ -181,15 +197,33 @@
 
             <!-- Inventory Details Display -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-gray-800 mt-4 rounded-lg">
+                <div class="md:col-span-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-900/30 dark:text-blue-100">
+                    Fields with fixed allowed values show a hint below the label. Use the dropdown when available.
+                </div>
                 <template x-for="[key, value] in Object.entries(currentValues)" :key="key">
                     <template x-if="inputTypeFor(key) !== 'hidden'">
-                        <div class="flex items-center justify-between not-[]:gap-2">
-                            <label x-text="key"></label>
+                        <div class="flex items-start justify-between not-[]:gap-2">
+                            <div class="pr-3">
+                                <label x-text="key"></label>
+                                <template x-if="constraintHintFor(key)">
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-text="constraintHintFor(key)"></p>
+                                </template>
+                            </div>
                             <template x-if="inputTypeFor(key) === 'checkbox'">
                                 <input type="checkbox" class="w-5 h-5" x-model="currentValues[key]"
                                     :checked="currentValues[key]" />
                             </template>
-                            <template x-if="inputTypeFor(key) !== 'checkbox'">
+                            <template x-if="inputTypeFor(key) !== 'checkbox' && hasConstraintOptions(key)">
+                                <select
+                                    class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700 min-w-48"
+                                    x-model="currentValues[key]">
+                                    <option value="">Select value</option>
+                                    <template x-for="option in constraintOptionsFor(key)" :key="option">
+                                        <option :value="option" x-text="option"></option>
+                                    </template>
+                                </select>
+                            </template>
+                            <template x-if="inputTypeFor(key) !== 'checkbox' && !hasConstraintOptions(key)">
                                 <input :type="inputTypeFor(key)"
                                     class="p-2 text-left rounded-md bg-gray-100 dark:bg-gray-700"
                                     x-model="currentValues[key]" />
@@ -210,6 +244,15 @@
 
         <div x-show="tab === 'Settings'"
             class="space-y-2 md:p-4 grid grid-cols-2 gap-4  text-gray-700 dark:text-white ">
+
+            <div class="rounded-lg border px-4 py-3 {% if can_manage_site %}border-green-300 bg-green-50 text-green-900 dark:border-green-700 dark:bg-green-950/30 dark:text-green-100{% else %}border-gray-300 bg-gray-50 text-gray-800 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200{% endif %}"
+                style="grid-column: 1 / -1;">
+                {% if can_manage_site %}
+                This profile has admin access. Site-management and one-time maintenance actions are enabled.
+                {% else %}
+                This profile does not have admin access. Site-management and maintenance actions are hidden.
+                {% endif %}
+            </div>
 
             <label class="flex items-center">
                 Display Name
@@ -329,9 +372,52 @@
             <textarea x-model="settings.welcome_note"
                 class="p-2 text-left rounded-md h-80 bg-gray-100 dark:bg-gray-700"></textarea>
 
-            <button @click="saveSettings" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                Save Settings
-            </button>
+            <div style="grid-column: 1 / -1;">
+                <button @click="saveSettings" class="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Save Settings
+                </button>
+            </div>
+
+            {% if can_manage_site %}
+            <div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/30"
+                style="grid-column: 1 / -1;">
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <h3 class="font-semibold text-amber-900 dark:text-amber-200">Admin Maintenance</h3>
+                        <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                            These actions run once when you click them. They are intended for manual cleanup and backfills.
+                        </p>
+                    </div>
+
+                    <div class="rounded-md border border-amber-200 bg-white/50 p-4 dark:border-amber-800 dark:bg-black/10">
+                        <div>
+                            <p class="font-medium">Redo guiding graphs for all images</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                Rebuild stored guiding and calibration plots from each image's saved guide logs.
+                            </p>
+                        </div>
+                        <button @click="runRedoGraphsOnce" type="button"
+                            class="mt-3 w-full px-4 py-2 text-white rounded"
+                            style="background-color: rgb(37 99 235);">
+                            Run Once
+                        </button>
+                    </div>
+
+                    <div class="rounded-md border border-red-200 bg-white/50 p-4 dark:border-red-800 dark:bg-black/10">
+                        <div>
+                            <p class="font-medium">Purge unbound images and thumbnails</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                Delete uploaded image files and thumbnails that are no longer referenced in the database.
+                            </p>
+                        </div>
+                        <button @click="runPurgeImagesOnce" type="button"
+                            class="mt-3 w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                            Run Once
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -354,6 +440,38 @@
 
         uploadImage(event) {
         this.settings.display_image = event.target.files[0];
+    },
+
+        async runRedoGraphsOnce() {
+        if (!confirm("Redo guiding graphs for all images now?")) {
+        return;
+    }
+
+    const response = await fetch("/private/admin/redo_guiding_graphs", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrfToken
+        }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    alert(data.message || "Action finished.");
+    },
+
+        async runPurgeImagesOnce() {
+        if (!confirm("Delete unbound uploaded images and thumbnails now? This cannot be undone.")) {
+        return;
+    }
+
+    const response = await fetch("/private/admin/purge_orphan_image_uploads", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrfToken
+        }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    alert(data.message || "Action finished.");
     },
 
         async saveSettings() {

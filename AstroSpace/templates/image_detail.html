@@ -31,6 +31,42 @@
   [x-cloak] {
     display: none !important;
   }
+
+  .calibration-layout {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "session"
+      "heading"
+      "plot";
+  }
+
+  .calibration-session {
+    grid-area: session;
+  }
+
+  .calibration-heading {
+    grid-area: heading;
+  }
+
+  .calibration-plot {
+    grid-area: plot;
+  }
+
+  @media (min-width: 1024px) {
+    .calibration-layout {
+      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+      grid-template-areas:
+        "session plot"
+        "heading plot";
+    }
+
+    .calibration-heading {
+      max-height: 28rem;
+    }
+  }
 </style>
 
 <div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover dark:text-white"
@@ -170,6 +206,25 @@
             </div>
           </div>
 
+          <button id="fullscreen-btn-{{il.image.id}}" title="Open fullscreen viewer"
+            class="absolute bottom-2 left-2 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/15 hover:opacity-100 transition"
+            aria-label="Open fullscreen viewer" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
+              stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="24 4 4 4 4 24" />
+              <line x1="4" y1="4" x2="22" y2="22" />
+
+              <polyline points="40 4 60 4 60 24" />
+              <line x1="60" y1="4" x2="42" y2="22" />
+
+              <polyline points="4 40 4 60 24 60" />
+              <line x1="4" y1="60" x2="22" y2="42" />
+
+              <polyline points="40 60 60 60 60 40" />
+              <line x1="60" y1="60" x2="42" y2="42" />
+            </svg>
+          </button>
+
           <!-- Reset Button -->
           <button id="reset-btn-{{il.image.id}}" title="Reset image zoom"
             class="absolute bottom-2 right-2 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/15 hover:opacity-100 transition"
@@ -185,6 +240,136 @@
 
             </svg>
           </button>
+        </div>
+
+        <div id="fullscreen-modal-{{il.image.id}}"
+          class="fixed inset-0 hidden items-center justify-center bg-black/85 p-3 md:p-6"
+          style="z-index: 90;">
+          <div id="fullscreen-backdrop-{{il.image.id}}" class="absolute inset-0"></div>
+
+          <div class="relative flex h-full w-full items-center justify-center">
+            <div id="fullscreen-zoom-container-{{il.image.id}}"
+              class="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-black/40 touch-none">
+
+              <div class="relative inline-block shrink-0 transition-transform duration-100 ease-in-out origin-center"
+                id="fullscreen-zoom-wrapper-{{il.image.id}}">
+                <img
+                  class="object-contain block w-auto h-auto origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
+                  style="max-width: 100%; max-height: calc(100vh - 10rem);"
+                  id="fullscreen-zoomable-image-{{il.image.id}}"
+                  src="{{ url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) }}"
+                  alt="{{ il.image.title }} fullscreen">
+                <div id="fullscreen-svg-overlay-{{il.image.id}}"
+                  class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 duration-300">
+                </div>
+                <div id="fullscreen-compare-{{il.image.id}}" class="absolute top-0 left-0 pointer-events-none z-20 w-full h-full">
+                  <svg id="fullscreen-comp-wrapper-{{ il.image.id }}"
+                    class="absolute top-0 left-0 hidden pointer-events-auto w-full h-full"
+                    viewBox="0 0 {{ moon_width }} {{ moon_width }}">
+                    <image href="{{ url_for('static', filename='assets/images/moon.png') }}"
+                      class="w-[{{ moon_width }}px] h-[{{ moon_width }}px]" id="fullscreen-comp-img-{{ il.image.id }}"
+                      alt="Moon overlay fullscreen" />
+                  </svg>
+                </div>
+                <div id="fullscreen-graticule-{{il.image.id}}"
+                  class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                </div>
+              </div>
+
+              <button id="fullscreen-close-btn-{{il.image.id}}" title="Close fullscreen viewer"
+                class="absolute top-3 right-3 p-2 border-2 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 text-white hover:bg-gray-200/35 transition"
+                aria-label="Close fullscreen viewer" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="5" y1="5" x2="19" y2="19" />
+                  <line x1="19" y1="5" x2="5" y2="19" />
+                </svg>
+              </button>
+
+              <button id="fullscreen-reset-btn-{{il.image.id}}" title="Reset fullscreen image zoom"
+                class="absolute bottom-4 right-4 p-2 border-2 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 transition"
+                aria-label="Reset fullscreen image zoom" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16" fill="none" stroke="grey"
+                  stroke-width="6">
+                  <line x1="36" y1="28" x2="60" y2="4" />
+                  <polyline points="38 4 60 4 60 26" />
+
+                  <line x1="28" y1="36" x2="4" y2="60" />
+                  <polyline points="4 38 4 60 26 60 " />
+                </svg>
+              </button>
+
+              <div class="absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+                <div class="flex items-center space-x-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
+                  <div>
+                    <input id="fullscreen-graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+                    <label for="fullscreen-graticule-toggle-{{il.image.id}}" title="Overlay Coordinate Grid" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
+                      bg-gray-300 text-gray-900 border-slate-300 
+                      hover:bg-gray-400 hover:border-slate-500 
+                      hover:dark:bg-slate-600 hover:dark:border-slate-400
+                      peer-checked:bg-green-800 peer-checked:text-white
+                      peer-checked:hover:bg-green-700
+                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
+                      dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 100 100"
+                        preserveAspectRatio="xMidYMid meet">
+                        <g fill="none" stroke="currentColor" stroke-width="4">
+                          <circle cx="50" cy="50" r="45" />
+                          <ellipse cx="50" cy="50" rx="45" ry="15" />
+                          <ellipse cx="50" cy="50" rx="45" ry="30" />
+                          <path d="M5,50 a45,45 0 0,1 90,0" />
+                          <path d="M95,50 a45,45 0 0,1 -90,0" />
+                          <line x1="50" y1="5" x2="50" y2="95" />
+                          <path d="M35,5 A50,100 0 0,0 35,95" />
+                          <path d="M65,5 A50,100 0 0,1 65,95" />
+                        </g>
+                      </svg>
+                    </label>
+                  </div>
+
+                  <div>
+                    <input id="fullscreen-compare-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+                    <label for="fullscreen-compare-toggle-{{il.image.id}}" title="Compare with apparent size of solar objects" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
+                      bg-gray-300 text-gray-900 border-slate-300
+                      hover:bg-gray-400 hover:border-slate-500
+                      hover:dark:bg-slate-600 hover:dark:border-slate-400
+                      peer-checked:hover:bg-green-700 
+                      peer-checked:bg-green-800 peer-checked:text-white
+                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
+                      dark:peer-checked:bg-green-500 dark:peer-checked:text-black
+                      shadow">
+                      <svg class="w-5 h-5 fill-current" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true" role="img">
+                        <image href="{{ url_for('static', filename='assets/images/moon.png') }}" width="128" height="128"
+                          class="object-contain" alt="Moon overlay fullscreen" />
+                      </svg>
+                    </label>
+                  </div>
+
+                  <div>
+                    <input id="fullscreen-overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+                    <label for="fullscreen-overlay-toggle-{{il.image.id}}" title="Label celestial objects in the image" class="inline-block px-3 p-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
+                      bg-gray-300 text-gray-900 border-slate-300 
+                      hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
+                      peer-checked:hover:bg-green-700 
+                      peer-checked:bg-green-800 peer-checked:text-white
+                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
+                      dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
+                      <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="_x32_" class="w-5 h-5 fill-current"
+                        version="1.1" viewBox="0 0 512 512">
+                        <path
+                          d="M480.931 191.431c-1.37-3.032-3.171-5.863-5.495-8.326a24.85 24.85 0 0 0-7.877-5.643L115.761 2.619l-.258-.101C111.459.781 107.158 0 102.903 0 96.322.01 89.87 1.838 83.74 4.881c-9.199 4.595-17.839 11.928-25.651 21.248-7.83 9.338-14.796 20.724-20.256 33.638-7.132 16.846-10.67 33.711-10.68 48.784.01 10.349 1.655 19.926 5.359 28.114 1.866 4.108 4.255 7.867 7.298 11.093 3.014 3.217 6.69 5.864 10.863 7.629l.266.11 201.799 71.539v57.846L130.3 470.789c-2.821 4.283-1.627 10.055 2.656 12.876 4.283 2.831 10.055 1.626 12.876-2.647l106.906-162.324V502.69a9.302 9.302 0 0 0 9.309 9.31c5.128 0 9.292-4.162 9.292-9.31V317.564l107.65 163.455c2.84 4.274 8.594 5.478 12.894 2.647 4.292-2.821 5.469-8.593 2.638-12.876L271.339 283.761v-50.126l149.881 53.14v-.019a25.038 25.038 0 0 0 9.191 1.756c5.045-.028 9.852-1.425 14.346-3.631 6.736-3.373 12.867-8.621 18.39-15.21 5.505-6.59 10.376-14.567 14.218-23.582 4.981-11.792 7.472-23.611 7.482-34.31-.01-7.361-1.168-14.254-3.916-20.348zM65.295 139.706c-1.875 0-3.658-.238-5.367-.753l-2.106-.736c-1.654-.735-3.097-1.746-4.484-3.217-2.123-2.242-4.072-5.643-5.441-10.146-1.351-4.503-2.151-10.054-2.151-16.304 0-12.132 2.96-26.8 9.218-41.532 6.36-15.045 15.073-27.581 24.006-36.036 4.43-4.218 8.915-7.408 13.05-9.448 4.136-2.058 7.858-2.95 10.882-2.95 1.939.01 3.612.359 5.22 1.002l2.049 1.029a19.243 19.243 0 0 1 4.283 3.364c2.758 2.876 5.037 6.866 6.599 11.855 1.572 4.964 2.408 10.864 2.399 17.389.008 11.791-2.748 25.495-8.566 39.189-6.139 14.484-14.641 26.524-23.638 34.768-4.485 4.127-9.089 7.288-13.519 9.402-4.429 2.104-8.638 3.124-12.434 3.124zm92.862 34.071-76.76-27.214c.285-.129.598-.258.9-.387 8.336-3.979 16.378-10.495 23.63-18.95 7.279-8.437 13.722-18.841 18.73-30.642 6.332-14.944 9.42-29.962 9.42-43.361 0-8.208-1.168-15.827-3.575-22.498l72.918 36.229c.653 1.433 1.268 2.922 1.793 4.55 1.58 4.953 2.407 10.89 2.407 17.397.01 11.783-2.748 25.495-8.565 39.207-6.14 14.466-14.65 26.506-23.639 34.75-4.484 4.127-9.089 7.288-13.519 9.402a37.1 37.1 0 0 1-3.74 1.517zm238.082 84.406L172.108 178.73c6.323-3.952 12.398-9.301 17.986-15.816 7.28-8.447 13.722-18.851 18.73-30.661 6.323-14.953 9.42-29.933 9.42-43.352 0-5.404-.515-10.541-1.535-15.348l212.892 105.812c1.369 1.738 2.518 3.944 3.373 6.682 1.066 3.382 1.654 7.454 1.654 11.975.019 8.189-1.911 17.784-5.992 27.406-4.301 10.156-10.284 18.584-16.506 24.309-3.124 2.868-6.296 5.037-9.292 6.452-2.352 1.121-4.576 1.755-6.599 1.994zm63.995-19.347c-4.164 9.862-9.898 18.078-15.624 23.446-2.84 2.72-5.652 4.696-8.134 5.946-2.5 1.232-4.567 1.672-6.066 1.672-.984 0-1.737-.166-2.454-.469l-.257-.119-16.25-5.753c4.724-2.922 9.209-6.884 13.345-11.672 5.284-6.158 9.98-13.721 13.611-22.306 4.596-10.854 6.856-21.744 6.856-31.56 0-4.052-.432-7.876-1.213-11.488l15.486 7.692.257.12c.744.303 1.398.763 2.123 1.535 1.057 1.084 2.17 2.968 2.997 5.68.845 2.721 1.342 6.213 1.342 10.22.001 7.775-1.911 17.369-6.019 27.056z"
+                          class="st0" />
+                        <path
+                          d="M97.811 48.26c1.727-.909 3.225-1.286 4.494-1.286.459 0 .91.046 1.342.148a5.32 5.32 0 0 0 6.359-3.989 5.317 5.317 0 0 0-4.016-6.36 15.962 15.962 0 0 0-3.685-.413c-3.336 0-6.553.947-9.485 2.509-4.402 2.372-8.327 6.048-11.902 10.68-3.538 4.594-6.7 10.183-9.346 16.506-1.14 2.702.137 5.799 2.849 6.956a5.298 5.298 0 0 0 6.939-2.858c3.134-7.454 7.022-13.529 10.9-17.517 1.911-2.005 3.832-3.466 5.551-4.376z"
+                          class="st0" />
+                      </svg>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="flex px-1 justify-between items-center text-sm md:text-gp-1.5 text-gray-600 dark:text-gray-300">
@@ -542,20 +727,10 @@
       import { renderGuidingPlot, renderCalibrationPlot } from "{{ url_for('static', filename='js/phd2Plotly.js') }}";
       import { populateAxisSelects, drawVariablePlot } from "{{ url_for('static', filename='js/subFramePlot.js') }}";
         (function () {
-          const img = document.getElementById('zoomable-image-{{il.image.id}}');
-          const wrapper = document.getElementById('zoom-wrapper-{{il.image.id}}');
-
-          const panzoom = Panzoom(wrapper, {
-            maxScale: 50
-          })
-          wrapper.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
-
-          document.getElementById('reset-btn-{{il.image.id}}').addEventListener('click', () => {
-            panzoom.reset();
-          });
+          const imageId = "{{ il.image.id }}";
 
           function copyCurrentURL() {
-            const link = `${window.location.origin}${window.location.pathname}#uid-{{il.image.id}}`;
+            const link = `${window.location.origin}${window.location.pathname}#uid-${imageId}`;
             navigator.clipboard.writeText(link)
               .then(() => {
                 alert("Link copied to clipboard!");
@@ -653,27 +828,11 @@
 
         // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
 
+        const overlayData = {{ il.svg_image | tojson | safe  }};
 
-        let overlayData = {{ il.svg_image | tojson | safe  }};
-
-        const overlayToggle = document.getElementById('overlay-toggle-{{il.image.id}}');
-        const svgOverlay = document.getElementById('svg-overlay-{{il.image.id}}');
-
-        let overlays = overlayData.overlays.name.map((_, i) => ({
-          id: overlayData.overlays.name[i],
-          //ids: overlayData.overlays.ids[i],
-          x: overlayData.overlays.x[i],
-          y: overlayData.overlays.y[i],
-          rx: overlayData.overlays.rx[i],
-          ry: overlayData.overlays.ry[i],
-          angle: overlayData.overlays.angle[i],
-          otype: overlayData.overlays.otype[i],
-        }));
-
-        //console.log(overlays);
-        function renderOverlay() {
-          if (!overlayToggle.checked) {
-            svgOverlay.innerHTML = "";
+        function renderObjectOverlay(target, enabled) {
+          if (!enabled) {
+            target.innerHTML = "";
             return;
           }
 
@@ -692,146 +851,206 @@
           </style>
         `;
 
-          for (let item of overlays) {
+          const overlays = overlayData.overlays.name.map((_, i) => ({
+            id: overlayData.overlays.name[i],
+            x: overlayData.overlays.x[i],
+            y: overlayData.overlays.y[i],
+            rx: overlayData.overlays.rx[i],
+            ry: overlayData.overlays.ry[i],
+            angle: overlayData.overlays.angle[i],
+            otype: overlayData.overlays.otype[i],
+          }));
 
-            if (item.rx >= 25 && item.ry >= 25) {
-              
-              const rawId = item.id ?? "";
-              const id = String(rawId).trim();
-
-              // otype must be valid and not "Unknown"
-              const rawOtype = item.otype === "Unknown" || !item.otype ? "" : item.otype;
-              const otype = String(rawOtype).trim();
-
-              // Build query safely
-              let query = (otype ? `${otype} ${id}` : id).trim();
-
-              // Last safety fallback
-              if (!query || typeof query !== "string") {
-                  query = id || "";
-              }
-              query = query.replace(/\s+/g, " ").trim();
-
-              // Default search engine link
-              const searchURL = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-
-              const transform = item.angle
-                ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)}) "`
-                : "";
-
-              svg += `
-                <g class="astro-group" data-search="${searchURL}"  data-query="${query}">
-                  <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
-                    rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
-                    fill="none" stroke="white" stroke-width="10"></ellipse>
-
-                  <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 60).toFixed(2)}"
-                    font-size="72" fill="white" stroke="black" stroke-width="2"
-                    text-anchor="middle" alignment-baseline="middle">
-                    ${item.id}
-                  </text>
-                </g>
-              `;
+          for (const item of overlays) {
+            if (item.rx < 25 || item.ry < 25) {
+              continue;
             }
+
+            const rawId = item.id ?? "";
+            const id = String(rawId).trim();
+            const rawOtype = item.otype === "Unknown" || !item.otype ? "" : item.otype;
+            const otype = String(rawOtype).trim();
+
+            let query = (otype ? `${otype} ${id}` : id).trim();
+            if (!query || typeof query !== "string") {
+              query = id || "";
+            }
+            query = query.replace(/\s+/g, " ").trim();
+
+            const searchURL = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            const transform = item.angle
+              ? ` transform="rotate(${item.angle}, ${item.x.toFixed(2)}, ${item.y.toFixed(2)}) "`
+              : "";
+
+            svg += `
+              <g class="astro-group" data-search="${searchURL}" data-query="${query}">
+                <ellipse cx="${item.x.toFixed(2)}" cy="${item.y.toFixed(2)}"
+                  rx="${item.rx.toFixed(2)}" ry="${item.ry.toFixed(2)}"${transform}
+                  fill="none" stroke="white" stroke-width="10"></ellipse>
+
+                <text x="${(item.x + 60).toFixed(2)}" y="${(item.y - item.ry - 60).toFixed(2)}"
+                  font-size="72" fill="white" stroke="black" stroke-width="2"
+                  text-anchor="middle" alignment-baseline="middle">
+                  ${item.id}
+                </text>
+              </g>
+            `;
           }
+
           svg += "</svg>";
-          svgOverlay.innerHTML = svg;
+          target.innerHTML = svg;
 
-          svgOverlay.querySelectorAll(".astro-group").forEach(group => {
-          group.addEventListener("dblclick", (evt) => {
-            const query = group.dataset.query;
-            const url = group.dataset.search;
+          target.querySelectorAll(".astro-group").forEach(group => {
+            group.addEventListener("dblclick", (evt) => {
+              const query = group.dataset.query;
+              const url = group.dataset.search;
 
-            const confirmSearch = confirm(
-              `Search for:\n\n${query}\n\nProceed using your default search engine?`
-            );
+              const confirmSearch = confirm(
+                `Search for:\n\n${query}\n\nProceed using your default search engine?`
+              );
 
-            if (confirmSearch) {
-              window.open(url, "_blank");
-            }
+              if (confirmSearch) {
+                window.open(url, "_blank");
+              }
 
-            evt.stopPropagation();
+              evt.stopPropagation();
+            });
           });
-        });
         }
 
-        // Handle overlay toggle
-        overlayToggle.addEventListener('change', () => {
-          renderOverlay();
-        });
-
-        renderOverlay();
-
-        // render graticule
-        const graticuleToggle = document.getElementById('graticule-toggle-{{il.image.id}}');
-        const graticuleOverlay = document.getElementById('graticule-{{il.image.id}}');
-
-        function renderGraticule() {
-          if (!graticuleToggle.checked) {
-            graticuleOverlay.innerHTML = "";
+        function renderGraticuleOverlay(target, enabled) {
+          if (!enabled) {
+            target.innerHTML = "";
             return;
           }
 
           let svg = `<svg viewBox="0 0 ${overlayData.width} ${overlayData.height}" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; pointer-events: auto;">`;
 
-          // RA lines (lime color)
           overlayData.grid_lines.ra_lines.forEach(line => {
             const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
             svg += `<polyline class="ra-line" stroke="white" stroke-width="8" fill="none" opacity="0.7" points="${points}" />`;
           });
 
-          // Dec lines (cyan color)
           overlayData.grid_lines.dec_lines.forEach(line => {
             const points = line.map(pt => `${pt[0]},${pt[1]}`).join(" ");
-            svg += `<polyline class="dec-line" stroke="white" stroke-width="8" fill="none" opacity="0.7"  points="${points}" />`;
+            svg += `<polyline class="dec-line" stroke="white" stroke-width="8" fill="none" opacity="0.7" points="${points}" />`;
           });
 
-          // Labels (yellow text with black stroke)
           overlayData.grid_lines.labels.forEach(label => {
-            svg += `<text x="${label.x}" y="${label.y}"font-family="Arial" font-weight="bold" font-size="60" fill="white" stroke="black" stroke-width="1" paint-order="stroke fill" opacity="0.7"  transform="rotate(${label.rotation}, ${label.x}, ${label.y})">${label.text}</text>`;
+            svg += `<text x="${label.x}" y="${label.y}"font-family="Arial" font-weight="bold" font-size="60" fill="white" stroke="black" stroke-width="1" paint-order="stroke fill" opacity="0.7" transform="rotate(${label.rotation}, ${label.x}, ${label.y})">${label.text}</text>`;
           });
-
 
           svg += "</svg>";
-          graticuleOverlay.innerHTML = svg;
+          target.innerHTML = svg;
         }
 
-        // Handle overlay toggle
-        graticuleToggle.addEventListener('change', () => {
-          renderGraticule();
-        });
-
-        renderGraticule();
-
-
-        const pixelScale = {{ il.image.pixel_scale }};
-
-        document.getElementById("compare-toggle-{{il.image.id}}").onclick = () => {
-          const size = 1800 / pixelScale; //moon size is 1800 arcseconds
-          const container = document.getElementById('comp-wrapper-{{il.image.id}}');
-          //const parentCont = document.getElementById('compare-{{il.image.id}}');
-
-          // Toggle visibility
-          if (!container.classList.contains("hidden")) {
-            container.classList.add("hidden");
+        function syncCompareOverlay(compareWrapper, enabled) {
+          if (!enabled) {
+            compareWrapper.classList.add("hidden");
             return;
           }
 
-          container.classList.remove('hidden'); // Show the SVG
+          compareWrapper.classList.remove("hidden");
 
-          // Initialize Panzoom only once
-          if (!container.dataset.panzoomInitialized) {
-            container.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
-            //parentCont.style.width = `${overlayData.width}px`;
-            //parentCont.style.height = `${overlayData.height}px`;
-            Panzoom(container, {
-              cursor: 'grab',
+          if (!compareWrapper._panzoomInstance) {
+            compareWrapper.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
+            compareWrapper._panzoomInstance = Panzoom(compareWrapper, {
+              cursor: "grab",
               disableZoom: true
             });
-
-            container.dataset.panzoomInitialized = "true";
           }
-        };
+        }
+
+        function createViewer(prefix) {
+          const elements = {
+            container: document.getElementById(`${prefix}zoom-container-${imageId}`),
+            wrapper: document.getElementById(`${prefix}zoom-wrapper-${imageId}`),
+            overlay: document.getElementById(`${prefix}svg-overlay-${imageId}`),
+            graticule: document.getElementById(`${prefix}graticule-${imageId}`),
+            compareWrapper: document.getElementById(`${prefix}comp-wrapper-${imageId}`),
+            overlayToggle: document.getElementById(`${prefix}overlay-toggle-${imageId}`),
+            graticuleToggle: document.getElementById(`${prefix}graticule-toggle-${imageId}`),
+            compareToggle: document.getElementById(`${prefix}compare-toggle-${imageId}`),
+            resetButton: document.getElementById(`${prefix}reset-btn-${imageId}`),
+          };
+
+          const panzoom = Panzoom(elements.wrapper, {
+            maxScale: 50
+          });
+
+          elements.container.addEventListener("wheel", panzoom.zoomWithWheel, { passive: false });
+
+          const renderAll = () => {
+            renderObjectOverlay(elements.overlay, elements.overlayToggle.checked);
+            renderGraticuleOverlay(elements.graticule, elements.graticuleToggle.checked);
+            syncCompareOverlay(elements.compareWrapper, elements.compareToggle.checked);
+          };
+
+          elements.resetButton.addEventListener("click", () => {
+            panzoom.reset();
+            elements.compareWrapper._panzoomInstance?.reset?.();
+          });
+
+          elements.overlayToggle.addEventListener("change", renderAll);
+          elements.graticuleToggle.addEventListener("change", renderAll);
+          elements.compareToggle.addEventListener("change", renderAll);
+
+          renderAll();
+
+          return {
+            elements,
+            reset() {
+              panzoom.reset();
+              elements.compareWrapper._panzoomInstance?.reset?.();
+            },
+            setToolState(state) {
+              elements.overlayToggle.checked = !!state.overlay;
+              elements.graticuleToggle.checked = !!state.graticule;
+              elements.compareToggle.checked = !!state.compare;
+              renderAll();
+            }
+          };
+        }
+
+        const inlineViewer = createViewer("");
+        const fullscreenViewer = createViewer("fullscreen-");
+
+        const fullscreenModal = document.getElementById(`fullscreen-modal-${imageId}`);
+        const fullscreenOpenButton = document.getElementById(`fullscreen-btn-${imageId}`);
+        const fullscreenCloseButton = document.getElementById(`fullscreen-close-btn-${imageId}`);
+        const fullscreenBackdrop = document.getElementById(`fullscreen-backdrop-${imageId}`);
+
+        function openFullscreenViewer() {
+          fullscreenViewer.setToolState({
+            overlay: inlineViewer.elements.overlayToggle.checked,
+            graticule: inlineViewer.elements.graticuleToggle.checked,
+            compare: inlineViewer.elements.compareToggle.checked,
+          });
+
+          fullscreenModal.classList.remove("hidden");
+          fullscreenModal.classList.add("flex");
+          document.body.style.overflow = "hidden";
+
+          requestAnimationFrame(() => {
+            fullscreenViewer.reset();
+          });
+        }
+
+        function closeFullscreenViewer() {
+          fullscreenModal.classList.add("hidden");
+          fullscreenModal.classList.remove("flex");
+          document.body.style.overflow = "";
+        }
+
+        fullscreenOpenButton.addEventListener("click", openFullscreenViewer);
+        fullscreenCloseButton.addEventListener("click", closeFullscreenViewer);
+        fullscreenBackdrop.addEventListener("click", closeFullscreenViewer);
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !fullscreenModal.classList.contains("hidden")) {
+            closeFullscreenViewer();
+          }
+        });
 
         document.addEventListener("DOMContentLoaded", () => {
             drawHRDiagram(overlayData);
