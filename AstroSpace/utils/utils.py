@@ -4,20 +4,14 @@ import os
 import re
 import unicodedata
 
-ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
-ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
-ALLOWED_TXT_EXTENSIONS = {"txt"}
-
-# Define which HTML tags and attributes are safe
-ALLOWED_TAGS = [
-    'b', 'i', 'u', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li',
-    'blockquote', 'code', 'span'
-]
-ALLOWED_ATTRIBUTES = {
-    'a': ['href', 'title', 'rel'],
-    'span': ['style'],
-}
-ALLOWED_STYLES = ['color', 'font-weight', 'text-decoration']
+from AstroSpace.constants import (
+    ALLOWED_ATTRIBUTES,
+    ALLOWED_FITS_EXTENSIONS,
+    ALLOWED_IMG_EXTENSIONS,
+    ALLOWED_STYLES,
+    ALLOWED_TAGS,
+    ALLOWED_TXT_EXTENSIONS,
+)
 
 
 def slugify(text):
@@ -63,6 +57,7 @@ def geocode(place):
         "https://nominatim.openstreetmap.org/search",
         params={"q": place, "format": "json", "limit": 1},
         headers={"User-Agent": "AstroApp"},
+        timeout=10,
     )
     if r.ok and r.json():
         loc = r.json()[0]

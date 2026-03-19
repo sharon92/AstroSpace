@@ -4,7 +4,7 @@ import requests
 import json
 from datetime import datetime
 import time
-import bleach
+from psycopg2.extras import Json
 from flask import (
     Blueprint,
     flash,
@@ -15,35 +15,32 @@ from flask import (
     current_app,
     g,
     send_from_directory,
-    jsonify
+    jsonify,
 )
 from collections import defaultdict
 
 # from werkzeug.exceptions import abort
 from astroquery.simbad import Simbad
 from AstroSpace.auth import login_required
+from AstroSpace.constants import DB_TABLES, IMAGE_DETAIL_TABLE_NAMES
 from AstroSpace.db import get_conn
-from AstroSpace.utils.moon_phase import get_moon_illumination
-from AstroSpace.utils.phd2logparser import bokeh_phd2
-from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
-from AstroSpace.utils.queries import (
-    DB_TABLES,
-    get_image_tables,
+from AstroSpace.repositories.images import (
+    fetch_options,
     get_all_images,
     get_image_by_id,
-    fetch_options,
+    get_image_tables,
 )
+from AstroSpace.services.authorization import require_owner
+from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
+from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
+from AstroSpace.utils.moon_phase import get_moon_illumination
+from AstroSpace.utils.phd2logparser import build_plotly_payloads
+from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
 from AstroSpace.utils.utils import geocode, slugify
-from AstroSpace.utils.blog_form import BlogForm
 from AstroSpace.utils.utils import (
     ALLOWED_IMG_EXTENSIONS,
     ALLOWED_TXT_EXTENSIONS,
-    ALLOWED_TAGS,
-    ALLOWED_ATTRIBUTES,
 )
-
-from werkzeug.utils import secure_filename
-from uuid import uuid4
 
 bp = Blueprint("blog", __name__)
 
@@ -71,9 +68,7 @@ def home():
         )
         img["url"] = url_for("blog.upload", filename=img["image_path"])
     # print("Top images:", top_images)
-    return render_template(
-        "home.html",top_images=top_images
-    )
+    return render_template("home.html", top_images=top_images)
 
 
 @bp.route("/collection")
@@ -198,37 +193,11 @@ def get_elevation():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
     url = f"https://api.opentopodata.org/v1/test-dataset?locations={lat},{lon}"
-    r = requests.get(url)
+    r = requests.get(url, timeout=10)
     if r.status_code == 200:
         return str(round(r.json()["results"][0]["elevation"]))
     else:
         return "0"
-
-
-@bp.route("/blog", methods=["GET", "POST"])
-@login_required
-def new_blog():
-    form = BlogForm()
-    if form.validate_on_submit():
-        title = form.title.data
-        content = request.form.get("content")  # This is from Quill's hidden input
-        image = form.image.data
-
-        image_path = None
-        if image:
-            filename = secure_filename(image.filename)
-            image_path = os.path.join(current_app.config["UPLOAD_PATH"], filename)
-            image.save(image_path)
-
-        # Save blog post (in database, for example)
-        # Blog(title=title, content=content, image_path=image_path).save()
-
-        flash("Blog post created successfully!")
-        return redirect(url_for("your_blog_listing_view"))
-
-    return render_template(
-        "create_blog.html", form=form, WebName=current_app.config["TITLE"]
-    )
 
 
 @bp.route("/image/<int:image_id>/<string:image_name>")
@@ -237,19 +206,7 @@ def image_detail(image_id, image_name):
     if len(tables) == 1:
         return tables
     background_image = tables[0]["image_path"]
-    table_names = [
-        "image",
-        "equipment_list",
-        "dates",
-        "lights",
-        "software_list",
-        "guiding_html",
-        "calibration_html",
-        "svg_image",
-        "meta_json",
-    ]
-    # image, equipment_list, dates, lights, software_list, guiding_html, calibration_html,svg_image = tables
-    images = [dict(zip(table_names, tables))]
+    images = [dict(zip(IMAGE_DETAIL_TABLE_NAMES, tables))]
 
     db = get_conn()
     with db.cursor() as cur:
@@ -261,8 +218,8 @@ def image_detail(image_id, image_name):
 
     for i in prev_images:
         if i["id"] != image_id:
-            images += [dict(zip(table_names, get_image_tables(i["id"])))]
-
+            images += [dict(zip(IMAGE_DETAIL_TABLE_NAMES, get_image_tables(i["id"])))]
+    
     return render_template(
         "image_detail.html",
         background_image=background_image,
@@ -311,6 +268,7 @@ def edit_image(image_id):
         return tables
 
     image, equipment_list, dates, lights, software_list, _, _, _, _ = tables
+    require_owner(image["author"])
 
     capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates]
 
@@ -332,6 +290,12 @@ def edit_image(image_id):
 @bp.route("/delete/<int:image_id>")
 @login_required
 def delete_image(image_id):
+    image = get_image_by_id(image_id)
+    if not image:
+        flash("Post not found.")
+        return redirect(url_for("blog.collection"))
+    require_owner(image["author"])
+
     conn = get_conn()
     cur = conn.cursor()
     # Clear and reinsert related tables
@@ -351,19 +315,21 @@ def delete_image(image_id):
     flash("Post deleted successfully!")
     return redirect(url_for("blog.collection"))
 
-
-def allowed_file(filename, allowed_extensions=ALLOWED_IMG_EXTENSIONS):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
-
-
 @bp.route("/create", methods=["POST"])
 @login_required
 def save_image():
     print("Saving/Updating image...")
     user = g.user["username"]
     user_id = str(g.user["id"])
+    img_id = None
 
-    os.makedirs(os.path.join(current_app.config["UPLOAD_PATH"], user_id), exist_ok=True)
+    ensure_directory(os.path.join(current_app.config["UPLOAD_PATH"], user_id))
+
+    def image_form_redirect(message):
+        flash(message)
+        if img_id:
+            return redirect(url_for("blog.edit_image", image_id=img_id))
+        return redirect(url_for("blog.new_image"))
     
     try:
         print("Processing form data...")
@@ -372,6 +338,8 @@ def save_image():
         
         if img_id:
             tmp_img = get_image_by_id(img_id)
+            if tmp_img:
+                require_owner(tmp_img["author"])
         
         lat = form.get("location_latitude") or None
         lon = form.get("location_longitude") or None
@@ -394,11 +362,13 @@ def save_image():
         fits_path = request.files.get("fits_file")
         #print("Performing plate solving...")
         svg_image = None
-        if file.filename and allowed_file(file.filename):
-            filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
-            image_path = os.path.join(current_app.config["UPLOAD_PATH"], user_id, filename)
-            img_path_upload = f"{user_id}/{filename}"
-            file.save(image_path)
+        if file and file.filename:
+            if not allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
+                return image_form_redirect("Preview image must be a JPG or PNG file.")
+
+            stored_image = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
+            image_path = stored_image.absolute_path
+            img_path_upload = stored_image.public_path
             header_json, thumbnail_path, pixel_scale = platesolve(
                 image_path, user_id, fits_path
             )
@@ -422,6 +392,8 @@ def save_image():
                 svg_image = tmp_img["overlays_json"]
                 thumbnail_path = tmp_img["image_thumbnail"]
                 pixel_scale = tmp_img["pixel_scale"]
+        else:
+            return image_form_redirect("A preview image is required when creating a post.")
 
         if svg_image is None:
             svg_image = json.dumps(get_overlays(header_json))
@@ -432,20 +404,18 @@ def save_image():
             print("Generating guide log plot...")
             iguide_logs = []
             iguide_logs_upload = []
-            for file in guide_logs:
-                if file and allowed_file(file.filename, ALLOWED_TXT_EXTENSIONS):
-                    filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
-                    guide_log_path = os.path.join(
-                        current_app.config["UPLOAD_PATH"], user_id, filename
-                    )
-                    file.save(guide_log_path)
-                    iguide_logs.append(guide_log_path)
-                    iguide_logs_upload.append(f"{user_id}/{filename}")
+            for guide_log in guide_logs:
+                if guide_log and allowed_file(guide_log.filename, ALLOWED_TXT_EXTENSIONS):
+                    stored_log = save_user_upload(guide_log, current_app.config["UPLOAD_PATH"], user_id)
+                    iguide_logs.append(stored_log.absolute_path)
+                    iguide_logs_upload.append(stored_log.public_path)
             guide_logs = ",".join(iguide_logs)
-            guiding_html, calibration_html = bokeh_phd2(guide_logs)
+            guiding_plot, calibration_plot = build_plotly_payloads(guide_logs)
+            guiding_plot_json = Json(guiding_plot)
+            calibration_plot_json = Json(calibration_plot)
             guide_logs = ",".join(iguide_logs_upload)
         elif img_id:
-            guide_logs = form.get("prev_guide_logs")
+            guide_logs = form.get("prev_guide_logs") or ""
             if form.get("redo_graphs") == "on":
                 full_guide_logs = ",".join(
                     [
@@ -455,30 +425,19 @@ def save_image():
                         for i in guide_logs.split(",")
                     ]
                 )
-                guiding_html, calibration_html = bokeh_phd2(full_guide_logs)
+                guiding_plot, calibration_plot = build_plotly_payloads(full_guide_logs)
+                guiding_plot_json = Json(guiding_plot)
+                calibration_plot_json = Json(calibration_plot)
             else:
-                guiding_html = tmp_img["guiding_html"]
-                calibration_html = tmp_img["calibration_html"]
+                guiding_plot_json = Json(tmp_img["guiding_plot_json"]) if tmp_img.get("guiding_plot_json") else None
+                calibration_plot_json = Json(tmp_img["calibration_plot_json"]) if tmp_img.get("calibration_plot_json") else None
         else:
             guide_logs = ""
-            guiding_html, calibration_html = "", ""
+            guiding_plot_json, calibration_plot_json = None, None
         
-        if "meta_store" in request.form:
-            file = request.form["meta_store"]
-            try:
-                meta_store = json.loads(file)
-
-                meta_json = json.dumps({
-                    "constant": meta_store.get("constant", {}),
-                    "variable": meta_store.get("variable", {}),
-                    "comments": meta_store.get("comments", {}),
-                })
-            except json.JSONDecodeError:
-                meta_json = '{}'
-                print("Invalid meta_store JSON, saving empty meta_json.")
-        else:
-            meta_json = '{}'
-            print("No meta store provided, saving empty meta_json.")
+        meta_json = parse_meta_store(request.form.get("meta_store"))
+        if meta_json == "{}" and img_id:
+            meta_json = tmp_img["meta_json"]
 
         table_ids = []
         for table in DB_TABLES:
@@ -495,27 +454,37 @@ def save_image():
 
         # Sanitize it
         print("Sanitizing description...")
-        clean_desc = bleach.clean(
-            desc,
-            tags=ALLOWED_TAGS,
-            attributes=ALLOWED_ATTRIBUTES,
-            strip=True   # strips disallowed tags completely (instead of escaping)
-        )
+        clean_desc = sanitize_rich_text(desc)
 
         conn = get_conn()
         cur = conn.cursor()
 
-        columns = """
-            title, short_description, description, author, slug,
-            created_at, edited_at,
-            image_path, image_thumbnail, pixel_scale, object_type,
-            header_json, overlays_json, meta_json, location,
-            location_latitude, location_longitude, location_elevation,
-            guide_log, guiding_html, calibration_html,
-        """.strip()
-        columns += ",".join([f"{i}_id" for i in DB_TABLES])
+        column_list = [
+            "title",
+            "short_description",
+            "description",
+            "author",
+            "slug",
+            "created_at",
+            "edited_at",
+            "image_path",
+            "image_thumbnail",
+            "pixel_scale",
+            "object_type",
+            "header_json",
+            "overlays_json",
+            "meta_json",
+            "location",
+            "location_latitude",
+            "location_longitude",
+            "location_elevation",
+            "guide_log",
+            "guiding_plot_json",
+            "calibration_plot_json",
+            *[f"{i}_id" for i in DB_TABLES],
+        ]
 
-        placeholders = ", ".join(["%s"] * len(columns.split(",")))
+        placeholders = ", ".join(["%s"] * len(column_list))
 
         values = [
             title,
@@ -537,15 +506,14 @@ def save_image():
             lon,
             form.get("location_elevation"),
             guide_logs,
-            guiding_html,
-            calibration_html,
+            guiding_plot_json,
+            calibration_plot_json,
             *table_ids,
         ]
 
         if img_id:
             # editing updating
             print("Updating existing image...")
-            column_list = [col.strip() for col in columns.split(",") if col.strip()]
             set_clause = ", ".join([f"{col} = %s" for col in column_list])
 
             query = f"""
@@ -573,7 +541,7 @@ def save_image():
 
         else:
             print("Inserting new image...")
-            query = f"INSERT INTO images ({columns}) VALUES ({placeholders}) RETURNING id"
+            query = f"INSERT INTO images ({', '.join(column_list)}) VALUES ({placeholders}) RETURNING id"
             cur.execute(
                 query,
                 (*values,),
@@ -622,8 +590,5 @@ def save_image():
         flash("Post updated successfully!")
         return redirect(url_for("private.profile"))
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        print("Error:", str(e))
-        #flash(f"An error occurred: {str(e)}", "error")
-        return '', 204
+        current_app.logger.exception("Failed to save image")
+        return image_form_redirect(f"An error occurred while saving the post: {e}")

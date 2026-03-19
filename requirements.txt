@@ -6,10 +6,10 @@ numpy
 pandas
 requests
 ephem
-bokeh
 astroquery
 astropy
 photoutils
 pillow
 xisf
 bleach
+tinycss2

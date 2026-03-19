@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template
-from AstroSpace.utils.queries import get_conn
+from AstroSpace.db import get_conn
+from AstroSpace.services.content import sanitize_rich_text
 
 bp = Blueprint("profile", __name__, url_prefix="/profile")
 
@@ -18,6 +19,7 @@ def public_profile(username):
 
     if not user:
         return render_template("404.html"), 404
+    user["bio"] = sanitize_rich_text(user.get("bio"))
 
     # --- Get user's posts ---
     with db.cursor() as cur:

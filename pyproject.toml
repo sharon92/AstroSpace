@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "astrospace"
-version = "1.2.2"
+version = "1.2.3"
 description = "A Flask-based astrophotography web application"
 authors = [
   { name="Sharon Shaji", email="sharonshaji92@outlook.com" }
@@ -20,18 +20,23 @@ dependencies = [
 "pandas",
 "requests",
 "ephem",
-"bokeh==3.7.3",
 "astroquery",
 "astropy",
 "photoutils",
 "pillow",
 "xisf",
-"bleach"
+"bleach",
+"tinycss2"
+]
+
+[project.optional-dependencies]
+dev = [
+"pytest",
 ]
 
 [tool.hatch.build]
 include = [
-  "AstroSpace/*.py",
+  "AstroSpace/**/*.py",
   "AstroSpace/*.sql",
   "AstroSpace/static/**",
   "AstroSpace/templates/**",
@@ -42,3 +47,6 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["AstroSpace"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

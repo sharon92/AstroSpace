@@ -1,6 +1,9 @@
 import os
 from flask import Flask, jsonify, g
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import RequestEntityTooLarge
+
+csrf = CSRFProtect()
 
 
 def create_app(test_config=None):
@@ -30,6 +33,7 @@ def create_app(test_config=None):
 
     #app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_PATH'],exist_ok=True)
+    skip_db_init = app.config.get("SKIP_DB_INIT", False)
 
     # ensure the instance folder exists
     try:
@@ -40,18 +44,28 @@ def create_app(test_config=None):
     for key in ['SECRET_KEY', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']:
         if key not in app.config:
             raise ValueError(f"{key} must be set in the configuration", app.config)
+    if not app.config.get("SECRET_KEY"):
+        raise ValueError("SECRET_KEY must be set in the configuration")
+
+    csrf.init_app(app)
 
     from . import db
-    db.init_app(app)
+    if not skip_db_init:
+        db.init_app(app)
 
-    with app.app_context():
-        exists = db.check_images_table_exists()
-        if not exists:
-            print("Table does not exist. Initializing database...")
-            db.init_db()
+        with app.app_context():
+            exists = db.check_images_table_exists()
+            if not exists:
+                print("Table does not exist. Initializing database...")
+                db.init_db()
+            db.ensure_runtime_schema()
     
     @app.before_request
     def load_web_info():
+        if skip_db_init:
+            g.web_info = {}
+            return
+
         conn = db.get_conn()
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM web_info LIMIT 1")

@@ -10,7 +10,6 @@ __pycache__/
 **/*.bat 
 
 instance/
-blogs/ 
 postgres/
 **/node_modules/
 **/uploads/
