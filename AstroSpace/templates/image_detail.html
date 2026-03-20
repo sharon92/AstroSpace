@@ -95,9 +95,48 @@
     <!-- Main Card Container -->
     <div x-data="{ mainTab: 'image', detailTab: 'lights',showObjects: false }"
       x-init="
+        const storageKey = `image-tabs:${window.location.pathname}:{{ il.image.id }}`;
+        const validMainTabs = ['image', 'details', 'explore'{% if il.meta_json and 'variable' in il.meta_json %}, 'analyse'{% endif %}];
+        const validDetailTabs = ['lights', 'nights', 'equipment', 'software'{% if il.guiding_plot %}, 'guiding'{% endif %}{% if il.calibration_plot %}, 'calibration'{% endif %}];
+
+        try {
+          const savedTabs = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+          if (validMainTabs.includes(savedTabs.mainTab)) {
+            mainTab = savedTabs.mainTab;
+          }
+
+          if (validDetailTabs.includes(savedTabs.detailTab)) {
+            detailTab = savedTabs.detailTab;
+          }
+        } catch (error) {
+          console.warn('Failed to restore image tab state', error);
+        }
+
         if (window.innerWidth < 768 && mainTab === 'analyse') {
           mainTab = 'image'
         }
+
+        $watch('mainTab', value => {
+          if (!validMainTabs.includes(value)) {
+            return;
+          }
+
+          if (window.innerWidth < 768 && value === 'analyse') {
+            value = 'image';
+            mainTab = value;
+          }
+
+          localStorage.setItem(storageKey, JSON.stringify({ mainTab: value, detailTab }));
+        });
+
+        $watch('detailTab', value => {
+          if (!validDetailTabs.includes(value)) {
+            return;
+          }
+
+          localStorage.setItem(storageKey, JSON.stringify({ mainTab, detailTab: value }));
+        });
       "
       class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
@@ -682,7 +721,7 @@
 
             <select id="yAxisType1"
                     class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" value="line">
-              <option value="line">Line</option>
+              <option value="line" selected>Line</option>
               <option value="scatter">Scatter</option>
               <option value="bar">Bar</option>
             </select>
@@ -701,6 +740,20 @@
           </div>
 
           <select id="yAxisSelect2"
+                  class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+
+          <!-- Y AXIS 3 -->
+          <div class="flex flex-col gap-1">
+            <label>Y axis 3:</label>
+            <select id="yAxisType3"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+              <option value="scatter">Scatter</option>
+              <option value="line">Line</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+
+          <select id="yAxisSelect3"
                   class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
 
           <button id="updatePlotBtn"
@@ -1073,11 +1126,13 @@
                 const yKeys = [
                     getSelectedValues("yAxisSelect1"),
                     getSelectedValues("yAxisSelect2"),
+                    getSelectedValues("yAxisSelect3"),
                 ]
 
                 const chartTypes = [
                     document.getElementById("yAxisType1").value,
                     document.getElementById("yAxisType2").value,
+                    document.getElementById("yAxisType3").value,
                 ];
 
                 drawVariablePlot(

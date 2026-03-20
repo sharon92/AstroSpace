@@ -1,5 +1,6 @@
 import functools
 
+from psycopg2 import IntegrityError
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, current_app
 )
@@ -17,31 +18,33 @@ def register():
         db = get_conn()
         error = None
 
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT * FROM users")
-            existing_users = cur.fetchall()
-        if len(existing_users) >= current_app.config['MAX_USERS']:
-            error = 'Sorry maximum number of users reached :('
-        
-        else:
-            if not username:
-                error = 'Username is required.'
-            elif not password:
-                error = 'Password is required.'
+        if not username:
+            error = 'Username is required.'
+        elif not password:
+            error = 'Password is required.'
 
-            if error is None:
-                try:
-                    with db.cursor() as cur:
+        if error is None:
+            try:
+                with db.cursor() as cur:
+                    cur.execute("LOCK TABLE users IN EXCLUSIVE MODE")
+                    cur.execute("SELECT COUNT(*) AS user_count FROM users")
+                    user_count = cur.fetchone()["user_count"]
+
+                    if user_count >= current_app.config['MAX_USERS']:
+                        error = 'Sorry maximum number of users reached :('
+                    else:
+                        is_first_user = user_count == 0
                         cur.execute(
-                            "INSERT INTO users (username, password) VALUES (%s, %s)",
-                            (username, generate_password_hash(password)),
+                            "INSERT INTO users (username, password, admin) VALUES (%s, %s, %s)",
+                            (username, generate_password_hash(password), is_first_user),
                         )
+                if error is None:
                     db.commit()
-                except db.IntegrityError:
-                    error = f"User {username} is already registered."
-                else:
                     return redirect(url_for("auth.login"))
+                db.rollback()
+            except IntegrityError:
+                db.rollback()
+                error = f"User {username} is already registered."
 
         flash(error)
 

@@ -81,7 +81,7 @@ export function drawVariablePlot(
     yKeys.forEach((axisKeys, axisIdx) => {
         if (!Array.isArray(axisKeys)) return;
 
-        const chartType = chartTypes?.[axisIdx] ?? "scatter";
+        const chartType = chartTypes?.[axisIdx] || (axisIdx === 0 ? "line" : "scatter");
         const isBar  = chartType === "bar";
         const isLine = chartType === "line";
 
