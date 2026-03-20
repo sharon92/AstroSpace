@@ -254,7 +254,7 @@ CREATE TABLE users (
   bio TEXT,
   astrometry_api_key TEXT,
   open_weather_api_key TEXT,
-  telescopius_api_key TEXT,
+  telescopius_api_key TEXT
 );
 
 CREATE TABLE web_info (
