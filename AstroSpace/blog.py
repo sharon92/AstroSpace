@@ -25,12 +25,19 @@ from AstroSpace.auth import login_required
 from AstroSpace.constants import DB_TABLES, IMAGE_DETAIL_TABLE_NAMES
 from AstroSpace.db import get_conn
 from AstroSpace.repositories.images import (
+    get_collection_filter_metadata,
+    get_collection_images,
     fetch_options,
     get_all_images,
     get_image_by_id,
     get_image_tables,
 )
 from AstroSpace.services.authorization import require_owner
+from AstroSpace.services.collection_filters import (
+    PYTHON_UNIX_EPOCH_ORDINAL,
+    build_active_collection_filters,
+    normalize_collection_filters,
+)
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
 from AstroSpace.logging_utils import debug_log
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
@@ -49,6 +56,11 @@ bp = Blueprint("blog", __name__)
 @bp.context_processor
 def inject_now():
     return {"now": datetime.now}
+
+
+@bp.route("/favicon.ico")
+def favicon():
+    return "", 204
 
 
 @bp.route("/uploads/<path:filename>")
@@ -74,10 +86,26 @@ def home():
 
 @bp.route("/collection")
 def collection():
-    images = get_all_images(unique=True)
+    filter_metadata = get_collection_filter_metadata()
+    raw_args = request.args.to_dict(flat=True)
+    filter_state, query_filters = normalize_collection_filters(raw_args, filter_metadata)
+    active_filters = build_active_collection_filters(
+        url_for("blog.collection"),
+        raw_args,
+        filter_state,
+    )
+    debug_log("Collection filters requested: %s", {chip["label"]: chip["value"] for chip in active_filters})
+    images = get_collection_images(query_filters)
+    debug_log("Collection query returned %s image(s)", len(images))
     return render_template(
-        "collection.html", images=images
-        )
+        "collection.html",
+        images=images,
+        filter_metadata=filter_metadata,
+        filter_state=filter_state,
+        active_filters=active_filters,
+        result_count=len(images),
+        unix_epoch_ordinal=PYTHON_UNIX_EPOCH_ORDINAL,
+    )
 
 @bp.route("/extract_stats", methods=["POST"])
 def extract_stats():

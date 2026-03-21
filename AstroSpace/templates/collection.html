@@ -1,26 +1,474 @@
 {% extends "base.html" %}
-{% block content %}
-<h1 class="mt-6 ml-6 text-2xl font-bold mb-6 dark:text-white">Image Collection</h1>
-
-<div class="ml-6 mr-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-  {% for img in images %}
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-
-    <!-- Thumbnail wrapper -->
-    <a href="{{ url_for('blog.image_detail', image_id=img.id, image_name=img.slug) }}" class="relative block">
-      <img
-        src="{{ url_for('blog.upload', filename=img.image_thumbnail|replace('\\', '/') or img.image_path|replace('\\', '/')) }}"
-        alt="{{ img.title }}"
-        class="w-full h-48 object-cover">
-
-      <!-- Overlaid title -->
-      <h5 class="absolute bottom-0 left-0 w-full text-white text-sm font-semibold px-3 py-2 
-                 bg-gradient-to-t from-black/70 to-transparent">
-        {{ img.title }} - {{ img.short_description }}
-      </h5>
-    </a>
-
-  </div>
-  {% endfor %}
+{% macro render_select(name, label, options, selected) -%}
+<div class="space-y-2">
+  <label for="{{ name }}" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">{{ label }}</label>
+  <select
+    id="{{ name }}"
+    name="{{ name }}"
+    data-auto-submit="true"
+    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <option value="">All</option>
+    {% for option in options %}
+    <option value="{{ option }}" {{ 'selected' if option == selected else '' }}>{{ option }}</option>
+    {% endfor %}
+  </select>
 </div>
+{%- endmacro %}
+
+{% macro render_range(group_id, label, name_min, name_max, min_bound, max_bound, current_min, current_max, step, min_display, max_display, unit, format_type, precision, disabled) -%}
+<div
+  class="space-y-3 {{ 'opacity-50' if disabled else '' }}"
+  data-range-group="{{ group_id }}"
+  data-range-format="{{ format_type }}"
+  data-range-unit="{{ unit }}"
+  data-range-precision="{{ precision }}">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ label }}</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400">Drag either handle to set the minimum and maximum value.</p>
+    </div>
+    <output data-range-output class="text-sm font-semibold text-blue-700 dark:text-blue-100">{{ min_display }} - {{ max_display }}</output>
+  </div>
+
+  {% if disabled %}
+  <p class="text-sm text-gray-500 dark:text-gray-400">No values available yet.</p>
+  {% else %}
+  <div class="collection-slider-shell">
+    <div class="collection-slider-track"></div>
+    <div class="collection-slider-active" data-range-active-track></div>
+    <input
+      type="range"
+      name="{{ name_min }}"
+      min="{{ min_bound }}"
+      max="{{ max_bound }}"
+      value="{{ current_min }}"
+      step="{{ step }}"
+      data-range-bound="min"
+      data-auto-submit="true"
+      class="collection-slider-input">
+    <input
+      type="range"
+      name="{{ name_max }}"
+      min="{{ min_bound }}"
+      max="{{ max_bound }}"
+      value="{{ current_max }}"
+      step="{{ step }}"
+      data-range-bound="max"
+      data-auto-submit="true"
+      class="collection-slider-input">
+  </div>
+
+  <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+    <div class="space-y-1">
+      <span class="block font-semibold text-gray-600 dark:text-gray-300">Minimum</span>
+      <span data-range-min-label>{{ min_display }}</span>
+    </div>
+    <div class="space-y-1 text-right">
+      <span class="block font-semibold text-gray-600 dark:text-gray-300">Maximum</span>
+      <span data-range-max-label>{{ max_display }}</span>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{%- endmacro %}
+
+{% block content %}
+{% set focal_min_bound = (filter_metadata.ranges.focal_length.min or 0)|round(0, 'floor')|int %}
+{% set focal_max_bound = (filter_metadata.ranges.focal_length.max or focal_min_bound)|round(0, 'ceil')|int %}
+{% set pixel_min_bound = (filter_metadata.ranges.pixel_scale.min or 0)|round(2, 'floor') %}
+{% set pixel_max_bound = (filter_metadata.ranges.pixel_scale.max or pixel_min_bound)|round(2, 'ceil') %}
+{% set capture_min_date = filter_metadata.ranges.capture_dates.min %}
+{% set capture_max_date = filter_metadata.ranges.capture_dates.max %}
+{% set capture_disabled = not capture_min_date or not capture_max_date %}
+{% set capture_min_bound = capture_min_date.toordinal() if capture_min_date else 0 %}
+{% set capture_max_bound = capture_max_date.toordinal() if capture_max_date else 0 %}
+
+<style>
+  #collectionFiltersPanel > summary {
+    list-style: none;
+  }
+
+  #collectionFiltersPanel > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .collection-slider-shell {
+    position: relative;
+    height: 2.75rem;
+  }
+
+  .collection-slider-track,
+  .collection-slider-active {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 0.45rem;
+    border-radius: 9999px;
+  }
+
+  .collection-slider-track {
+    left: 0;
+    right: 0;
+    background: rgba(148, 163, 184, 0.45);
+  }
+
+  .collection-slider-active {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.95), rgba(59, 130, 246, 0.9));
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+  }
+
+  .dark .collection-slider-track {
+    background: rgba(75, 85, 99, 0.85);
+  }
+
+  .collection-slider-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .collection-slider-input::-webkit-slider-runnable-track {
+    height: 0.45rem;
+    background: transparent;
+  }
+
+  .collection-slider-input::-moz-range-track {
+    height: 0.45rem;
+    background: transparent;
+  }
+
+  .collection-slider-input::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: -0.35rem;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    background: rgba(30, 41, 59, 0.95);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    cursor: pointer;
+  }
+
+  .collection-slider-input::-moz-range-thumb {
+    pointer-events: auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    background: rgba(30, 41, 59, 0.95);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    cursor: pointer;
+  }
+
+  .dark .collection-slider-input::-webkit-slider-thumb,
+  .dark .collection-slider-input::-moz-range-thumb {
+    background: rgba(241, 245, 249, 0.95);
+    border-color: rgba(15, 23, 42, 0.95);
+  }
+</style>
+
+<div class="mt-6 ml-6 mr-6 mb-6">
+  <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+    <div class="space-y-1">
+      <h1 class="text-2xl font-bold dark:text-white">Image Collection</h1>
+      <p class="text-sm text-gray-600 dark:text-gray-300">{{ result_count }} image{{ '' if result_count == 1 else 's' }} matched.</p>
+    </div>
+    <a
+      href="{{ url_for('blog.collection') }}"
+      class="inline-flex items-center px-4 py-2 rounded-md bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300">
+      Reset Filters
+    </a>
+  </div>
+
+  {% if active_filters %}
+  <div class="mb-6 rounded-lg bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 shadow-md px-4 py-4">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Applied Filters</span>
+      {% for chip in active_filters %}
+      <a
+        href="{{ chip.remove_url }}"
+        class="inline-flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300">
+        <span class="font-semibold">{{ chip.label }}:</span>
+        <span>{{ chip.value }}</span>
+        <span class="text-xs font-semibold text-blue-600 dark:text-blue-400">x</span>
+      </a>
+      {% endfor %}
+      <a href="{{ url_for('blog.collection') }}" class="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+        Clear all
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <details id="collectionFiltersPanel" class="mb-6 rounded-2xl bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 shadow-md px-5 py-5" open>
+    <summary class="flex flex-wrap items-center justify-between gap-4 cursor-pointer">
+      <div class="space-y-1">
+        <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Collection Filters</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Open the panel to refine the collection. Changes apply automatically.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-gray-500 dark:text-gray-400">{{ active_filters|length }} active</span>
+        <span data-filter-panel-label class="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
+          Hide Filters
+        </span>
+      </div>
+    </summary>
+
+    <form id="collectionFiltersForm" method="get" class="mt-5 space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Basic Filters</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Start with the equipment and capture window you already know.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ render_select("telescope_type", "Telescope Type", filter_metadata.dropdowns.telescope_type, filter_state.telescope_type) }}
+            {{ render_select("telescope_name", "Telescope Name", filter_metadata.dropdowns.telescope_name, filter_state.telescope_name) }}
+            {{ render_select("main_camera", "Main Camera", filter_metadata.dropdowns.main_camera, filter_state.main_camera) }}
+            {{ render_select("guide_camera", "Guide Camera", filter_metadata.dropdowns.guide_camera, filter_state.guide_camera) }}
+          </div>
+
+          {{ render_range(
+            "focal-length",
+            "Focal Length",
+            "focal_length_min",
+            "focal_length_max",
+            focal_min_bound,
+            focal_max_bound,
+            filter_state.focal_length_min,
+            filter_state.focal_length_max,
+            1,
+            filter_state.focal_length_min ~ " mm",
+            filter_state.focal_length_max ~ " mm",
+            "mm",
+            "number",
+            0,
+            filter_metadata.ranges.focal_length.min is none
+          ) }}
+
+          {{ render_range(
+            "capture-date",
+            "Capture Dates",
+            "capture_date_min",
+            "capture_date_max",
+            capture_min_bound,
+            capture_max_bound,
+            filter_state.capture_date_min,
+            filter_state.capture_date_max,
+            1,
+            capture_min_date.strftime("%Y-%m-%d") if capture_min_date else "N/A",
+            capture_max_date.strftime("%Y-%m-%d") if capture_max_date else "N/A",
+            "",
+            "date",
+            0,
+            capture_disabled
+          ) }}
+        </section>
+
+        <section class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Advanced Filters</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Narrow by post metadata once the basic setup is close.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ render_select("filter_type", "Filter Type", filter_metadata.dropdowns.filter_type, filter_state.filter_type) }}
+            {{ render_select("mount", "Mount", filter_metadata.dropdowns.mount, filter_state.mount) }}
+            {{ render_select("object_type", "Object Type", filter_metadata.dropdowns.object_type, filter_state.object_type) }}
+            {{ render_select("moon_phase", "Moon Phase", filter_metadata.dropdowns.moon_phase, filter_state.moon_phase) }}
+            {{ render_select("author", "Author", filter_metadata.dropdowns.author, filter_state.author) }}
+          </div>
+
+          {{ render_range(
+            "pixel-scale",
+            "Pixel Scale",
+            "pixel_scale_min",
+            "pixel_scale_max",
+            pixel_min_bound,
+            pixel_max_bound,
+            filter_state.pixel_scale_min,
+            filter_state.pixel_scale_max,
+            0.01,
+            "%.2f arcsec/px"|format(filter_state.pixel_scale_min),
+            "%.2f arcsec/px"|format(filter_state.pixel_scale_max),
+            "arcsec/px",
+            "number",
+            2,
+            filter_metadata.ranges.pixel_scale.min is none
+          ) }}
+        </section>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Filters update automatically as you change them. Dropdowns only show values that already exist in the collection.</p>
+        <noscript>
+          <button
+            type="submit"
+            class="inline-flex items-center px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors duration-300">
+            Apply Filters
+          </button>
+        </noscript>
+      </div>
+    </form>
+  </details>
+
+  {% if images %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+    {% for img in images %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <a href="{{ url_for('blog.image_detail', image_id=img.id, image_name=img.slug) }}" class="relative block">
+        <img
+          src="{{ url_for('blog.upload', filename=img.image_thumbnail|replace('\\', '/') or img.image_path|replace('\\', '/')) }}"
+          alt="{{ img.title }}"
+          class="w-full h-48 object-cover">
+        <h5 class="absolute bottom-0 left-0 w-full text-white text-sm font-semibold px-3 py-2 bg-gradient-to-t from-black/70 to-transparent">
+          {{ img.title }}{% if img.short_description %} - {{ img.short_description }}{% endif %}
+        </h5>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="rounded-2xl bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 shadow-md px-6 py-10 text-center">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No images matched these filters.</h2>
+    <p class="text-gray-600 dark:text-gray-300 mb-4">Try widening the slider ranges or clearing one of the filter chips above.</p>
+    <a
+      href="{{ url_for('blog.collection') }}"
+      class="inline-flex items-center px-4 py-2 rounded-md bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300">
+      Back to Full Collection
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('collectionFiltersForm');
+    const filterPanel = document.getElementById('collectionFiltersPanel');
+    const panelLabel = document.querySelector('[data-filter-panel-label]');
+    const panelStorageKey = 'astrospace.collection.filters.open';
+    let submitTimer = null;
+
+    const syncPanelLabel = () => {
+      if (!filterPanel || !panelLabel) {
+        return;
+      }
+      panelLabel.textContent = filterPanel.open ? 'Hide Filters' : 'Show Filters';
+    };
+
+    if (filterPanel) {
+      const savedState = localStorage.getItem(panelStorageKey);
+      if (savedState === 'false') {
+        filterPanel.open = false;
+      }
+      syncPanelLabel();
+      filterPanel.addEventListener('toggle', () => {
+        localStorage.setItem(panelStorageKey, filterPanel.open ? 'true' : 'false');
+        syncPanelLabel();
+      });
+    }
+
+    const queueSubmit = () => {
+      if (!form) {
+        return;
+      }
+      window.clearTimeout(submitTimer);
+      submitTimer = window.setTimeout(() => {
+        form.requestSubmit();
+      }, 180);
+    };
+
+    const formatOrdinalDate = (value) => {
+      const date = new Date((Number(value) - {{ unix_epoch_ordinal }}) * 86400000);
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const formatRangeValue = (group, value) => {
+      if (group.dataset.rangeFormat === 'date') {
+        return formatOrdinalDate(value);
+      }
+
+      const precision = Number(group.dataset.rangePrecision || '0');
+      const unit = group.dataset.rangeUnit || '';
+      const number = Number(value);
+      const rendered = precision > 0 ? number.toFixed(precision) : String(Math.round(number));
+      return `${rendered} ${unit}`.trim();
+    };
+
+    if (form) {
+      form.querySelectorAll('[data-auto-submit="true"]').forEach((control) => {
+        const eventName = control.tagName === 'SELECT' ? 'change' : 'input';
+        control.addEventListener(eventName, queueSubmit);
+        if (control.tagName !== 'SELECT') {
+          control.addEventListener('change', queueSubmit);
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-range-group]').forEach((group) => {
+      const minInput = group.querySelector('[data-range-bound="min"]');
+      const maxInput = group.querySelector('[data-range-bound="max"]');
+      const output = group.querySelector('[data-range-output]');
+      const minLabel = group.querySelector('[data-range-min-label]');
+      const maxLabel = group.querySelector('[data-range-max-label]');
+      const activeTrack = group.querySelector('[data-range-active-track]');
+
+      if (!minInput || !maxInput || minInput.disabled || maxInput.disabled) {
+        return;
+      }
+
+      const syncLabels = (changedInput) => {
+        let minValue = Number(minInput.value);
+        let maxValue = Number(maxInput.value);
+
+        if (minValue > maxValue) {
+          if (changedInput === minInput) {
+            maxInput.value = minInput.value;
+          } else {
+            minInput.value = maxInput.value;
+          }
+          minValue = Number(minInput.value);
+          maxValue = Number(maxInput.value);
+        }
+
+        const absoluteMin = Number(minInput.min);
+        const absoluteMax = Number(minInput.max);
+        const span = absoluteMax - absoluteMin || 1;
+        const startPercent = ((minValue - absoluteMin) / span) * 100;
+        const endPercent = ((maxValue - absoluteMin) / span) * 100;
+        if (activeTrack) {
+          activeTrack.style.left = `${startPercent}%`;
+          activeTrack.style.width = `${Math.max(endPercent - startPercent, 0)}%`;
+        }
+
+        const renderedMin = formatRangeValue(group, minValue);
+        const renderedMax = formatRangeValue(group, maxValue);
+        if (minLabel) {
+          minLabel.textContent = renderedMin;
+        }
+        if (maxLabel) {
+          maxLabel.textContent = renderedMax;
+        }
+        if (output) {
+          output.textContent = `${renderedMin} - ${renderedMax}`;
+        }
+      };
+
+      minInput.addEventListener('input', () => syncLabels(minInput));
+      maxInput.addEventListener('input', () => syncLabels(maxInput));
+      syncLabels(minInput);
+    });
+  });
+</script>
 {% endblock %}
