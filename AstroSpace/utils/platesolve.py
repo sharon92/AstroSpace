@@ -3,6 +3,7 @@ import re
 import json 
 import math
 import hashlib
+import logging
 from astropy.wcs import WCS
 
 import numpy as np
@@ -14,6 +15,7 @@ from astropy.io.fits import Header
 import pandas as pd
 from flask import current_app, g
 from astroquery.astrometry_net import AstrometryNet
+from AstroSpace.logging_utils import debug_log
 from AstroSpace.utils.utils import resize_image
 from AstroSpace.utils.xisf_reader import xisf_header
 
@@ -214,10 +216,14 @@ def pa_world_to_pixel(wcs, ra, dec, pa_deg):
     return ang
 
 def platesolve(image_path, user_id, fits_file=None):
-    print("Plate solving image....")
+    debug_log(
+        "Plate solve started (image_path=%s, fits_file=%s)",
+        image_path,
+        getattr(fits_file, "filename", None),
+    )
     if fits_file:
         # If a FITS file is provided, use it to extract the WCS header
-        print("Plate solving using Fits/XISF...")
+        debug_log("Plate solving using supplied FITS/XISF header file.")
         fits_name = fits_file.filename.lower()
         if fits_name.endswith(".xisf"):
             wcs_header = xisf_header(fits_file)
@@ -225,17 +231,21 @@ def platesolve(image_path, user_id, fits_file=None):
             try:
                 wcs_header = fits_header_only(fits_file)
             except:
-                print("Plate solving using AstrometryNet...")
+                debug_log("FITS header parse failed; falling back to Astrometry.net.", level=logging.WARNING)
                 # Initialize AstrometryNet with your API key
                 ast = AstrometryNet()
                 ast.api_key = g.user["astrometry_api_key"]
                 try:
                     wcs_header = ast.solve_from_image(fits_file, solve_timeout=1800)
                 except Exception as e:
-                    print("Astrometry.net will not accept the image for plate solving... try with xisf file.")
+                    debug_log(
+                        "Astrometry.net rejected the file during plate solve.",
+                        level=logging.WARNING,
+                    )
                     raise RuntimeError(f"Plate solving failed: {str(e)}")
 
     if "CRPIX1" not in wcs_header:
+        debug_log("Plate solve did not produce WCS coordinates.", level=logging.WARNING)
         raise ValueError("FITS file does not contain WCS information. Plate Solve the Fits file first!")
     
     wcs = WCS(wcs_header, naxis=2)
@@ -249,13 +259,14 @@ def platesolve(image_path, user_id, fits_file=None):
     pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
 
     header_json = wcs_header.tostring()
-    print("Plate solving done.")
+    debug_log("Plate solve completed (pixel_scale=%s)", pixel_scale)
     
-    print("Resizing image...")
-    path, ext = os.path.splitext(image_path)
-    thumbnail_path = path + "_thumbnail" + ext
+    debug_log("Generating thumbnail for image_path=%s", image_path)
+    path, _ = os.path.splitext(image_path)
+    thumbnail_path = path + "_thumbnail.jpg"
     resize_image(image_path, thumbnail_path)
     thumbnail_path = f"{user_id}/{os.path.basename(thumbnail_path)}"
+    debug_log("Thumbnail created at public_path=%s", thumbnail_path)
     return header_json, thumbnail_path, pixel_scale
 
 
@@ -316,7 +327,7 @@ favs = [
 
 
 def get_overlays(wcs_header):
-    print("Generating overlays...")
+    debug_log("Generating overlays from WCS header.")
     wcs_header = Header.fromstring(wcs_header)
     wcs = WCS(wcs_header, naxis=2)
     try:
@@ -362,7 +373,7 @@ def get_overlays(wcs_header):
         "otype",
     )
 
-    print("Querying Simbad for objects in the field of view...")
+    debug_log("Querying SIMBAD for overlay objects within field of view.")
     big_objects = "('G', 'GiC', 'GiG', 'GiP', 'GrG','HII', 'PN', 'SNR', 'Cl*', 'OpC', 'GlC', 'Neb', 'Cld', 'DNe','..27','..28','..30','BiC','CGC','ClG','EmG','flt','GNe','IG', 'LSB','MoC','PaG','PCG','rG','RNe', 'SBG','Sy1','Sy2','SyG')"
     result = Simbad.query_region(coord, radius=radius)#, criteria=f"otype IN {big_objects}")
 
@@ -423,7 +434,7 @@ def get_overlays(wcs_header):
         "sp_type",
     )
 
-    print("Querying Simbad for objects in the field of view...")
+    debug_log("Querying SIMBAD for stellar overlay plot data.")
     result2 = Simbad.query_region(coord, radius=radius, criteria=f"otype NOT IN {big_objects}")
 
     df2 = result2.to_pandas()
@@ -468,7 +479,12 @@ def get_overlays(wcs_header):
     }
 
 
-    print("Generating grid lines...")
+    debug_log(
+        "Overlay generation completed (objects=%s, hr_points=%s)",
+        len(db["name"]),
+        len(hr["name"]),
+    )
+    debug_log("Generating grid lines for overlay rendering.")
     grid_lines = make_grid_lines(
         wcs, ra_limits=[ra_min, ra_max], dec_limits=[dec_min, dec_max]
     )

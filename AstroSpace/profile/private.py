@@ -1,11 +1,13 @@
 # private profile - what the user can see and edit
 import os
+import logging
 from flask import Blueprint, render_template, current_app, g, request, jsonify
 from psycopg2 import sql
 from psycopg2.extras import Json
 from AstroSpace.constants import INVENTORY_TABLES
 from AstroSpace.db import get_conn
 from AstroSpace.auth import login_required
+from AstroSpace.logging_utils import debug_log
 from AstroSpace.services.authorization import current_user_is_admin, require_admin
 from AstroSpace.services.content import sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file
@@ -224,6 +226,11 @@ def profile():
             )
             web_info = cur.fetchone()
     except Exception:
+        debug_log(
+            "Failed to load web_info for profile page; continuing with defaults.",
+            level=logging.WARNING,
+            exc_info=True,
+        )
         web_info = {}
 
     inventory_dict = {}
@@ -292,12 +299,26 @@ def update_inventory():
     table = data.get("type")
     values = dict(data.get("values") or {})
     if table not in INVENTORY_TABLES:
+        debug_log("Rejected unsupported inventory type=%s", table, level=logging.WARNING)
         return jsonify({"message": "Unsupported inventory type"}), 400
     tid = values.pop("id", None)
+    operation = "insert" if tid == -1 else "update"
+    debug_log(
+        "Inventory %s requested by user=%s for table=%s",
+        operation,
+        g.user["username"],
+        table,
+    )
 
     try:
         values = normalize_inventory_values(table, values)
     except ValueError as exc:
+        debug_log(
+            "Inventory validation failed for table=%s: %s",
+            table,
+            exc,
+            level=logging.WARNING,
+        )
         return jsonify({"message": str(exc)}), 400
 
     name = values["name"]
@@ -309,7 +330,6 @@ def update_inventory():
     
     try:
         if tid == -1:
-            print(f"Inserting {table} -> {name} with {values}")
             query = sql.SQL("INSERT INTO {} ({}) VALUES ({}) RETURNING id").format(
                 sql.Identifier(table),
                 column_identifiers,
@@ -322,10 +342,14 @@ def update_inventory():
                     tuple(values.values()),
                 )
                 new_id = cur.fetchone()["id"]
-                print(f"Inserted with new id: {new_id}")
+                debug_log(
+                    "Inserted inventory row table=%s id=%s name=%s",
+                    table,
+                    new_id,
+                    name,
+                )
 
         else:
-            print(f"Updating {table} -> {name} with {values}")
             set_clause = sql.SQL(", ").join(
                 sql.SQL("{} = %s").format(sql.Identifier(column)) for column in columns
             )
@@ -345,13 +369,31 @@ def update_inventory():
                         tid
                     ),
                 )
+                debug_log(
+                    "Updated inventory row table=%s id=%s name=%s",
+                    table,
+                    tid,
+                    name,
+                )
         
         db.commit()
     except Exception as exc:
         db.rollback()
-        current_app.logger.exception("Failed to update inventory")
+        current_app.logger.exception(
+            "Failed to update inventory table=%s operation=%s name=%s",
+            table,
+            operation,
+            name,
+        )
         return jsonify({"message": str(exc)}), 400
 
+    debug_log(
+        "Inventory %s committed successfully for table=%s name=%s",
+        operation,
+        table,
+        name,
+        level=logging.INFO,
+    )
     return jsonify({"message": "Inventory updated successfully"}), 200
 
 
@@ -410,7 +452,12 @@ def update_settings():
 
     user = g.user["username"]
     user_id = str(g.user["id"])
-    print(f"User: {user}  ID: {user_id}")
+    debug_log(
+        "Updating profile settings for user=%s user_id=%s",
+        user,
+        user_id,
+        level=logging.INFO,
+    )
 
     # Required columns
     required_columns = {
@@ -428,7 +475,7 @@ def update_settings():
 
         for col, col_type in required_columns.items():
             if col not in existing_cols:
-                print(f"Column missing → adding: {col}")
+                debug_log("Adding missing users column=%s", col, level=logging.INFO)
                 cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
 
     db.commit()
@@ -465,11 +512,15 @@ def update_settings():
             thumbnail_name = os.path.basename(thumbnail_path)
             filename_to_store = f"{user_id}/{thumbnail_name}"
         except Exception as e:
-            print("ERROR saving image:", e)
+            debug_log(
+                "Display image save failed for user_id=%s",
+                user_id,
+                level=logging.WARNING,
+                exc_info=True,
+            )
 
     # ---- Update user row ----
-    print("Updating users table...")
-    print(display_name, bio, astrometry_api_key, open_weather_api_key, telescopius_api_key, user_id)
+    debug_log("Updating users table for user_id=%s", user_id)
     try:
         with db.cursor() as cur:
             cur.execute(
@@ -494,9 +545,14 @@ def update_settings():
                     (filename_to_store, user_id),
                 )
         db.commit()
-        print("User settings updated.")
+        debug_log("User settings committed for user_id=%s", user_id, level=logging.INFO)
     except Exception as e:
-        print("ERROR updating users table:", e)
+        debug_log(
+            "User settings update failed for user_id=%s",
+            user_id,
+            level=logging.WARNING,
+            exc_info=True,
+        )
 
     # ---- WEB INFO ----
     welcome_note = request.form.get("welcome_note")
@@ -517,10 +573,10 @@ def update_settings():
                 )
             """)
             exists = cur.fetchone()["exists"]
-            print("web_info exists:", exists)
+            debug_log("web_info table exists=%s", exists)
 
             if not exists and current_user_is_admin():
-                print("Creating web_info table...")
+                debug_log("Creating missing web_info table", level=logging.INFO)
                 cur.execute("""
                     CREATE TABLE web_info (
                         id SERIAL PRIMARY KEY,
@@ -534,7 +590,7 @@ def update_settings():
                 db.commit()
 
             elif current_user_is_admin():
-                print("Checking web_info columns...")
+                debug_log("Checking web_info columns for admin update")
                 cur.execute("""
                     SELECT column_name
                     FROM information_schema.columns
@@ -548,12 +604,16 @@ def update_settings():
                         db.commit()
 
     except Exception as e:
-        print("ERROR checking/creating web_info:", e)
+        debug_log(
+            "web_info schema check failed during settings update",
+            level=logging.WARNING,
+            exc_info=True,
+        )
 
     db.commit()
 
     if current_user_is_admin():
-        print("Updating web_info content...")
+        debug_log("Updating web_info content for admin user_id=%s", user_id)
 
         try:
             with db.cursor() as cur:
@@ -574,10 +634,13 @@ def update_settings():
                     """, (welcome_note, site_name))
 
             db.commit()
-            print("web_info updated.")
+            debug_log("web_info content committed successfully", level=logging.INFO)
 
         except Exception as e:
-            print("ERROR updating web_info:", e)
+            debug_log(
+                "web_info content update failed",
+                level=logging.WARNING,
+                exc_info=True,
+            )
 
-    print("=== DONE ===")
     return jsonify({"status": "ok"})

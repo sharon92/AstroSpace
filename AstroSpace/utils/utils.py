@@ -1,3 +1,4 @@
+import logging
 from PIL import Image, ImageOps
 import requests 
 import os
@@ -12,6 +13,7 @@ from AstroSpace.constants import (
     ALLOWED_TAGS,
     ALLOWED_TXT_EXTENSIONS,
 )
+from AstroSpace.logging_utils import debug_log
 
 
 def slugify(text):
@@ -28,7 +30,12 @@ def resize_image(input_path, output_path, base_width=500):
             # Fix orientation from EXIF
             img = ImageOps.exif_transpose(img)
         except Exception as e:
-            print(f"EXIF transpose error: {e}")
+            debug_log(
+                "EXIF transpose failed for image=%s",
+                input_path,
+                level=logging.WARNING,
+                exc_info=True,
+            )
 
         img = img.convert("RGB")
         wpercent = base_width / float(img.size[0])

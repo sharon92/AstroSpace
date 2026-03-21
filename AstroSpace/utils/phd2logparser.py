@@ -3,6 +3,8 @@ import re
 
 import pandas as pd
 
+from AstroSpace.logging_utils import debug_log
+
 
 def legacy_plot_payload(title, message=None):
     return {
@@ -14,7 +16,7 @@ def legacy_plot_payload(title, message=None):
 
 
 def parser(phd_log_file: str) -> dict:
-    print(f"Parsing PHD2 log file: {phd_log_file}")
+    debug_log("Parsing PHD2 log file=%s", phd_log_file)
     with open(phd_log_file, "r", encoding="utf-8", errors="ignore") as handle:
         lines = handle.readlines()
 

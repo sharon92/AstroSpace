@@ -1,4 +1,5 @@
 import os
+import logging
 from numpy import log
 import requests
 import json
@@ -32,6 +33,7 @@ from AstroSpace.repositories.images import (
 )
 from AstroSpace.services.authorization import require_owner
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
+from AstroSpace.logging_utils import debug_log
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import build_plotly_payloads
@@ -318,10 +320,10 @@ def delete_image(image_id):
 @bp.route("/create", methods=["POST"])
 @login_required
 def save_image():
-    print("Saving/Updating image...")
     user = g.user["username"]
     user_id = str(g.user["id"])
     img_id = None
+    debug_log("save_image started for user=%s", user, level=logging.INFO)
 
     ensure_directory(os.path.join(current_app.config["UPLOAD_PATH"], user_id))
 
@@ -332,9 +334,13 @@ def save_image():
         return redirect(url_for("blog.new_image"))
     
     try:
-        print("Processing form data...")
         form = request.form
         img_id = form.get("image_id")
+        debug_log(
+            "Processing post payload (mode=%s, image_id=%s)",
+            "update" if img_id else "create",
+            img_id or "new",
+        )
         
         if img_id:
             tmp_img = get_image_by_id(img_id)
@@ -345,25 +351,48 @@ def save_image():
         lon = form.get("location_longitude") or None
         if not lat or not lon:
             lat, lon = geocode(form["location"])
+            debug_log(
+                "Geocoded location for user=%s (location=%s, lat=%s, lon=%s)",
+                user,
+                form.get("location"),
+                lat,
+                lon,
+            )
+        else:
+            debug_log("Using submitted coordinates for user=%s", user)
+        if lat is None or lon is None:
+            debug_log(
+                "Location coordinates could not be resolved for location=%s",
+                form.get("location"),
+                level=logging.WARNING,
+            )
         
         title = form.get("title")
         
         Simbad.reset_votable_fields()
         Simbad.add_votable_fields("otype_txt")
             
-        print("Performing object lookup...")
+        debug_log("Querying SIMBAD for title=%s", title)
         query = Simbad.query_object(title)
         object_type = "Unknown"
         if query and len(query) > 0:
             title = query[0]["main_id"].replace("NAME", "").strip()
             object_type = query[0]["otype_txt"]
+            debug_log("SIMBAD resolved title=%s object_type=%s", title, object_type)
+        else:
+            debug_log("SIMBAD returned no result for title=%s", title, level=logging.WARNING)
 
         file = request.files.get("image_path")
         fits_path = request.files.get("fits_file")
-        #print("Performing plate solving...")
         svg_image = None
         if file and file.filename:
+            debug_log("Received preview image upload filename=%s", file.filename)
             if not allowed_file(file.filename, ALLOWED_IMG_EXTENSIONS):
+                debug_log(
+                    "Rejected preview image with unsupported extension: %s",
+                    file.filename,
+                    level=logging.WARNING,
+                )
                 return image_form_redirect("Preview image must be a JPG or PNG file.")
 
             stored_image = save_user_upload(file, current_app.config["UPLOAD_PATH"], user_id)
@@ -372,10 +401,17 @@ def save_image():
             header_json, thumbnail_path, pixel_scale = platesolve(
                 image_path, user_id, fits_path
             )
+            debug_log(
+                "Preview image persisted (public_path=%s, thumbnail=%s, pixel_scale=%s)",
+                img_path_upload,
+                thumbnail_path,
+                pixel_scale,
+            )
             
         elif img_id:
             img_path_upload = form.get("prev_img")
             if form.get("redo_plate_solve") == "on":
+                debug_log("Redoing plate solve for image_id=%s", img_id)
                 full_img_path = os.path.join(
                     current_app.config["UPLOAD_PATH"], img_path_upload.replace("/", "\\")
                 )
@@ -384,15 +420,18 @@ def save_image():
                 )
                 
             elif form.get("regenerate_overlays") == "on":
+                debug_log("Regenerating overlays for image_id=%s without re-plate-solving", img_id)
                 header_json = tmp_img["header_json"]
                 thumbnail_path = tmp_img["image_thumbnail"]
                 pixel_scale = tmp_img["pixel_scale"]
             else:
+                debug_log("Reusing existing plate solve artifacts for image_id=%s", img_id)
                 header_json = tmp_img["header_json"]
                 svg_image = tmp_img["overlays_json"]
                 thumbnail_path = tmp_img["image_thumbnail"]
                 pixel_scale = tmp_img["pixel_scale"]
         else:
+            debug_log("Rejecting new post because preview image is missing.", level=logging.WARNING)
             return image_form_redirect("A preview image is required when creating a post.")
 
         if svg_image is None:
@@ -401,7 +440,10 @@ def save_image():
         new_guide_logs = any(i.filename for i in guide_logs)
 
         if new_guide_logs:
-            print("Generating guide log plot...")
+            debug_log(
+                "Generating guiding plots from %s uploaded guide log(s).",
+                sum(1 for guide_log in guide_logs if guide_log.filename),
+            )
             iguide_logs = []
             iguide_logs_upload = []
             for guide_log in guide_logs:
@@ -417,6 +459,7 @@ def save_image():
         elif img_id:
             guide_logs = form.get("prev_guide_logs") or ""
             if form.get("redo_graphs") == "on":
+                debug_log("Regenerating guiding plots for image_id=%s", img_id)
                 full_guide_logs = ",".join(
                     [
                         os.path.join(
@@ -429,6 +472,7 @@ def save_image():
                 guiding_plot_json = Json(guiding_plot)
                 calibration_plot_json = Json(calibration_plot)
             else:
+                debug_log("Reusing existing guiding plots for image_id=%s", img_id)
                 guiding_plot_json = Json(tmp_img["guiding_plot_json"]) if tmp_img.get("guiding_plot_json") else None
                 calibration_plot_json = Json(tmp_img["calibration_plot_json"]) if tmp_img.get("calibration_plot_json") else None
         else:
@@ -453,7 +497,7 @@ def save_image():
         desc = form.get("description")
 
         # Sanitize it
-        print("Sanitizing description...")
+        debug_log("Sanitizing rich text content for image submission.")
         clean_desc = sanitize_rich_text(desc)
 
         conn = get_conn()
@@ -513,7 +557,7 @@ def save_image():
 
         if img_id:
             # editing updating
-            print("Updating existing image...")
+            debug_log("Updating existing image row image_id=%s", img_id)
             set_clause = ", ".join([f"{col} = %s" for col in column_list])
 
             query = f"""
@@ -540,7 +584,7 @@ def save_image():
                 cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
 
         else:
-            print("Inserting new image...")
+            debug_log("Inserting new image row for title=%s", title)
             query = f"INSERT INTO images ({', '.join(column_list)}) VALUES ({placeholders}) RETURNING id"
             cur.execute(
                 query,
@@ -548,11 +592,18 @@ def save_image():
             )
 
             img_id = cur.fetchone()["id"]
+            debug_log("Inserted new image row image_id=%s", img_id)
 
         # Caputre dates
         dates = json.loads(form.get("capture_dates", "[]"))
+        software_ids = form.getlist("software_ids")
+        debug_log(
+            "Persisting related rows for image_id=%s (capture_dates=%s, software_ids=%s)",
+            img_id,
+            len(dates),
+            len(software_ids),
+        )
         for d in dates:
-            # print(d)
             d_obj = datetime.strptime(d, "%Y-%m-%d")
             illumination, phase_name = get_moon_illumination(d_obj)
             cur.execute(
@@ -562,6 +613,7 @@ def save_image():
 
         # image lights
         idx = 0
+        light_rows = 0
         while True:
             filt = form.get(f"filter_{idx}")
             cnt = form.get(f"count_{idx}")
@@ -576,9 +628,10 @@ def save_image():
                 (img_id, filt, cnt, exp, gain, offset, temp),
             )
             idx += 1
+            light_rows += 1
 
         # software
-        for sid in form.getlist("software_ids"):
+        for sid in software_ids:
             cur.execute(
                 "INSERT INTO image_software (image_id, software_id) VALUES (%s,%s)",
                 (img_id, sid),
@@ -586,9 +639,14 @@ def save_image():
 
         conn.commit()
         cur.close()
-        print("Done.")
+        debug_log(
+            "save_image committed successfully (image_id=%s, light_rows=%s)",
+            img_id,
+            light_rows,
+            level=logging.INFO,
+        )
         flash("Post updated successfully!")
         return redirect(url_for("private.profile"))
     except Exception as e:
-        current_app.logger.exception("Failed to save image")
+        current_app.logger.exception("Failed to save image for user=%s image_id=%s", user, img_id or "new")
         return image_form_redirect(f"An error occurred while saving the post: {e}")

@@ -8,10 +8,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /AstroSpace
 
 # Install dependencies (add gevent too, to avoid resource exhaustion)
+COPY requirements.txt /AstroSpace/requirements.txt
 RUN pip install --upgrade pip \
-    && pip install --upgrade astrospace gunicorn gevent
+    && pip install --no-cache-dir -r requirements.txt gunicorn gevent
+
+COPY AstroSpace /AstroSpace/AstroSpace
 
 # Expose app port
 EXPOSE 9000
 
-CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:9000", "--timeout", "1000", "--worker-class", "gevent", "AstroSpace:create_app()"]
+ENTRYPOINT ["python", "-m", "AstroSpace"]
+CMD []

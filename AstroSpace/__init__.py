@@ -1,7 +1,9 @@
 import os
+import logging
 from flask import Flask, jsonify, g
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import RequestEntityTooLarge
+from AstroSpace.logging_utils import configure_app_logging, debug_log
 
 csrf = CSRFProtect()
 
@@ -26,6 +28,7 @@ def create_app(test_config=None):
     
     app.config['root_path'] = os.path.dirname(__file__)
     app.config['MAX_CONTENT_LENGTH'] = 2 *  (1024 ** 3) #about 2GB
+    configure_app_logging(app)
 
     @app.errorhandler(RequestEntityTooLarge)
     def handle_file_too_large(e):
@@ -34,6 +37,12 @@ def create_app(test_config=None):
     #app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_PATH'],exist_ok=True)
     skip_db_init = app.config.get("SKIP_DB_INIT", False)
+    debug_log(
+        "Application configured (instance_path=%s, skip_db_init=%s, max_upload_bytes=%s)",
+        app.instance_path,
+        skip_db_init,
+        app.config["MAX_CONTENT_LENGTH"],
+    )
 
     # ensure the instance folder exists
     try:
@@ -55,8 +64,12 @@ def create_app(test_config=None):
 
         with app.app_context():
             exists = db.check_images_table_exists()
+            debug_log("Database bootstrap check completed (images_table_exists=%s)", exists)
             if not exists:
-                print("Table does not exist. Initializing database...")
+                debug_log(
+                    "images table is missing; initializing database schema.",
+                    level=logging.INFO,
+                )
                 db.init_db()
             db.ensure_runtime_schema()
     

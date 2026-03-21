@@ -1,8 +1,10 @@
 from astropy.io import fits
+import logging
 from xisf import XISF
 import xml.etree.ElementTree as ET
 import numpy as np
 import ast 
+from AstroSpace.logging_utils import debug_log
 
 class customXISF(XISF):
     def _read(self):
@@ -14,7 +16,11 @@ class customXISF(XISF):
         # Check XISF signature
         signature = f.read(len(self._signature))
         if signature != self._signature:
-            print(signature, self._signature)
+            debug_log(
+                "XISF signature mismatch while reading file=%s",
+                getattr(self._fname, "name", self._fname),
+                level=logging.WARNING,
+            )
             raise ValueError("File doesn't have XISF signature")
 
         # Get header length
@@ -80,7 +86,11 @@ class customXISF(XISF):
                 p_dict["value"] = p_dict["value"].reshape((p_dict["rows"], p_dict["columns"]))
 
         else:
-            print(f"Unsupported Property type {p_dict['type']}: {p_et}")
+            debug_log(
+                "Unsupported XISF property type=%s",
+                p_dict["type"],
+                level=logging.WARNING,
+            )
             p_dict = False
 
         return p_dict
@@ -97,16 +107,17 @@ class customXISF(XISF):
         else:
             f = self._fname  # Assume it's a file-like object
 
-        print('Current Position',f.tell())
         f.seek(0,2)
         if pos > f.tell():
-            print('Total Bytes',f.tell())
-            print('Position asked',pos)
-            print(elem)
+            debug_log(
+                "Requested XISF attachment position exceeds file size (requested=%s, total=%s)",
+                pos,
+                f.tell(),
+                level=logging.WARNING,
+            )
             return b''
         
         f.seek(pos)
-        print('Current Position',f.tell())
         data = f.read(size)
 
         if isinstance(self._fname, str):

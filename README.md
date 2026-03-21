@@ -1,217 +1,191 @@
-# 🌌 AstroSpace
+# AstroSpace
 
-**AstroSpace** is a web application designed to host, organize, and showcase your astrophotography collection, its basically your personal Astrobin/Instagram. 🔭 Sort celestial objects in timeline views, automatic annotation for your images (via Plate Solving), compare the size of your DSO with moon scale, explore the objects inside your DSO with Plotly graphs and much more! ✨
+AstroSpace is a Flask application for hosting and organizing astrophotography posts on your own infrastructure. It combines image publishing, equipment tracking, plate-solving overlays, and guiding-log visualization in one self-hosted site.
 
-Perfect for amateur astronomers, astrophotographers, and stargazers who want to organize their night sky adventures and create their own personal space for Astro Stuff! 🌟
+You can see a public instance here: [astro.space-js.de](https://astro.space-js.de/)
 
-check out my Instance at:
+## Features
 
-[www.astro.space-js.de](https://astro.space-js.de/)
----
+- User registration with a configurable user limit
+- Rich post creation for astrophotography images and acquisition details
+- Equipment inventory management for telescopes, cameras, filters, and accessories
+- FITS/XISF-assisted plate solving and generated overlays
+- PHD2 guiding log parsing and Plotly-based visualizations
+- Public collection pages and per-image detail views
+- Docker-friendly deployment
+- Optional opt-in debug logging for local development and container runs
 
-## 🚀 Key Features
+## Requirements
 
-- 🔐 **Secure User Authentication** – Protected access with customizable user limits  
-- 🎨 **Modern Tailwind CSS Interface** – Sleek, responsive design that looks professional  
-- 🌙 **Dark & Light Mode Support** – Perfect for both day and night viewing sessions  
-- 🗂️ **Dynamic Content Management** – Seamlessly handle static and dynamic astrophotography content  
-- 🧩 **Modular Architecture** – Clean, maintainable structure with reusable utilities and templates  
-- 🐳 **Docker Ready** – Containerized deployment for hassle-free setup  
-- ✍️ **Post Creation & Editing** – Document your observations and share your astrophotography journey  
-- 📊 **PHD2 Log Integration** – Upload and analyze your autoguiding logs for better tracking performance  
-- 🔍 **Plate Solving** – Automatically identify celestial objects and coordinates in your images  
-- 📱 **Responsive Design** – Access your collection from any device  
-- 🌕 **Moon Scale for DSO Frames** – Visualize the scale of deep sky objects in comparison to the Moon  
-- 🗺️ **Equatorial Grid Overlay** – Overlay celestial coordinate grids for precise orientation  
-- 🔗 **Shareable Links with Tabular Acquisition Details** – Easily share your captures along with structured metadata  
-- 📈 **Explore DSO Contents with Plotly Graphs** – Interactively visualize SIMBAD and VizieR catalog queries. Plots a Hertzsprung Russel Diagram by default.
-- 🛠️ **Equipment Inventory System** - Track your telescopes, cameras, filters, and accessories
+- Python 3.11+
+- PostgreSQL
+- Optional: Node.js if you want to rebuild Tailwind CSS assets
+- Optional: Docker for containerized deployment
 
----
+## Quick Start
 
-## 📸 Screenshots
+### Local install
 
-### 🖼️ Image Gallery with Detailed Information Tabs
-Organize your astrophotography with rich metadata and detailed viewing options:
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -e .[dev]
+```
 
-<img width="1410" height="1023" alt="image" src="https://github.com/user-attachments/assets/0a36167c-b738-4b41-96fa-1912d092af63" />
+### Configuration
 
-### Details
+AstroSpace reads configuration from:
 
-<img width="824" height="541" alt="image" src="https://github.com/user-attachments/assets/d7a16145-bae8-40a7-a814-edd6833e8a32" /> 
-<img width="820" height="643" alt="image" src="https://github.com/user-attachments/assets/1f9241f4-a90a-4054-b571-1e0de79e608e" />
-<img width="825" height="745" alt="image" src="https://github.com/user-attachments/assets/d2fc8000-c606-43c7-8414-859faae2372b" />
+1. environment variables
+2. the file pointed to by `ASTROSPACE_SETTINGS`
+3. `instance/config.py`
 
-### 📊 PHD2 Log Analysis
-Upload and analyze your autoguiding performance:
+Required settings:
 
-<img width="1220" height="1170" alt="image" src="https://github.com/user-attachments/assets/c92e1fbd-af4f-4765-a50e-337d1e0b77f9" />
+- `SECRET_KEY`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_HOST`
+- `DB_PORT`
+- `UPLOAD_PATH`
 
+Common optional settings:
 
-### 🔐 User Authentication System
-Secure login with configurable user limits (set `MAX_USERS` environment variable):
+- `TITLE`
+- `MAX_USERS`
+- `SESSION_COOKIE_SECURE`
 
-![User Login Interface](https://github.com/user-attachments/assets/85d07964-c1c6-491a-8496-f32870090984)
-
-### ✍️ Content Creation
-Create and share your astrophotography posts:
-
-![Post Creation Interface](https://github.com/user-attachments/assets/0c164112-6a41-4e9c-9433-9d2c69673342)
-
----
-
-## 📌 Upcoming Features
-
-- 📝 **Advanced Blogging Platform** - Enhanced tools for documenting observations and techniques
-- ☀️ **Solar Photography Support** - Extended functionality for solar observation and imaging
-- 🌍 **Weather Integration** - Connect with weather APIs for observing conditions
-- 📈 **Advanced Analytics** - Detailed statistics about your imaging sessions and equipment performance
-
----
-
-## 🛠️ Getting Started
-
-### 🔧 Prerequisites
-
-Before you begin, ensure you have the following installed on your system:
-
-- 🐍 **Python 3.10+** - The core runtime environment
-- 📦 **pip** - Python package installer
-- 🗄️ **PostgreSQL** - Database server (or another SQL-compatible database)
-- 🐳 **Docker** - *(Optional)* For containerized deployment
-- 🌐 **Astrometry.net Account** - For plate-solving functionality
-
-#### 📝 Configuration Template
-
-Create `config.py` with the following settings:
+Example config file:
 
 ```python
-# 🔐 Security Configuration
-SECRET_KEY = 'your-super-secret-key-here'  # ⚠️ Change this in production!
-
-# 🗄️ Database Configuration
-DB_NAME = 'astrospace_db'
-DB_USER = 'your_username'
-DB_PASSWORD = 'your_secure_password'
-DB_HOST = 'localhost'  # Or your database hostname
+SECRET_KEY = "change-me"
+DB_NAME = "astrospace"
+DB_USER = "astrospace"
+DB_PASSWORD = "change-me"
+DB_HOST = "localhost"
 DB_PORT = 5432
-
-# 👥 User Management
-MAX_USERS = 5  # Set maximum number of registered users
-
-# 🏷️ Site Branding
-TITLE = "My AstroSpace Observatory"  # Customize your site name can be changed later in settings
-
-# Upload Path - uploaded jpegs and phd logs will be saved here
-UPLOAD_PATH = "absolute/path/to/uploads
+UPLOAD_PATH = r"C:\astrospace\uploads"
+TITLE = "My AstroSpace"
+MAX_USERS = 2
 ```
 
-### 🧪 Local Setup
-Follow these steps to get AstroSpace running on your local machine:
+### Run locally
 
 ```bash
-# 🔧 Set up a Python virtual environment
-python -m venv venv
-source venv/bin/activate      # On Windows: venv\Scripts\activate
-
-# 📦 Install astrospace package
-pip install astrospace
-
-set ASTROSPACE_SETTINGS=path/to/config.py
+set ASTROSPACE_SETTINGS=path\to\config.py
 flask --app AstroSpace run
-
-#follow the link in the console to access your website
 ```
 
-### 🧪 Local Development Setup
+The app starts on `http://127.0.0.1:5000` by default.
 
-Follow these steps to get AstroSpace running on your local machine:
+## Debug Logging
+
+AstroSpace includes opt-in runtime logging around the places most likely to block or fail: app startup, database bootstrapping, post creation, inventory updates, plate solving, and guide-log parsing.
+
+Enable it in either of these ways:
 
 ```bash
-# 📥 Clone the repository
-git clone https://github.com/sharon92/AstroSpace.git
+flask --app AstroSpace run --debug
+```
+
+```bash
+set ASTROSPACE_DEBUG=1
+flask --app AstroSpace run
+```
+
+For the Docker image, append `--debug` to the container command or set `ASTROSPACE_DEBUG=1`.
+
+## Docker
+
+Build the image locally:
+
+```bash
+docker build -t astrospace .
+```
+
+Run it:
+
+```bash
+docker run ^
+  --name astrospace ^
+  -p 9000:9000 ^
+  -e SECRET_KEY=change-me ^
+  -e DB_NAME=astrospace ^
+  -e DB_USER=astrospace ^
+  -e DB_PASSWORD=change-me ^
+  -e DB_HOST=host.docker.internal ^
+  -e DB_PORT=5432 ^
+  -e TITLE=AstroSpace ^
+  -e MAX_USERS=2 ^
+  -e UPLOAD_PATH=/uploads ^
+  -v C:\astrospace\uploads:/uploads ^
+  astrospace
+```
+
+Run the same container in debug mode:
+
+```bash
+docker run ^
+  --name astrospace-debug ^
+  -p 9000:9000 ^
+  -e SECRET_KEY=change-me ^
+  -e DB_NAME=astrospace ^
+  -e DB_USER=astrospace ^
+  -e DB_PASSWORD=change-me ^
+  -e DB_HOST=host.docker.internal ^
+  -e DB_PORT=5432 ^
+  -e TITLE=AstroSpace ^
+  -e MAX_USERS=2 ^
+  -e UPLOAD_PATH=/uploads ^
+  -e ASTROSPACE_DEBUG=1 ^
+  -v C:\astrospace\uploads:/uploads ^
+  astrospace --debug
+```
+
+The image starts Gunicorn on `0.0.0.0:9000`.
+
+## Development
+
+Run the test suite:
+
+```bash
+python -m pytest -q
+```
+
+If you update Tailwind sources:
+
+```bash
 cd AstroSpace
-
-# 🔧 Set up a Python virtual environment
-python -m venv venv
-source venv/bin/activate      # On Windows: venv\Scripts\activate
-
-# 📦 Install required dependencies
-pip install -r requirements.txt
-
+npm install
+npx tailwindcss -i ./static/input.css -o ./static/styles.css
 ```
+
+Useful first-run steps:
+
+1. Register the first user. The first account becomes admin.
+2. Open `My Profile` and configure the site title and welcome message.
+3. Create a new post with a preview image and optional FITS/XISF metadata.
+4. Add or normalize inventory entries from the profile page if needed.
+
+## Release Workflow
+
+Build and publish a wheel with Hatch:
 
 ```bash
-# 🚀 Launch the application
-set ASTROSPACE_SETTINGS=path/to/config.py
-flask --app AstroSpace run
+python -m pip install hatch
+python -m hatch build -t wheel
+python -m hatch publish
 ```
 
-Your AstroSpace instance will be available at `http://localhost:5000` 🌐
+## Project Layout
 
-#### Docker Container
+- `AstroSpace/`: application package
+- `docs/`: project documentation
+- `tests/`: automated tests
+- `nginx/`: example reverse-proxy and compose assets
 
-```bash
-docker pull sharonshaji92/astrospace:latest
-docker run \
-  -d \
-  --name='Your_Container_Name' \
-  -e 'SECRET_KEY'='your_super_secret_key' \
-  -e 'DB_NAME'='astrodb' \
-  -e 'DB_USER'='test' \
-  -e 'DB_PASSWORD'='123123' \
-  -e 'DB_PORT'='8080' \
-  -e 'TITLE'='Your_Website_Name' \
-  -e 'MAX_USERS'='1' \
-  -e 'DB_HOST'='0.0.0.0' \
-  -e 'UPLOAD_PATH' = '/uploads' \
-  -p '9000:9000/tcp' \
-  -v '/path/on/server/to/mount/to/the/app':'/uploads' \
-  sharonshaji92/astrospace:latest
+## License
 
-```
----
-
-## 🤝 Contributing
-
-We welcome contributions from the astrophotography community! 🌟
-
-### Ways to Contribute:
-- 🐛 **Bug Reports** - Found an issue? Let us know!
-- 💡 **Feature Requests** - Have ideas for new functionality?
-- 🔧 **Code Contributions** - Submit pull requests with improvements
-- 📚 **Documentation** - Help improve our guides and documentation
-- 🧪 **Testing** - Help test new features and report feedback
-
-Feel free to:
-- 📝 Open an issue for bugs or feature requests
-- 🔀 Submit a pull request with your improvements
-- 💬 Join discussions about the project's future
-
----
-
-## 📝 License
-
-This project is licensed under the **GNU GPL-3.0 License** 📄
-
-This means you're free to use, modify, and distribute AstroSpace, but any modifications must also be open source under the same license. Perfect for keeping the astrophotography community's tools open and accessible! 🌍
-
----
-
-## 📬 Get in Touch
-
-Have questions, suggestions, or just want to share your amazing astrophotography results? Reach out!
-
-- 📧 **Email:** [sharonshaji92@outlook.com](mailto:sharonshaji92@outlook.com)
-- 🐙 **GitHub:** [https://github.com/sharon92](https://github.com/sharon92)
-- ⭐ **Star this repo** if you find AstroSpace useful!
-
----
-
-<div align="center">
-
-**Made with ❤️ for the astrophotography community** 🌌
-
-*Clear skies and happy imaging!* ✨🔭
-
-</div>
+This project is licensed under the GNU GPL-3.0 License.

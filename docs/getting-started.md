@@ -1,22 +1,33 @@
 # Getting Started
 
+This guide matches the current application behavior and deployment flow in this repository.
+
 ## Prerequisites
 
-- Python 3.12
+- Python 3.11 or newer
 - PostgreSQL
-- Optional: Node.js if you want to rebuild Tailwind assets
+- A writable upload directory
+- Optional: Node.js for rebuilding Tailwind CSS
+- Optional: Docker for containerized deployment
 
-## Install
+## Install for Development
 
 ```bash
-py -3.12 -m venv .venv
+python -m venv .venv
 .venv\Scripts\activate
-py -3.12 -m pip install -e .[dev]
+python -m pip install --upgrade pip
+python -m pip install -e .[dev]
 ```
 
-## Configure
+## Configure the Application
 
-Set `ASTROSPACE_SETTINGS` to a Python config file that defines:
+AstroSpace loads configuration in this order:
+
+1. environment variables
+2. the file pointed to by `ASTROSPACE_SETTINGS`
+3. `instance/config.py`
+
+Minimum required settings:
 
 - `SECRET_KEY`
 - `DB_NAME`
@@ -25,8 +36,6 @@ Set `ASTROSPACE_SETTINGS` to a Python config file that defines:
 - `DB_HOST`
 - `DB_PORT`
 - `UPLOAD_PATH`
-- `TITLE`
-- `MAX_USERS`
 
 Example:
 
@@ -42,24 +51,80 @@ TITLE = "My AstroSpace"
 MAX_USERS = 2
 ```
 
-## Run the App
+## Run Locally
 
 ```bash
 set ASTROSPACE_SETTINGS=path\to\config.py
 flask --app AstroSpace run
 ```
 
-The application will start on `http://127.0.0.1:5000` by default.
+Debug mode:
+
+```bash
+flask --app AstroSpace run --debug
+```
+
+You can also enable logging without the Flask debug reloader:
+
+```bash
+set ASTROSPACE_DEBUG=1
+flask --app AstroSpace run
+```
+
+## Run with Docker
+
+Build:
+
+```bash
+docker build -t astrospace .
+```
+
+Run:
+
+```bash
+docker run ^
+  --name astrospace ^
+  -p 9000:9000 ^
+  -e SECRET_KEY=change-me ^
+  -e DB_NAME=astrospace ^
+  -e DB_USER=astrospace ^
+  -e DB_PASSWORD=change-me ^
+  -e DB_HOST=host.docker.internal ^
+  -e DB_PORT=5432 ^
+  -e TITLE=AstroSpace ^
+  -e MAX_USERS=2 ^
+  -e UPLOAD_PATH=/uploads ^
+  -v C:\astrospace\uploads:/uploads ^
+  astrospace
+```
+
+Enable container debug logging:
+
+```bash
+docker run ^
+  --name astrospace-debug ^
+  -p 9000:9000 ^
+  -e SECRET_KEY=change-me ^
+  -e DB_NAME=astrospace ^
+  -e DB_USER=astrospace ^
+  -e DB_PASSWORD=change-me ^
+  -e DB_HOST=host.docker.internal ^
+  -e DB_PORT=5432 ^
+  -e TITLE=AstroSpace ^
+  -e MAX_USERS=2 ^
+  -e UPLOAD_PATH=/uploads ^
+  -e ASTROSPACE_DEBUG=1 ^
+  -v C:\astrospace\uploads:/uploads ^
+  astrospace --debug
+```
 
 ## Run Tests
 
 ```bash
-py -3.12 -m pytest
+python -m pytest -q
 ```
 
-## Optional Frontend Build
-
-If you change Tailwind source files:
+## Rebuild Tailwind Assets
 
 ```bash
 cd AstroSpace
@@ -69,7 +134,7 @@ npx tailwindcss -i ./static/input.css -o ./static/styles.css
 
 ## First Steps After Boot
 
-1. Register the first user.
-2. Open `My Profile` to set the site name and welcome note.
-3. Create an image post from `New Post`.
-4. Upload guiding logs again for older posts if you want the new Plotly graphs instead of legacy plot placeholders.
+1. Register the first user account.
+2. Configure the site name and welcome message from `My Profile`.
+3. Create a first post to verify uploads, database writes, and thumbnail generation.
+4. Enable debug logging if you need deeper startup or request traces.
