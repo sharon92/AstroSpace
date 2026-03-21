@@ -1,0 +1,17 @@
+Calibration Begins at 2025-01-01 21:00:00
+Pixel Scale = 1.50 arc-sec/px
+Direction,Step,dx,dy,x,y
+West,1,1.0,0.0,0,0
+West,2,2.0,0.0,0,0
+North,1,0.0,1.0,0,0
+North,2,0.0,2.0,0,0
+Backlash,3,-0.5,1.8,0,0
+
+Guiding Begins at 2025-01-01 22:00:00
+Pixel Scale = 1.50 arc-sec/px
+Frame,Time,mount,dx,dy,RARawDistance,DECRawDistance,RAGuideDistance,DECGuideDistance,RADuration,RADirection,DECDuration,DECDirection,XStep,YStep,StarMass,SNR,ErrorCode
+1,0.0,mount,0.0,0.0,0.10,-0.20,0.05,-0.02,50,West,0,North,1.0,1.0,100,10,0
+INFO: Guiding started
+2,1.0,mount,0.0,0.0,0.12,-0.18,0.06,-0.03,51,West,0,North,1.0,1.0,100,10,0
+INFO: Dither complete
+3,2.0,mount,0.0,0.0,0.15,-0.10,0.03,-0.01,48,West,0,North,1.0,1.0,100,10,0
