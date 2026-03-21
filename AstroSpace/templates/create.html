@@ -218,7 +218,22 @@
         <input type="hidden" name="capture_dates" id="captureDates">
 
         <h5 class="label">Image Lights</h5>
-        <div id="lightsContainer" class="mb-3" {% if not is_edit %} required {% endif %}></div>
+        <div class="mb-3 overflow-x-auto">
+            <table id="lightsTable" class="min-w-[980px] w-full table-auto border-separate border-spacing-y-2">
+                <thead id="lightsHeader">
+                    <tr class="text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <th class="w-56 pr-4 text-left font-semibold">Filter</th>
+                        <th class="w-32 pr-4 text-left font-semibold">Frames</th>
+                        <th class="w-36 pr-4 text-left font-semibold">Exposure (s)</th>
+                        <th class="w-32 pr-4 text-left font-semibold">Gain</th>
+                        <th class="w-32 pr-4 text-left font-semibold">Offset</th>
+                        <th class="w-32 pr-4 text-left font-semibold">Temp (C)</th>
+                        <th class="w-24 text-left font-semibold"></th>
+                    </tr>
+                </thead>
+                <tbody id="lightsContainer" {% if not is_edit %} required {% endif %}></tbody>
+            </table>
+        </div>
         <button type="button"
             class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
             id="addLightBtn">Add Light</button>
@@ -444,28 +459,36 @@
 
         function addLight(light = {}) {
             const container = document.getElementById('lightsContainer');
-            const div = document.createElement('div');
-            div.className = 'row mb-2 align-items-end';
-            div.dataset.idx = idx;
+            const row = document.createElement('tr');
+            row.dataset.idx = idx;
 
             // Create a temporary wrapper to insert filter options and preselect the value
             const selectHTML = `{{ filter_options | safe }}`;
             const parser = new DOMParser();
             const doc = parser.parseFromString(`<select>${selectHTML}</select>`, 'text/html');
             const select = doc.querySelector('select');
+            select.name = `filter_${idx}`;
+            select.className = input_container_style;
 
-            div.innerHTML = `
-            <div class="gap-4 flex ...">
-                <div class="w32 flex-none">${select.outerHTML.replace('<select', `<select name="filter_${idx}" class="${input_container_style}"`).replace(light.cam_filter + '">', light.cam_filter + '" selected>')}</div>
-                <div class="w32 flex-1"><input name="count_${idx}" type="number" step="1" placeholder="Subs" class="${input_container_style}" value="${light.light_count || '10'}" required></div>
-                <div class="w32 flex-1"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || '300'}" required></div>
-                <div class="w32 flex-1"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" class="${input_container_style}" value="${light.gain || '101'}"></div>
-                <div class="w32 flex-1"><input name="offset_${idx}" type="number" step="1" placeholder="Offset" class="${input_container_style}" value="${light.offset_cam || '200'}"></div>
-                <div class="w32 flex-1"><input name="temperature_${idx}" type="number" step="1" placeholder="Temp (°C)" class="${input_container_style}" value="${light.temperature || '-10'}"></div>
-                <div class="w32 flex-1"><button type="button" class="remove-light ml-2 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded">Remove</button></div>
-            </div>
+            if (light.cam_filter) {
+                const matchingOption = Array.from(select.options).find(
+                    (option) => option.value === light.cam_filter
+                );
+                if (matchingOption) {
+                    matchingOption.selected = true;
+                }
+            }
+
+            row.innerHTML = `
+                <td class="pr-4 align-top">${select.outerHTML}</td>
+                <td class="pr-4 align-top"><input name="count_${idx}" type="number" step="1" placeholder="Frames" aria-label="Frames" class="${input_container_style}" value="${light.light_count || '10'}" required></td>
+                <td class="pr-4 align-top"><input name="exposure_${idx}" type="number" step="1" placeholder="Exposure (s)" aria-label="Exposure (s)" class="${input_container_style}" value="${light.exposure_time || '300'}" required></td>
+                <td class="pr-4 align-top"><input name="gain_${idx}" type="number" step="1" placeholder="Gain" aria-label="Gain" class="${input_container_style}" value="${light.gain || '101'}"></td>
+                <td class="pr-4 align-top"><input name="offset_${idx}" type="number" step="1" placeholder="Offset" aria-label="Offset" class="${input_container_style}" value="${light.offset_cam || '200'}"></td>
+                <td class="pr-4 align-top"><input name="temperature_${idx}" type="number" step="1" placeholder="Temp (C)" aria-label="Temp (C)" class="${input_container_style}" value="${light.temperature || '-10'}"></td>
+                <td class="align-top"><button type="button" class="remove-light mt-1 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded">Remove</button></td>
             `;
-            container.appendChild(div);
+            container.appendChild(row);
             idx++;
         }
 
@@ -474,7 +497,7 @@
         // Remove row handler using event delegation
         document.getElementById('lightsContainer').addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-light')) {
-                e.target.closest('.row').remove();
+                e.target.closest('tr').remove();
             }
         });
 

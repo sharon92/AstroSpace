@@ -198,6 +198,9 @@ def purge_unbound_image_uploads(db, upload_root):
 def profile():
 
     tabs = ["Posts", "Inventory", "Settings"]
+    active_tab = request.args.get("tab")
+    if active_tab not in tabs:
+        active_tab = tabs[0]
 
     db = get_conn()
     with db.cursor() as cur:
@@ -289,6 +292,7 @@ def profile():
         WebName=current_app.config["TITLE"],
         web_info = web_info,
         can_manage_site=current_user_is_admin(),
+        active_tab=active_tab,
     )
 
 @bp.route("/update_inventory", methods=["POST"])

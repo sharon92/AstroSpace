@@ -1,6 +1,5 @@
 import os
 import logging
-from numpy import log
 import requests
 import json
 from datetime import datetime
@@ -380,7 +379,7 @@ def save_image():
             object_type = query[0]["otype_txt"]
             debug_log("SIMBAD resolved title=%s object_type=%s", title, object_type)
         else:
-            debug_log("SIMBAD returned no result for title=%s", title, level=logging.WARNING)
+            debug_log("SIMBAD returned no result for title=%s", title)
 
         file = request.files.get("image_path")
         fits_path = request.files.get("fits_file")
@@ -646,7 +645,7 @@ def save_image():
             level=logging.INFO,
         )
         flash("Post updated successfully!")
-        return redirect(url_for("private.profile"))
+        return redirect(url_for("private.profile", tab="Posts"))
     except Exception as e:
         current_app.logger.exception("Failed to save image for user=%s image_id=%s", user, img_id or "new")
         return image_form_redirect(f"An error occurred while saving the post: {e}")

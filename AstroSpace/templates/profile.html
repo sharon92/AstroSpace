@@ -425,7 +425,7 @@
 <script>
     document.addEventListener("alpine:init", () => {
         Alpine.data("settingsData", () => ({
-            tab: localStorage.getItem("activeTab") || "Posts",
+            tab: {{ active_tab | tojson }} || localStorage.getItem("activeTab") || "Posts",
             uploadBaseUrl: "{{ url_for('blog.upload', filename='') }}",
             settings: {
                 display_name: {{ user_settings.display_name | default('') | tojson }},

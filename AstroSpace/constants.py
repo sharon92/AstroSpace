@@ -1,4 +1,4 @@
-ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg"}
+ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg", "png"}
 ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
 ALLOWED_TXT_EXTENSIONS = {"txt", "log"}
 
