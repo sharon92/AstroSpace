@@ -22,6 +22,9 @@ from AstroSpace.utils.xisf_reader import xisf_header
 # import scipy
 
 pc_to_ly = 3.26156  # 1 parsec = 3.26156 light years
+DISPLAY_TRANSFORM_KEY = "ASDISP"
+DISPLAY_TRANSFORM_SOURCE_KEY = "ASDSRC"
+DISPLAY_TRANSFORM_FLIPUD = "flipud"
 
 # Vizier.ROW_LIMIT = -1 # No limit on the number of rows returned
 
@@ -44,6 +47,124 @@ def fits_header_only(fits_file, return_dict = False):
         return j
     else:
         return hdr
+
+
+def _coerce_header(wcs_header):
+    if isinstance(wcs_header, Header):
+        return wcs_header.copy()
+    if isinstance(wcs_header, str):
+        return Header.fromstring(wcs_header)
+    return Header(wcs_header)
+
+
+def _history_lines(header):
+    try:
+        history = header["HISTORY"]
+    except KeyError:
+        return []
+
+    if isinstance(history, str):
+        return [history]
+
+    try:
+        return [str(item) for item in history]
+    except TypeError:
+        return [str(history)]
+
+
+def detect_display_transform(header):
+    stored_transform = str(header.get(DISPLAY_TRANSFORM_KEY, "") or "").strip().lower()
+    if stored_transform == DISPLAY_TRANSFORM_FLIPUD:
+        return DISPLAY_TRANSFORM_FLIPUD, DISPLAY_TRANSFORM_KEY
+
+    roworder = str(header.get("ROWORDER", "") or "").strip().upper()
+    if roworder == "BOTTOM-UP":
+        return DISPLAY_TRANSFORM_FLIPUD, "ROWORDER"
+    if roworder == "TOP-DOWN":
+        return None, "ROWORDER"
+
+    history_lines = [line.lower() for line in _history_lines(header)]
+    if any("top-down mirror" in line for line in history_lines):
+        return DISPLAY_TRANSFORM_FLIPUD, "HISTORY"
+
+    return None, None
+
+
+def annotate_display_transform_metadata(wcs_header):
+    header = _coerce_header(wcs_header)
+    display_transform, source = detect_display_transform(header)
+
+    if display_transform:
+        header[DISPLAY_TRANSFORM_KEY] = (
+            display_transform,
+            "Overlay display transform",
+        )
+        if source:
+            header[DISPLAY_TRANSFORM_SOURCE_KEY] = (
+                source,
+                "Display transform source",
+            )
+        debug_log(
+            "Detected display transform=%s from source=%s",
+            display_transform,
+            source or "unknown",
+        )
+
+    return header, display_transform
+
+
+def _transform_y(value, height, display_transform):
+    if display_transform != DISPLAY_TRANSFORM_FLIPUD:
+        return value
+    return height - value
+
+
+def _transform_angle(value, display_transform):
+    if display_transform != DISPLAY_TRANSFORM_FLIPUD:
+        return value
+    return -value
+
+
+def apply_display_transform_to_overlay_payload(payload, display_transform):
+    if display_transform != DISPLAY_TRANSFORM_FLIPUD:
+        return payload
+
+    height = float(payload["height"])
+    payload["overlays"]["y"] = [
+        round(_transform_y(float(value), height, display_transform), 1)
+        for value in payload["overlays"]["y"]
+    ]
+    payload["overlays"]["angle"] = [
+        _transform_angle(float(value), display_transform)
+        for value in payload["overlays"]["angle"]
+    ]
+
+    hr_payload = payload["plots"].get("hr", {})
+    if "pixel_y" in hr_payload:
+        hr_payload["pixel_y"] = [
+            int(round(_transform_y(float(value), height, display_transform)))
+            for value in hr_payload["pixel_y"]
+        ]
+
+    for grid_name in ("ra_lines", "dec_lines"):
+        payload["grid_lines"][grid_name] = [
+            [
+                [float(point[0]), _transform_y(float(point[1]), height, display_transform)]
+                for point in line
+            ]
+            for line in payload["grid_lines"][grid_name]
+        ]
+
+    payload["grid_lines"]["labels"] = [
+        {
+            **label,
+            "y": _transform_y(float(label["y"]), height, display_transform),
+            "rotation": _transform_angle(float(label["rotation"]), display_transform),
+        }
+        for label in payload["grid_lines"]["labels"]
+    ]
+
+    return payload
 
 popular_catalogs = [
     r'\bM\s*\d+\b',                       # Messier (M31, M 31)
@@ -244,6 +365,8 @@ def platesolve(image_path, user_id, fits_file=None):
                     )
                     raise RuntimeError(f"Plate solving failed: {str(e)}")
 
+    wcs_header, display_transform = annotate_display_transform_metadata(wcs_header)
+
     if "CRPIX1" not in wcs_header:
         debug_log("Plate solve did not produce WCS coordinates.", level=logging.WARNING)
         raise ValueError("FITS file does not contain WCS information. Plate Solve the Fits file first!")
@@ -259,6 +382,8 @@ def platesolve(image_path, user_id, fits_file=None):
     pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
 
     header_json = wcs_header.tostring()
+    if display_transform:
+        debug_log("Persisted display transform=%s into stored WCS header.", display_transform)
     debug_log("Plate solve completed (pixel_scale=%s)", pixel_scale)
     
     debug_log("Generating thumbnail for image_path=%s", image_path)
@@ -268,6 +393,40 @@ def platesolve(image_path, user_id, fits_file=None):
     thumbnail_path = f"{user_id}/{os.path.basename(thumbnail_path)}"
     debug_log("Thumbnail created at public_path=%s", thumbnail_path)
     return header_json, thumbnail_path, pixel_scale
+
+
+def rebuild_plate_solve_artifacts(image_path, image_public_path, header_json):
+    debug_log(
+        "Rebuilding plate-solve artifacts (image_path=%s, image_public_path=%s)",
+        image_path,
+        image_public_path,
+    )
+    if not header_json:
+        raise ValueError("Image does not have stored plate-solving data.")
+
+    wcs_header, display_transform = annotate_display_transform_metadata(header_json)
+    wcs = WCS(wcs_header, naxis=2)
+    try:
+        wcs = wcs.dropaxis(2)
+    except Exception:
+        pass
+
+    ps_x, ps_y = wcs.proj_plane_pixel_scales()[:2]
+    pixel_scale = float(np.mean([ps_x.value, ps_y.value]) * 3600)
+
+    thumbnail_path = os.path.splitext(image_path)[0] + "_thumbnail.jpg"
+    resize_image(image_path, thumbnail_path)
+
+    thumbnail_public_path = os.path.splitext(image_public_path.replace("\\", "/"))[0] + "_thumbnail.jpg"
+    updated_header_json = wcs_header.tostring()
+    overlays_json = json.dumps(get_overlays(updated_header_json))
+    debug_log(
+        "Rebuilt plate-solve artifacts (thumbnail=%s, pixel_scale=%s, display_transform=%s)",
+        thumbnail_public_path,
+        pixel_scale,
+        display_transform or "native",
+    )
+    return thumbnail_public_path, pixel_scale, overlays_json, updated_header_json
 
 
 def otype_to_color(otype):
@@ -328,7 +487,7 @@ favs = [
 
 def get_overlays(wcs_header):
     debug_log("Generating overlays from WCS header.")
-    wcs_header = Header.fromstring(wcs_header)
+    wcs_header, display_transform = annotate_display_transform_metadata(wcs_header)
     wcs = WCS(wcs_header, naxis=2)
     try:
         wcs = wcs.dropaxis(2)  # Drop any unused axes
@@ -489,10 +648,11 @@ def get_overlays(wcs_header):
         wcs, ra_limits=[ra_min, ra_max], dec_limits=[dec_min, dec_max]
     )
 
-    return {
+    payload = {
         "width": nx,
         "height": ny,
         "overlays": db,
         "plots": {'hr': hr},
         "grid_lines": grid_lines,
     }
+    return apply_display_transform_to_overlay_payload(payload, display_transform)

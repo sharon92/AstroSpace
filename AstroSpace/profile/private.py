@@ -12,6 +12,7 @@ from AstroSpace.services.authorization import current_user_is_admin, require_adm
 from AstroSpace.services.content import sanitize_rich_text
 from AstroSpace.services.uploads import allowed_file
 from AstroSpace.utils.phd2logparser import build_plotly_payloads
+from AstroSpace.utils.platesolve import rebuild_plate_solve_artifacts
 from AstroSpace.utils.utils import (
     ALLOWED_IMG_EXTENSIONS,
     resize_image,
@@ -151,6 +152,88 @@ def rebuild_all_guiding_plots(db, upload_root):
             db.rollback()
             stats["skipped"] += 1
             stats["errors"].append({"image_id": image_id, "error": str(exc)})
+    return stats
+
+
+def rebuild_all_plate_solves(db, upload_root):
+    stats = {
+        "updated": 0,
+        "skipped": 0,
+        "missing_files": [],
+        "errors": [],
+    }
+
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, image_path, header_json
+            FROM images
+            WHERE image_path IS NOT NULL AND NULLIF(BTRIM(image_path), '') IS NOT NULL
+              AND header_json IS NOT NULL AND NULLIF(BTRIM(header_json), '') IS NOT NULL
+            ORDER BY id
+            """
+        )
+        rows = cur.fetchall()
+
+    current_app.logger.info("Starting plate-solve rebuild for %s images", len(rows))
+
+    for row in rows:
+        image_id = row["id"]
+        public_image_path = normalize_public_path(row["image_path"])
+        absolute_image_path = resolve_upload_path(upload_root, public_image_path)
+
+        if not os.path.exists(absolute_image_path):
+            stats["skipped"] += 1
+            stats["missing_files"].append({"image_id": image_id, "path": public_image_path})
+            current_app.logger.warning(
+                "Skipping plate-solve rebuild for image_id=%s because image file is missing: %s",
+                image_id,
+                public_image_path,
+            )
+            continue
+
+        try:
+            thumbnail_path, pixel_scale, overlays_json, header_json = rebuild_plate_solve_artifacts(
+                absolute_image_path,
+                public_image_path,
+                row["header_json"],
+            )
+            with db.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE images
+                    SET image_thumbnail = %s,
+                        pixel_scale = %s,
+                        overlays_json = %s,
+                        header_json = %s,
+                        edited_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                    """,
+                    (thumbnail_path, pixel_scale, overlays_json, header_json, image_id),
+                )
+            db.commit()
+            stats["updated"] += 1
+            debug_log(
+                "Rebuilt plate-solve artifacts for image_id=%s thumbnail=%s pixel_scale=%s",
+                image_id,
+                thumbnail_path,
+                pixel_scale,
+            )
+        except Exception as exc:
+            db.rollback()
+            stats["skipped"] += 1
+            stats["errors"].append({"image_id": image_id, "error": str(exc)})
+            current_app.logger.warning(
+                "Skipping plate-solve rebuild for image_id=%s because artifact rebuild failed: %s",
+                image_id,
+                exc,
+            )
+
+    current_app.logger.info(
+        "Plate-solve rebuild finished (updated=%s, skipped=%s)",
+        stats["updated"],
+        stats["skipped"],
+    )
     return stats
 
 
@@ -413,6 +496,35 @@ def redo_guiding_graphs():
         db.rollback()
         current_app.logger.exception("Failed to rebuild guiding plots")
         return jsonify({"message": f"Failed to rebuild guiding plots: {exc}"}), 500
+
+    message = f"Updated {stats['updated']} images."
+    if stats["skipped"]:
+        message += f" Skipped {stats['skipped']} images."
+
+    return jsonify(
+        {
+            "message": message,
+            "stats": stats,
+        }
+    ), 200
+
+
+@bp.route("/admin/redo_plate_solving", methods=["POST"])
+@login_required
+def redo_plate_solving():
+    require_admin()
+    db = get_conn()
+    current_app.logger.info(
+        "Admin user=%s requested plate-solve rebuild for all images",
+        g.user["username"],
+    )
+
+    try:
+        stats = rebuild_all_plate_solves(db, current_app.config["UPLOAD_PATH"])
+    except Exception as exc:
+        db.rollback()
+        current_app.logger.exception("Failed to rebuild plate-solving artifacts")
+        return jsonify({"message": f"Failed to rebuild plate-solving artifacts: {exc}"}), 500
 
     message = f"Updated {stats['updated']} images."
     if stats["skipped"]:

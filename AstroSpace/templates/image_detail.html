@@ -1,12 +1,8 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 
-<head>
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
-</head>
-<!-- Import TailwindCSS and Headless UI via CDN (or use local build pipeline in production) -->
 <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@headlessui/react@1.7.15/dist/headlessui.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
 
 <script>
@@ -55,6 +51,141 @@
     grid-area: plot;
   }
 
+  .detail-card {
+    --detail-card-surface: rgb(255 255 255 / 0.7);
+    border: 1px solid rgb(229 231 235);
+    border-radius: 0.75rem;
+    background: var(--detail-card-surface);
+    padding: 1rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+  }
+
+  .dark .detail-card {
+    --detail-card-surface: rgb(31 41 55 / 0.8);
+    border-color: rgb(55 65 81);
+    background: var(--detail-card-surface);
+  }
+
+  .detail-card-title {
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(75 85 99);
+  }
+
+  .dark .detail-card-title {
+    color: rgb(209 213 219);
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .detail-table tr {
+    border-bottom: 1px solid rgb(229 231 235);
+  }
+
+  .detail-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .dark .detail-table tr {
+    border-color: rgb(55 65 81);
+  }
+
+  .detail-table th,
+  .detail-table td {
+    padding: 0.75rem 1rem 0.75rem 0;
+    vertical-align: top;
+  }
+
+  .detail-table th:last-child,
+  .detail-table td:last-child {
+    padding-right: 0;
+  }
+
+  .detail-table th {
+    font-weight: 600;
+    color: rgb(55 65 81);
+  }
+
+  .dark .detail-table th {
+    color: rgb(229 231 235);
+  }
+
+  .detail-table td {
+    color: rgb(37 99 235);
+  }
+
+  .dark .detail-table td {
+    color: rgb(96 165 250);
+  }
+
+  .detail-table a {
+    color: inherit;
+  }
+
+  .detail-table a:hover {
+    text-decoration: underline;
+  }
+
+  .detail-sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    box-shadow: none;
+  }
+
+  .detail-card-scroll {
+    height: 18rem;
+    overflow: hidden;
+  }
+
+  .detail-card-scroll-inner {
+    height: 100%;
+    overflow: auto;
+    padding-right: 0.25rem;
+  }
+
+  .detail-card-scroll .detail-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .details-two-up,
+  .details-three-up {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  @media (min-width: 1280px) {
+    .details-two-up,
+    .details-three-up {
+      flex-direction: row;
+    }
+
+    .details-two-up > *,
+    .details-three-up > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+  }
+
+  .phd2-plot-shell {
+    min-height: 34rem;
+  }
+
+  .phd2-plot-shell [data-role="plot"] {
+    min-height: 440px;
+  }
+
   @media (min-width: 1024px) {
     .calibration-layout {
       grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
@@ -93,11 +224,30 @@
 
   <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-1 mx-auto">
     <!-- Main Card Container -->
-    <div x-data="{ mainTab: 'image', detailTab: 'lights',showObjects: false }"
+    <div x-data="{ mainTab: 'image', explorePane: 'hr', showObjects: false }"
       x-init="
         const storageKey = `image-tabs:${window.location.pathname}:{{ il.image.id }}`;
-        const validMainTabs = ['image', 'details', 'explore'{% if il.meta_json and 'variable' in il.meta_json %}, 'analyse'{% endif %}];
-        const validDetailTabs = ['lights', 'nights', 'equipment', 'software'{% if il.guiding_plot %}, 'guiding'{% endif %}{% if il.calibration_plot %}, 'calibration'{% endif %}];
+        const validMainTabs = ['image', 'details', 'explore'];
+        const validExplorePanes = ['hr'{% if il.meta_json and 'variable' in il.meta_json %}, 'analyse'{% endif %}{% if il.guiding_plot %}, 'guiding'{% endif %}{% if il.calibration_plot %}, 'calibration'{% endif %}];
+        const resizeExplorePane = value => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              let plot = null;
+              if (value === 'hr') {
+                plot = document.getElementById('dist-scatter');
+              } else if (value === 'analyse') {
+                plot = document.getElementById('framesPlot');
+              } else {
+                const root = document.getElementById(`${value}-root-{{ il.image.id }}`);
+                plot = root ? root.querySelector(`[data-role='plot']`) : null;
+              }
+
+              if (plot && window.Plotly) {
+                Plotly.Plots.resize(plot);
+              }
+            });
+          });
+        };
 
         try {
           const savedTabs = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -106,15 +256,15 @@
             mainTab = savedTabs.mainTab;
           }
 
-          if (validDetailTabs.includes(savedTabs.detailTab)) {
-            detailTab = savedTabs.detailTab;
+          if (validExplorePanes.includes(savedTabs.explorePane)) {
+            explorePane = savedTabs.explorePane;
           }
         } catch (error) {
           console.warn('Failed to restore image tab state', error);
         }
 
-        if (window.innerWidth < 768 && mainTab === 'analyse') {
-          mainTab = 'image'
+        if (mainTab === 'explore') {
+          resizeExplorePane(explorePane);
         }
 
         $watch('mainTab', value => {
@@ -122,20 +272,20 @@
             return;
           }
 
-          if (window.innerWidth < 768 && value === 'analyse') {
-            value = 'image';
-            mainTab = value;
+          if (value === 'explore') {
+            resizeExplorePane(explorePane);
           }
 
-          localStorage.setItem(storageKey, JSON.stringify({ mainTab: value, detailTab }));
+          localStorage.setItem(storageKey, JSON.stringify({ mainTab: value, explorePane }));
         });
 
-        $watch('detailTab', value => {
-          if (!validDetailTabs.includes(value)) {
+        $watch('explorePane', value => {
+          if (!validExplorePanes.includes(value)) {
             return;
           }
 
-          localStorage.setItem(storageKey, JSON.stringify({ mainTab, detailTab: value }));
+          resizeExplorePane(value);
+          localStorage.setItem(storageKey, JSON.stringify({ mainTab, explorePane: value }));
         });
       "
       class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
@@ -149,40 +299,10 @@
         ('explore', 'Explore')
         ] %}
 
-        {% if il.meta_json and 'variable' in il.meta_json %}
-          {% set main_tabs = main_tabs + [('analyse', 'Analyse')] %}
-        {% endif %}
-
         {% for tab_id, tab_label in main_tabs %}
-        <button @click="mainTab = '{{ tab_id }}'; if('{{ tab_id }}' === 'details'){ detailTab = 'lights' }"
+        <button @click="mainTab = '{{ tab_id }}'"
           :class="mainTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
-          class="px-4 py-2 text-sm font-medium {% if tab_id == 'analyse' %}hidden md:inline-flex{% endif %}">
-          {{ tab_label }}
-        </button>
-        {% endfor %}
-      </div>
-
-      <!-- Sub Tabs for Details -->
-      <div x-show="mainTab === 'details'" x-cloak
-        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-center items-center whitespace-nowrap mt-2">
-
-        {% set detail_tabs = [
-          ('lights', 'Lights'),
-          ('nights', 'Nights'),
-          ('equipment', 'Equipment'),
-          ('software', 'Software')
-        ] %}
-        {% if il.guiding_plot %}
-        {% set detail_tabs = detail_tabs + [('guiding', 'Guiding')] %}
-        {% endif %}
-        {% if il.calibration_plot %}
-        {% set detail_tabs = detail_tabs + [('calibration', 'Calibration')] %}
-        {% endif %}
-
-        {% for tab_id, tab_label in detail_tabs %}
-        <button @click="detailTab = '{{ tab_id }}'"
-          :class="detailTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
-          class="px-4 py-2 text-sm font-medium {% if tab_id in ['guiding', 'calibration'] %}hidden md:inline-flex{% endif %}">
+          class="px-4 py-2 text-sm font-medium">
           {{ tab_label }}
         </button>
         {% endfor %}
@@ -190,33 +310,6 @@
 
       <!-- Image Tab -->
       <div x-show="mainTab === 'image'" class="space-y-2 md:p-4">
-        <span class="flex items-center gap-3 px-1">
-            <!-- Avatar -->
-            <a href="{{ url_for('profile.public', username=il.image.author) }}">
-                {% if il.image.user_image %}
-                    <img
-                        src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
-                        class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
-                        alt="author image"
-                    >
-                {% else %}
-                    <img
-                        src="{{ url_for('static', filename='default_profile.png') }}"
-                        class="w-11 h-11 rounded-full object-cover border border-gray-300 dark:border-gray-600"
-                        alt="default profile"
-                    >
-                {% endif %}
-            </a>
-
-            <!-- Name + location stacked -->
-            <span class="flex flex-col leading-tight">
-                <a 
-                    href="{{ url_for('profile.public', username=il.image.author) }}"
-                    class="hover:text-blue-500 font-medium"
-                >@{{ il.image.author }}</a>
-                <span class="text-xs text-gray-600 dark:text-gray-300">{{ il.image.location }}</span>
-            </span>
-        </span>
         <div id="zoom-container-{{il.image.id}}"
           class="relative w-full max-w-full overflow-x-auto overflow-y-hidden md:rounded-[10px]  px-1 flex items-center justify-center group touch-none">
 
@@ -245,40 +338,60 @@
             </div>
           </div>
 
-          <button id="fullscreen-btn-{{il.image.id}}" title="Open fullscreen viewer"
-            class="absolute bottom-2 left-2 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/15 hover:opacity-100 transition"
-            aria-label="Open fullscreen viewer" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
-              stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="24 4 4 4 4 24" />
-              <line x1="4" y1="4" x2="22" y2="22" />
+          <div class="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between p-1">
+            <a href="{{ url_for('profile.public', username=il.image.author) }}"
+              class="pointer-events-auto flex max-w-[70%] items-center gap-3 rounded-full bg-black/20 px-3 py-1 text-white shadow-lg backdrop-blur-sm transition hover:bg-gray-600/60">
+              {% if il.image.user_image %}
+              <img
+                src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
+                class="h-8 w-8 rounded-full object-cover border border-white/40"
+                alt="author image">
+              {% else %}
+              <img
+                src="{{ url_for('static', filename='default_profile.png') }}"
+                class="h-8 w-8 rounded-full object-cover border border-white/40"
+                alt="default profile">
+              {% endif %}
+              <span class="flex min-w-0 flex-col leading-tight">
+                <span class="truncate font-medium text-white">@{{ il.image.author }}</span>
+                <span class="truncate text-xs text-gray-200">{{ il.image.location }}</span>
+              </span>
+            </a>
 
-              <polyline points="40 4 60 4 60 24" />
-              <line x1="60" y1="4" x2="42" y2="22" />
+            <div class="pointer-events-auto flex items-center gap-2">
+              <button id="reset-btn-{{il.image.id}}" title="Resize"
+                class="p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
+                aria-label="Resize image" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
+                  stroke-width="6">
+                  <line x1="36" y1="28" x2="60" y2="4" />
+                  <polyline points="38 4 60 4 60 26" />
 
-              <polyline points="4 40 4 60 24 60" />
-              <line x1="4" y1="60" x2="22" y2="42" />
+                  <line x1="28" y1="36" x2="4" y2="60" />
+                  <polyline points="4 38 4 60 26 60 " />
+                </svg>
+              </button>
 
-              <polyline points="40 60 60 60 60 40" />
-              <line x1="60" y1="60" x2="42" y2="42" />
-            </svg>
-          </button>
+              <button id="fullscreen-btn-{{il.image.id}}" title="Full Screen"
+                class="p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
+                aria-label="Full Screen" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
+                  stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="24 4 4 4 4 24" />
+                  <line x1="4" y1="4" x2="22" y2="22" />
 
-          <!-- Reset Button -->
-          <button id="reset-btn-{{il.image.id}}" title="Reset image zoom"
-            class="absolute bottom-2 right-2 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/15 hover:opacity-100 transition"
-            aria-label="Reset image zoom" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
-              stroke-width="6">
-              <!-- Arrows from center to corners -->
-              <line x1="36" y1="28" x2="60" y2="4" />
-              <polyline points="38 4 60 4 60 26" />
+                  <polyline points="40 4 60 4 60 24" />
+                  <line x1="60" y1="4" x2="42" y2="22" />
 
-              <line x1="28" y1="36" x2="4" y2="60" />
-              <polyline points="4 38 4 60 26 60 " />
+                  <polyline points="4 40 4 60 24 60" />
+                  <line x1="4" y1="60" x2="22" y2="42" />
 
-            </svg>
-          </button>
+                  <polyline points="40 60 60 60 60 40" />
+                  <line x1="60" y1="60" x2="42" y2="42" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div id="fullscreen-modal-{{il.image.id}}"
@@ -325,9 +438,9 @@
                 </svg>
               </button>
 
-              <button id="fullscreen-reset-btn-{{il.image.id}}" title="Reset fullscreen image zoom"
-                class="absolute bottom-4 right-4 p-2 border-2 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 transition"
-                aria-label="Reset fullscreen image zoom" type="button">
+              <button id="fullscreen-reset-btn-{{il.image.id}}" title="Resize"
+                class="absolute bottom-4 right-4 p-2 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 hover:opacity-100 transition"
+                aria-label="Resize image" type="button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16" fill="none" stroke="grey"
                   stroke-width="6">
                   <line x1="36" y1="28" x2="60" y2="4" />
@@ -338,8 +451,8 @@
                 </svg>
               </button>
 
-              <div class="absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
-                <div class="flex items-center space-x-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
+              <div class="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+                <div class="pointer-events-auto flex items-center space-x-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
                   <div>
                     <input id="fullscreen-graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
                     <label for="fullscreen-graticule-toggle-{{il.image.id}}" title="Overlay Coordinate Grid" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
@@ -541,230 +654,279 @@
         </div>
       </div>
 
-      <div x-show="mainTab === 'details'" x-cloak>
-        <div>
-          <!-- Acquisition Details Tab -->
-          <div x-show="detailTab === 'lights'" class="p-6 dark:text-white">
-            <div class="flex border-b mb-4 w-full overflow-x-auto">
-              <table html-id="light-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-                <tbody>
+      <div x-show="mainTab === 'details'" x-cloak class="p-6 dark:text-white">
+        {% set rows = {
+          'Lights': 'light_count',
+          'Single Exposure': 'exposure_time',
+          'Total Exposure': 'total_time',
+          'Gain': 'gain',
+          'Offset': 'offset_cam',
+          'Temp (°C)': 'temperature'
+        } %}
+        {% set weighted_source = il.lights[0] if il.lights else {} %}
+        {% set has_weighted_exposure = il.lights and (
+          'effective_total' in weighted_source or
+          'effective_red' in weighted_source or
+          'effective_green' in weighted_source or
+          'effective_blue' in weighted_source
+        ) %}
+        {% set weighted_rows = [
+          ('Red Channel', weighted_source.get('effective_red')),
+          ('Green Channel', weighted_source.get('effective_green')),
+          ('Blue Channel', weighted_source.get('effective_blue')),
+          ('Total', weighted_source.get('effective_total'))
+        ] %}
 
-                  <!-- Filter Row -->
-                  <tr class="border-b dark:border-gray-700">
-                    <td class="p-2 font-semibold capitalize">Filter</td>
-                    {% for light in il.lights %}
-                    <td class="p-2">
-                      <a href="{{ light.filter_link }}" target="_blank"
-                        class="text-blue-600 dark:text-blue-400 hover:underline">
-                        {{ light.cam_filter|replace("Filter", "") }}
+        {% set acquisition_software = il.software_list | selectattr('type', 'equalto', 'acquisition') | list %}
+        {% set processing_software = il.software_list | selectattr('type', 'equalto', 'processing') | list %}
+
+        <div class="space-y-4">
+          <div class="details-two-up">
+            <section class="detail-card">
+              <h3 class="detail-card-title">Lights</h3>
+              <div class="overflow-x-auto">
+                <table html-id="light-{{il.image.id}}" class="detail-table min-w-max">
+                  <tbody>
+                    <tr>
+                      <th class="detail-sticky-col min-w-[11rem]">Filter</th>
+                      {% for light in il.lights %}
+                      <td class="min-w-[9rem]">
+                        <a href="{{ light.filter_link }}" target="_blank">
+                          {{ light.cam_filter|replace("Filter", "") }}
+                        </a>
+                      </td>
+                      {% endfor %}
+                    </tr>
+
+                    {% for label, field in rows.items() if field in il.lights[0] %}
+                    <tr>
+                      <th class="detail-sticky-col min-w-[11rem]">{{ label }}</th>
+                      {% for light in il.lights %}
+                      <td class="min-w-[9rem]">{{ light[field] }}</td>
+                      {% endfor %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="detail-card">
+              <h3 class="detail-card-title">Equipment</h3>
+              <table html-id="equipment-{{il.image.id}}" class="detail-table">
+                <tbody>
+                  {% for equipment in il.equipment_list %}
+                  <tr>
+                    <th>{{ equipment.table|replace('_', ' ')|title }}</th>
+                    <td>
+                      <a href="{{ equipment.link }}" target="_blank">
+                        {{ equipment.brand | default('') + " " + equipment.name|replace(equipment.brand | default(''), '') }}
                       </a>
                     </td>
-                    {% endfor %}
                   </tr>
-
-                  <!-- Other Light Data Rows -->
-                  {% set rows = {
-                'Lights': 'light_count',
-                'Single Exposure': 'exposure_time',
-                'Total Exposure': 'total_time',
-                'Weighted Total Exposure': 'effective_total',
-                'Weighted Red Channel Exposure': 'effective_red',
-                'Weighted Green Channel Exposure': 'effective_green',
-                'Weighted Blue Channel Exposure': 'effective_blue',
-                'Gain': 'gain',
-                'Offset': 'offset_cam',
-                'Temp (°C)': 'temperature'
-              } %}
-
-                {% for label, field in rows.items() if field in il.lights[0] %}
-                <tr class="border-b dark:border-gray-700">
-                  <td class="p-2 font-semibold capitalize">{{ label }}</td>
-                  {% for light in il.lights %}
-                      <td class="p-2 text-blue-600 dark:text-blue-400">{{ light[field] }}</td>
+                  {% else %}
+                  <tr>
+                    <td colspan="2" class="text-gray-500 dark:text-gray-400">No equipment recorded.</td>
+                  </tr>
                   {% endfor %}
-                </tr>
-                {% endfor %}
-
                 </tbody>
               </table>
-            </div>
+            </section>
           </div>
 
-          <div x-show="detailTab === 'nights'" class="p-6 dark:text-white">
-            <div class="flex border-b mb-4">
-              <table html-id="night-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-                <tbody>
-                  <tr class="border-b dark:border-gray-700">
-                    <td class="p-2 font-semibold capitalize">Capture Dates</td>
-                    <td class="p-2 font-semibold capitalize">Moon Illumination</td>
-                  </tr>
-                  {% for date in il.dates %}
-                  <tr class="border-b dark:border-gray-700">
-                    <td class="p-2 font-semibold capitalize">{{ date.capture_date }}</td>
-                    <td class="p-2 text-blue-600 dark:text-blue-400"">{{ date.moon_phase }} ({{ date.moon_illumination }}%)</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-        </div>
-          </div>
-
-          <div x-show=" detailTab==='equipment'" class=" p-6 dark:text-white">
-                      <div class="flex border-b mb-4">
-                        <table html-id="equipment-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
-                          <tbody>
-                            {% for equipment in il.equipment_list %}
-                            <tr class="border-b dark:border-gray-700">
-                              <td class="p-2 font-semibold ">
-                                {{ equipment.table|replace('_', ' ')|title+ ":" }}
-                              </td>
-                              <td class="p-2">
-                                <a href="{{ equipment.link }}" target="_blank"
-                                  class="text-blue-600 dark:text-blue-400 hover:underline">
-                                  {{ equipment.brand | default('') + " " + equipment.name|replace(equipment.brand | default(''), '') }}
-                                </a>
-                              </td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-          </div>
-
-          <div x-show="detailTab === 'software'" class="p-6 dark:text-white">
-              <div class="flex border-b mb-4">
-                <table html-id="software-{{il.image.id}}" class="table-auto w-full text-left border-collapse">
+          <div class="details-three-up">
+            {% if has_weighted_exposure %}
+            <section class="detail-card detail-card-scroll">
+              <h3 class="detail-card-title">Weighted Exposure</h3>
+              <div class="detail-card-scroll-inner">
+                <table html-id="weighted-{{il.image.id}}" class="detail-table">
                   <tbody>
-                    <tr class="border-b dark:border-gray-700">
-                      <td class="p-2 font-semibold capitalize">Acquisition</td>
-                      <td class="p-2 text-blue-600 dark:text-blue-400">
-                        {% for software in il.software_list %}
-                        {% if software.type == 'acquisition' %}
-                        <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a>
-                        </p>
+                    {% for label, value in weighted_rows %}
+                    <tr>
+                      <th>{{ label }}</th>
+                      <td>{{ value or 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            {% endif %}
+
+            {% if il.dates %}
+            <section class="detail-card detail-card-scroll">
+              <h3 class="detail-card-title">Nights</h3>
+              <div class="detail-card-scroll-inner">
+                <table html-id="night-summary-{{il.image.id}}" class="detail-table">
+                  <thead>
+                    <tr>
+                      <th>Capture Dates</th>
+                      <th>Moon Illumination</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for date in il.dates %}
+                    <tr>
+                      <th>{{ date.capture_date }}</th>
+                      <td>{{ date.moon_phase }} ({{ date.moon_illumination }}%)</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            {% endif %}
+
+            <section class="detail-card detail-card-scroll">
+              <h3 class="detail-card-title">Software</h3>
+              <div class="detail-card-scroll-inner">
+                <table html-id="software-{{il.image.id}}" class="detail-table">
+                  <tbody>
+                    <tr>
+                      <th>Acquisition</th>
+                      <td>
+                        {% if acquisition_software %}
+                        <div class="space-y-2">
+                          {% for software in acquisition_software %}
+                          <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
+                          {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">No acquisition software recorded.</span>
                         {% endif %}
-                        {% endfor %}
                       </td>
                     </tr>
-                    <tr class="border-b dark:border-gray-700">
-                      <td class="p-2 font-semibold capitalize">Processing</td>
-                      <td class="p-2 text-blue-600 dark:text-blue-400">
-                        {% for software in il.software_list %}
-                        {% if software.type == 'processing' %}
-                        {% if software.metadata %}
-                        <p>{{ software.metadata | safe}}</p>
+                    <tr>
+                      <th>Processing</th>
+                      <td>
+                        {% if processing_software %}
+                        <div class="space-y-2">
+                          {% for software in processing_software %}
+                          {% if software.metadata %}
+                          <p>{{ software.metadata | safe }}</p>
+                          {% else %}
+                          <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
+                          {% endif %}
+                          {% endfor %}
+                        </div>
                         {% else %}
-                        <p><a href="{{ software.link }}" target="_blank">{{ software.name }}</a></p>
+                        <span class="text-gray-500 dark:text-gray-400">No processing software recorded.</span>
                         {% endif %}
-                        {% endif %}
-                        {% endfor %}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-          </div>
-
-            <!-- Guiding Tab -->
-          <div x-show="detailTab === 'guiding'" class="hidden md:block">
-              <div class="p-6">
-                <div id="guiding-root-{{il.image.id}}" class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6 space-y-4">
-                  <div class="flex flex-col xl:flex-row gap-4">
-                    <div class="xl:w-80 space-y-3">
-                      <div>
-                        <label class="block text-sm font-semibold mb-1">Guiding Session</label>
-                        <select data-role="session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full"></select>
-                      </div>
-                      <div data-role="stats" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3"></div>
-                      <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto"></div>
-                    </div>
-                    <div data-role="plot" class="min-h-[440px] flex-1"></div>
-                  </div>
-                </div>
-              </div>
-          </div>
-
-          <div x-show="detailTab === 'calibration'" class="hidden md:block">
-              <div class="p-6">
-                <div id="calibration-root-{{il.image.id}}" class="p-4 rounded-lg shadow-lg dark:bg-gray-800 mb-6 space-y-4">
-                  <div class="calibration-layout">
-                    <select data-role="session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full calibration-session"></select>
-                    <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 overflow-auto w-full calibration-heading"></div>
-                    <div data-role="plot" class="w-full min-h-[440px] calibration-plot"></div>
-                  </div>
-                </div>
-              </div>
+            </section>
           </div>
         </div>
       </div>
 
-      <div x-show="mainTab === 'explore'"
-          class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
-          <!-- Hertzsprung–Russell diagram container -->
+      <div x-show="mainTab === 'explore'" x-cloak class="space-y-4 md:p-4 dark:text-white">
+        {% set explore_tabs = [('hr', 'Hertzsprung Russel Diagram')] %}
+        {% if il.meta_json and 'variable' in il.meta_json %}
+        {% set explore_tabs = explore_tabs + [('analyse', 'Analyse')] %}
+        {% endif %}
+        {% if il.guiding_plot %}
+        {% set explore_tabs = explore_tabs + [('guiding', 'Guiding')] %}
+        {% endif %}
+        {% if il.calibration_plot %}
+        {% set explore_tabs = explore_tabs + [('calibration', 'Calibration')] %}
+        {% endif %}
+
+        {% if explore_tabs|length > 1 %}
+        <div class="flex justify-center">
+          <fieldset class="inline-flex flex-wrap justify-center rounded-full bg-gray-100 p-1 shadow-sm dark:bg-gray-900/70" aria-label="Explore view mode">
+            {% for pane_id, pane_label in explore_tabs %}
+            <label class="cursor-pointer">
+              <input type="radio" class="sr-only peer" name="explore-pane-{{il.image.id}}" value="{{ pane_id }}" x-model="explorePane">
+              <span class="inline-flex items-center rounded-full border border-transparent px-4 py-2 text-sm font-semibold text-gray-500 transition peer-checked:border-blue-200 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-sm dark:text-gray-300 dark:peer-checked:border-blue-400/50 dark:peer-checked:bg-blue-500 dark:peer-checked:text-gray-950">{{ pane_label }}</span>
+            </label>
+            {% endfor %}
+          </fieldset>
+        </div>
+        {% endif %}
+
+        <div x-show="explorePane === 'hr'" class="space-y-2 items-center justify-center dark:text-white display-inline">
           <div id="dist-scatter"
             class="w-full rounded-xl bg-white/70 dark:bg-white/70 mx-auto aspect-[3/4] sm:aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/3] max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px]">
           </div>
-      </div>
-
-      <div x-show="mainTab === 'analyse'"
-        class="space-y-2 items-center justify-center md:p-4 dark:text-white display-inline">
-
-        <div class="flex flex-wrap gap-4 items-center mb-4 text-black dark:text-white">
-
-          <label for="xAxisSelect">X axis:</label>
-          <select id="xAxisSelect"
-                  class="input_container bg-white dark:bg-gray-700 text-black dark:text-white"></select>
-
-          <!-- Y AXIS 1 -->
-          <div class="flex flex-col gap-1">
-            <label>Y axis 1:</label>
-
-            <select id="yAxisType1"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" value="line">
-              <option value="line" selected>Line</option>
-              <option value="scatter">Scatter</option>
-              <option value="bar">Bar</option>
-            </select>
-          </div>
-          <select id="yAxisSelect1" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
-          <!-- Y AXIS 2 -->
-          <div class="flex flex-col gap-1">
-            <label>Y axis 2:</label>
-            <select id="yAxisType2"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
-              <option value="scatter">Scatter</option>
-              <option value="line">Line</option>
-              <option value="bar">Bar</option>
-            </select>
-          </div>
-
-          <select id="yAxisSelect2"
-                  class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
-          <!-- Y AXIS 3 -->
-          <div class="flex flex-col gap-1">
-            <label>Y axis 3:</label>
-            <select id="yAxisType3"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
-              <option value="scatter">Scatter</option>
-              <option value="line">Line</option>
-              <option value="bar">Bar</option>
-            </select>
-          </div>
-
-          <select id="yAxisSelect3"
-                  class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
-          <button id="updatePlotBtn"
-                  class="px-4 py-2 bg-blue-500 text-white rounded">
-            Update Plot
-          </button>
         </div>
 
+        {% if il.meta_json and 'variable' in il.meta_json %}
+        <div x-show="explorePane === 'analyse'" class="detail-card space-y-4">
+          <div class="flex flex-wrap gap-4 items-center text-black dark:text-white">
+            <label for="xAxisSelect">X axis:</label>
+            <select id="xAxisSelect"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white"></select>
 
-        <div id="framesPlot" style="width:100%;height:500px;"></div>
+            <div class="flex flex-col gap-1">
+              <label>Y axis 1:</label>
+              <select id="yAxisType1"
+                      class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" value="line">
+                <option value="line" selected>Line</option>
+                <option value="scatter">Scatter</option>
+                <option value="bar">Bar</option>
+              </select>
+            </div>
+            <select id="yAxisSelect1" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
 
+            <div class="flex flex-col gap-1">
+              <label>Y axis 2:</label>
+              <select id="yAxisType2"
+                      class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+                <option value="scatter">Scatter</option>
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+              </select>
+            </div>
+            <select id="yAxisSelect2"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+
+            <div class="flex flex-col gap-1">
+              <label>Y axis 3:</label>
+              <select id="yAxisType3"
+                      class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+                <option value="scatter">Scatter</option>
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+              </select>
+            </div>
+            <select id="yAxisSelect3"
+                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+
+            <button id="updatePlotBtn"
+                    class="px-4 py-2 bg-blue-500 text-white rounded">
+              Update Plot
+            </button>
+          </div>
+
+          <div id="framesPlot" class="w-full min-h-[500px]"></div>
+        </div>
+        {% endif %}
+
+        {% if il.guiding_plot %}
+        <div id="guiding-root-{{il.image.id}}" x-show="explorePane === 'guiding'" class="phd2-plot-shell detail-card">
+          <div class="flex flex-col xl:flex-row gap-4">
+            <div class="xl:w-80 space-y-3">
+              <select data-role="session" aria-label="Guiding session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full"></select>
+              <div data-role="stats" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3"></div>
+              <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto"></div>
+            </div>
+            <div data-role="plot" class="flex-1"></div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if il.calibration_plot %}
+        <div id="calibration-root-{{il.image.id}}" x-show="explorePane === 'calibration'" class="phd2-plot-shell detail-card">
+          <div class="calibration-layout">
+            <select data-role="session" aria-label="Calibration session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full calibration-session"></select>
+            <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 overflow-auto w-full calibration-heading"></div>
+            <div data-role="plot" class="w-full calibration-plot"></div>
+          </div>
+        </div>
+        {% endif %}
       </div>
 
     </div>
@@ -801,8 +963,9 @@
 
             // Define tables and their section titles in the order you want
             const tablesInfo = [
-              { selector: `table[html-id="light-${id}"]`, title: "Acquisition:\n------------" },
-              { selector: `table[html-id="night-${id}"]`, title: "" },
+              { selector: `table[html-id="light-${id}"]`, title: "Lights:\n-------" },
+              { selector: `table[html-id="weighted-${id}"]`, title: "Weighted Exposure:\n------------------" },
+              { selector: `table[html-id="night-summary-${id}"]`, title: "Nights:\n-------" },
               { selector: `table[html-id="equipment-${id}"]`, title: "Equipment:\n-----------" },
               { selector: `table[html-id="software-${id}"]`, title: "Software:\n----------" }
             ];
@@ -820,7 +983,7 @@
           const tableData = [];
 
           rows.forEach(row => {
-            const cells = Array.from(row.querySelectorAll("td"));
+            const cells = Array.from(row.querySelectorAll("th, td"));
             const rowText = cells.map(cell => {
               const pElements = cell.querySelectorAll("p");
               if (pElements.length > 0) {
@@ -1066,26 +1229,37 @@
         }
 
         const inlineViewer = createViewer("");
-        const fullscreenViewer = createViewer("fullscreen-");
+        let fullscreenViewer = null;
 
         const fullscreenModal = document.getElementById(`fullscreen-modal-${imageId}`);
         const fullscreenOpenButton = document.getElementById(`fullscreen-btn-${imageId}`);
         const fullscreenCloseButton = document.getElementById(`fullscreen-close-btn-${imageId}`);
         const fullscreenBackdrop = document.getElementById(`fullscreen-backdrop-${imageId}`);
 
-        function openFullscreenViewer() {
-          fullscreenViewer.setToolState({
-            overlay: inlineViewer.elements.overlayToggle.checked,
-            graticule: inlineViewer.elements.graticuleToggle.checked,
-            compare: inlineViewer.elements.compareToggle.checked,
-          });
+        function ensureFullscreenViewer() {
+          if (!fullscreenViewer) {
+            // Initialize the fullscreen panzoom after the modal is visible so reset uses the rendered size.
+            fullscreenViewer = createViewer("fullscreen-");
+          }
 
+          return fullscreenViewer;
+        }
+
+        function openFullscreenViewer() {
           fullscreenModal.classList.remove("hidden");
           fullscreenModal.classList.add("flex");
           document.body.style.overflow = "hidden";
 
           requestAnimationFrame(() => {
-            fullscreenViewer.reset();
+            requestAnimationFrame(() => {
+              const viewer = ensureFullscreenViewer();
+              viewer.setToolState({
+                overlay: inlineViewer.elements.overlayToggle.checked,
+                graticule: inlineViewer.elements.graticuleToggle.checked,
+                compare: inlineViewer.elements.compareToggle.checked,
+              });
+              viewer.reset();
+            });
           });
         }
 
@@ -1166,3 +1340,4 @@
     </div>
   </div>
   {% endblock %}
+

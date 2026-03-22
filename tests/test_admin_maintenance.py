@@ -17,6 +17,8 @@ class FakeCursor:
         self.db.executed.append((sql, params))
         if "SELECT id, guide_log" in sql:
             self.rows = list(self.db.guiding_rows)
+        elif "SELECT id, image_path, header_json" in sql:
+            self.rows = list(self.db.plate_rows)
         elif "SELECT image_path, image_thumbnail" in sql:
             self.rows = list(self.db.image_rows)
         elif "SELECT display_image" in sql:
@@ -29,8 +31,9 @@ class FakeCursor:
 
 
 class FakeDB:
-    def __init__(self, guiding_rows=None, image_rows=None, user_rows=None):
+    def __init__(self, guiding_rows=None, plate_rows=None, image_rows=None, user_rows=None):
         self.guiding_rows = guiding_rows or []
+        self.plate_rows = plate_rows or []
         self.image_rows = image_rows or []
         self.user_rows = user_rows or []
         self.executed = []
@@ -101,6 +104,60 @@ def test_rebuild_all_guiding_plots_updates_images_with_existing_logs(tmp_path, m
     assert update_calls[0][1][2] == 7
 
 
+def test_rebuild_all_plate_solves_updates_images_with_existing_headers(app, tmp_path, monkeypatch):
+    from AstroSpace.profile import private
+
+    upload_root = tmp_path / "uploads"
+    user_dir = upload_root / "1"
+    user_dir.mkdir(parents=True)
+    (user_dir / "image.png").write_text("image", encoding="utf-8")
+
+    db = FakeDB(
+        plate_rows=[
+            {"id": 11, "image_path": "1/image.png", "header_json": "HEADER"},
+        ]
+    )
+
+    monkeypatch.setattr(
+        private,
+        "rebuild_plate_solve_artifacts",
+        lambda _abs_path, _public_path, _header_json: (
+            "1/image_thumbnail.jpg",
+            1.23,
+            '{"ok": true}',
+            "HEADER+DISPLAY",
+        ),
+    )
+
+    with app.app_context():
+        stats = private.rebuild_all_plate_solves(db, str(upload_root))
+
+    assert stats["updated"] == 1
+    assert stats["skipped"] == 0
+    assert db.commit_count == 1
+    update_calls = [call for call in db.executed if "UPDATE images" in call[0]]
+    assert len(update_calls) == 1
+    assert update_calls[0][1] == ("1/image_thumbnail.jpg", 1.23, '{"ok": true}', "HEADER+DISPLAY", 11)
+
+
+def test_rebuild_all_plate_solves_skips_missing_image_files(app, tmp_path):
+    from AstroSpace.profile.private import rebuild_all_plate_solves
+
+    db = FakeDB(
+        plate_rows=[
+            {"id": 12, "image_path": "1/missing.jpg", "header_json": "HEADER"},
+        ]
+    )
+
+    with app.app_context():
+        stats = rebuild_all_plate_solves(db, str(tmp_path / "uploads"))
+
+    assert stats["updated"] == 0
+    assert stats["skipped"] == 1
+    assert stats["missing_files"] == [{"image_id": 12, "path": "1/missing.jpg"}]
+    assert db.commit_count == 0
+
+
 def test_purge_unbound_image_uploads_deletes_only_unreferenced_files(tmp_path):
     from AstroSpace.profile.private import purge_unbound_image_uploads
 
@@ -129,3 +186,26 @@ def test_purge_unbound_image_uploads_deletes_only_unreferenced_files(tmp_path):
     assert thumb_path.exists()
     assert profile_thumb.exists()
     assert not orphan_path.exists()
+
+
+def test_profile_template_includes_plate_solving_admin_action(app):
+    from flask import render_template
+
+    with app.test_request_context("/private/profile"):
+        html = render_template(
+            "profile.html",
+            posts=[],
+            inventory={},
+            user_settings={},
+            tabs=["Posts", "Inventory", "Settings"],
+            data_type={},
+            inventory_constraints={},
+            WebName="AstroSpace Test",
+            web_info={"site_name": "AstroSpace Test"},
+            can_manage_site=True,
+            active_tab="Settings",
+        )
+
+    assert "Redo plate solving for all images" in html
+    assert "/private/admin/redo_plate_solving" in html
+    assert "runRedoPlateSolvingOnce" in html
