@@ -47,12 +47,18 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'let fullscreenViewer = null;' in template_source
     assert 'function ensureFullscreenViewer()' in template_source
     assert 'const fullscreenViewer = createViewer("fullscreen-");' not in template_source
-    assert 'pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4' in template_source
-    assert 'pointer-events-auto flex items-center space-x-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm' in template_source
+    assert 'id="fullscreen-tool-tray-{{il.image.id}}"' in template_source
     assert 'opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 hover:opacity-100 transition' in template_source
-    assert 'pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between' in template_source
-    assert 'pointer-events-auto flex max-w-[70%] items-center gap-3 rounded-full' in template_source
-    assert 'pointer-events-auto flex items-center gap-2' in template_source
+    assert 'absolute bottom-3 left-3 z-20' in template_source
+    assert 'absolute bottom-3 right-3 z-20' in template_source
+    assert 'id="zoomable-video-{{il.image.id}}"' in template_source
+    assert 'id="fullscreen-zoomable-video-{{il.image.id}}"' in template_source
+    assert 'id="media-prev-{{il.image.id}}"' in template_source
+    assert 'id="media-next-{{il.image.id}}"' in template_source
+    assert 'id="inline-media-caption-{{il.image.id}}"' in template_source
+    assert 'id="starless-toggle-{{il.image.id}}"' in template_source
+    assert 'pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between' not in template_source
+    assert 'pointer-events-auto flex max-w-[70%] items-center gap-3 rounded-full' not in template_source
 
 
 def test_image_detail_template_uses_unified_details_and_explore_radio_switch():

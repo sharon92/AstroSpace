@@ -1,4 +1,6 @@
 ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg", "png"}
+ALLOWED_RELATED_MEDIA_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif", "mp4", "webm", "ogg"}
+RELATED_MEDIA_VIDEO_EXTENSIONS = {"mp4", "webm", "ogg"}
 ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}
 ALLOWED_TXT_EXTENSIONS = {"txt", "log"}
 
@@ -64,6 +66,7 @@ IMAGE_RELATION_TABLES = [
     "capture_dates",
     "image_lights",
     "image_software",
+    "related_image_media",
 ]
 
 IMAGE_DETAIL_TABLE_NAMES = [
@@ -76,4 +79,5 @@ IMAGE_DETAIL_TABLE_NAMES = [
     "calibration_plot",
     "svg_image",
     "meta_json",
+    "related_media",
 ]

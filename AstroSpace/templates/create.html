@@ -34,50 +34,109 @@
                 class="input_container">{{ image.description if is_edit else '' }}</textarea>
         </div>
 
-        <!-- Image Path -->
-        <div x-data="{ imagePath: '{{ image.image_path if is_edit and image.image_path else '' }}' }" class="space-y-2">
-            {% if is_edit %}
-            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Current Image</label>
-            <template x-if="imagePath">
-                <div
-                    class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm text-gray-700 dark:text-gray-300">
-                    <input type="text" x-model="imagePath" name="prev_img" class="w-full truncate" readonly />
-                </div>
-            </template>
+        <div class="space-y-4">
+            <div class="flex flex-wrap gap-4">
+                <section class="flex min-w-[260px] flex-1 flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+                    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Upload Image</label>
+                    {% if is_edit %}
+                    <div class="mt-2 space-y-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Current image</p>
+                            <input type="text" name="prev_img"
+                                value="{{ image.image_path if image.image_path else '' }}"
+                                class="input_container mt-2 w-full truncate"
+                                readonly />
+                        </div>
 
-            <!-- Redo Plate Solving Checkbox -->
-            <label class="inline-flex items-center mt-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" id="redo_plate_solve" name="redo_plate_solve"
-                    class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
-                Redo Plate Solving
-            </label>
-            <label class="inline-flex items-center mt-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" id="regenerate_overlays" name="regenerate_overlays"
-                    class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
-                Regenerate Overlays
-            </label>
-            {% endif %}
+                        <div class="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="redo_plate_solve" name="redo_plate_solve"
+                                    class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
+                                Redo Plate Solving
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="regenerate_overlays" name="regenerate_overlays"
+                                    class="form-checkbox h-4 w-4 text-blue-600 rounded mr-2">
+                                Regenerate Overlays
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
 
-            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Upload Image</label>
-            <input name="image_path" type="file" accept=".png,.jpg,.jpeg" class="block w-full text-sm text-gray-500
-        file:mr-4 file:py-2 file:px-4
-        file:rounded-full file:border-0
-        file:text-sm file:font-semibold
-        file:bg-blue-50 file:text-blue-700
-        hover:file:bg-blue-100" {% if not is_edit %} required {% endif %} />
+                    <input name="image_path" type="file" accept=".png,.jpg,.jpeg"
+                        class="mt-4 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                        {% if not is_edit %} required {% endif %} />
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Upload the preview image shown on the post.</p>
+                </section>
 
-            <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
-                <p>Upload FITS/XISF file</p>
-                <p>[The Jpeg should be of same
-                    dimension as the fits/XISF file otherwise the annotation will be incorrect!]</p>
-            </label>
-            <input name="fits_file" type="file" accept=".fits,.fit,.xisf" class="block w-full text-sm text-gray-500
-                 file:mr-4 file:py-2 file:px-4
-                 file:rounded-full file:border-0
-                 file:text-sm file:font-semibold
-                 file:bg-blue-50 file:text-blue-700
-                 hover:file:bg-blue-100" {% if not is_edit %} required {% endif %}/>
-            
+                <section class="flex min-w-[260px] flex-1 flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+                    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Upload FITS/XISF</label>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Use a plate-solved FITS/XISF with the same dimensions as the preview image so annotations line up correctly.</p>
+                    <input name="fits_file" type="file" accept=".fits,.fit,.xisf"
+                        class="mt-4 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                        {% if not is_edit %} required {% endif %} />
+                </section>
+
+                <section class="flex min-w-[260px] flex-1 flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+                    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Upload Starless Image</label>
+                    <input type="hidden" name="prev_starless_img" value="{{ image.starless_image_path if is_edit and image.starless_image_path else '' }}">
+                    {% if is_edit and image.starless_image_path %}
+                    <div class="mt-2">
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Current starless image</p>
+                        <input type="text"
+                            value="{{ image.starless_image_path }}"
+                            class="input_container mt-2 w-full truncate"
+                            readonly />
+                    </div>
+                    {% endif %}
+                    <input name="starless_image_path" type="file" accept=".png,.jpg,.jpeg"
+                        class="mt-4 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100" />
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Optional alternate render used for the starless toggle on the image detail page.</p>
+                </section>
+
+                <section class="flex min-w-[320px] flex-[1_1_420px] flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+                    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Upload Other Related Media</label>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Add supporting images or browser-friendly videos. Captions are shown below the media viewer.</p>
+                    <input id="relatedMediaInput" name="related_media_files" type="file" multiple
+                        accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.ogg"
+                        class="mt-4 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100" />
+                    <input type="hidden" name="related_media_store" id="relatedMediaStore" value='{{ related_media_json | safe }}'>
+
+                    <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table id="relatedMediaTable" class="min-w-full text-sm">
+                            <thead class="bg-gray-50 text-left text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                <tr>
+                                    <th class="px-3 py-2 font-semibold">Image Added</th>
+                                    <th class="px-3 py-2 font-semibold">Caption</th>
+                                    <th class="px-3 py-2 font-semibold"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="relatedMediaTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
             <div id="lightFramesContainer" class="my-4">
                 <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
                     <p>Upload WBPP log file from Pixinsight [optional]</p>
@@ -401,6 +460,7 @@
         const input_container_style = `w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
         let dates = {{ capture_dates| safe }};
+        const initialRelatedMedia = {{ related_media_json | safe }};
 
         // If dates is empty, initialize with today's date
         if (!dates || dates.length === 0) {
@@ -433,6 +493,93 @@
 
             // Update hidden input with JSON string
             document.getElementById('captureDates').value = JSON.stringify(dates);
+        }
+
+        const relatedMediaInput = document.getElementById("relatedMediaInput");
+        const relatedMediaStoreInput = document.getElementById("relatedMediaStore");
+        const relatedMediaTableBody = document.getElementById("relatedMediaTableBody");
+        const relatedMediaFiles = new Map();
+        let relatedMediaSeq = 0;
+        let relatedMediaRows = (Array.isArray(initialRelatedMedia) ? initialRelatedMedia : []).map((item) => ({
+            id: `existing-${++relatedMediaSeq}`,
+            existingPath: item.existing_path || item.media_path || "",
+            displayName: item.display_name || (item.existing_path || item.media_path || "").split("/").pop() || "Saved media",
+            caption: item.caption || "",
+        }));
+
+        function syncRelatedMediaInput() {
+            const dataTransfer = new DataTransfer();
+            relatedMediaRows.forEach((row) => {
+                if (!row.existingPath) {
+                    const file = relatedMediaFiles.get(row.id);
+                    if (file) {
+                        dataTransfer.items.add(file);
+                    }
+                }
+            });
+            relatedMediaInput.files = dataTransfer.files;
+        }
+
+        function syncRelatedMediaStore() {
+            relatedMediaStoreInput.value = JSON.stringify(
+                relatedMediaRows.map((row) => ({
+                    existing_path: row.existingPath || "",
+                    caption: row.caption || "",
+                }))
+            );
+        }
+
+        function renderRelatedMediaRows() {
+            relatedMediaTableBody.innerHTML = "";
+
+            if (relatedMediaRows.length === 0) {
+                const emptyRow = document.createElement("tr");
+                emptyRow.innerHTML = `
+                    <td colspan="3" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No related media added yet.
+                    </td>
+                `;
+                relatedMediaTableBody.appendChild(emptyRow);
+                syncRelatedMediaStore();
+                syncRelatedMediaInput();
+                return;
+            }
+
+            relatedMediaRows.forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.dataset.mediaId = row.id;
+                tr.className = "align-top";
+                const nameCell = document.createElement("td");
+                nameCell.className = "px-3 py-2 text-gray-700 dark:text-gray-200";
+                nameCell.textContent = row.displayName;
+
+                const captionCell = document.createElement("td");
+                captionCell.className = "px-3 py-2";
+                const captionInput = document.createElement("input");
+                captionInput.type = "text";
+                captionInput.value = row.caption;
+                captionInput.className = `${input_container_style} related-media-caption`;
+                captionInput.dataset.mediaId = row.id;
+                captionInput.placeholder = "Optional caption";
+                captionCell.appendChild(captionInput);
+
+                const actionCell = document.createElement("td");
+                actionCell.className = "px-3 py-2 text-right";
+                const removeButton = document.createElement("button");
+                removeButton.type = "button";
+                removeButton.className = "related-media-remove inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded";
+                removeButton.dataset.mediaId = row.id;
+                removeButton.textContent = "Remove";
+                actionCell.appendChild(removeButton);
+
+                tr.appendChild(nameCell);
+                tr.appendChild(captionCell);
+                tr.appendChild(actionCell);
+                relatedMediaTableBody.appendChild(tr);
+            });
+
+            syncRelatedMediaStore();
+            syncRelatedMediaInput();
         }
 
         document.getElementById('addDateBtn').onclick = () => {
@@ -511,6 +658,7 @@
 
             bindLocationInput();
             bindLightFramesAnalyse();
+            renderRelatedMediaRows();
 
             const redo = document.getElementById("redo_plate_solve");
             const regen = document.getElementById("regenerate_overlays");
@@ -525,6 +673,45 @@
                     }
                 });
             }
+
+            relatedMediaInput.addEventListener("change", (event) => {
+                Array.from(event.target.files || []).forEach((file) => {
+                    const rowId = `new-${++relatedMediaSeq}`;
+                    relatedMediaFiles.set(rowId, file);
+                    relatedMediaRows.push({
+                        id: rowId,
+                        existingPath: "",
+                        displayName: file.name,
+                        caption: "",
+                    });
+                });
+                renderRelatedMediaRows();
+            });
+
+            relatedMediaTableBody.addEventListener("input", (event) => {
+                if (!event.target.classList.contains("related-media-caption")) {
+                    return;
+                }
+
+                const row = relatedMediaRows.find((item) => item.id === event.target.dataset.mediaId);
+                if (!row) {
+                    return;
+                }
+
+                row.caption = event.target.value;
+                syncRelatedMediaStore();
+            });
+
+            relatedMediaTableBody.addEventListener("click", (event) => {
+                if (!event.target.classList.contains("related-media-remove")) {
+                    return;
+                }
+
+                const mediaId = event.target.dataset.mediaId;
+                relatedMediaRows = relatedMediaRows.filter((item) => item.id !== mediaId);
+                relatedMediaFiles.delete(mediaId);
+                renderRelatedMediaRows();
+            });
 
             const labelStyle = document.querySelectorAll('.label');
             labelStyle.forEach(link => {

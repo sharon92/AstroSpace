@@ -22,7 +22,12 @@ from collections import defaultdict
 # from werkzeug.exceptions import abort
 from astroquery.simbad import Simbad
 from AstroSpace.auth import login_required
-from AstroSpace.constants import DB_TABLES, IMAGE_DETAIL_TABLE_NAMES
+from AstroSpace.constants import (
+    ALLOWED_RELATED_MEDIA_EXTENSIONS,
+    DB_TABLES,
+    IMAGE_DETAIL_TABLE_NAMES,
+    IMAGE_RELATION_TABLES,
+)
 from AstroSpace.db import get_conn
 from AstroSpace.repositories.images import (
     get_collection_filter_metadata,
@@ -255,11 +260,63 @@ def image_detail(image_id, image_name):
         images=images,
     )
 
+
+def build_related_media_rows(form, uploaded_files, upload_root, user_id):
+    raw_store = form.get("related_media_store") or "[]"
+    try:
+        related_media_store = json.loads(raw_store)
+    except (TypeError, ValueError):
+        related_media_store = []
+
+    normalized_rows = []
+    uploaded_rows = []
+    for file_storage in uploaded_files:
+        if file_storage and file_storage.filename:
+            uploaded_rows.append(file_storage)
+
+    upload_iter = iter(uploaded_rows)
+    for row in related_media_store:
+        existing_path = (row.get("existing_path") or "").strip()
+        caption = (row.get("caption") or "").strip()
+        if existing_path:
+            normalized_rows.append({"media_path": existing_path, "caption": caption})
+            continue
+
+        upload = next(upload_iter, None)
+        if not upload:
+            continue
+
+        if not allowed_file(upload.filename, ALLOWED_RELATED_MEDIA_EXTENSIONS):
+            raise ValueError(
+                f"Unsupported related media file: {upload.filename}. "
+                "Allowed types are JPG, PNG, WEBP, GIF, MP4, WEBM, and OGG."
+            )
+
+        stored_upload = save_user_upload(upload, upload_root, user_id)
+        normalized_rows.append(
+            {
+                "media_path": stored_upload.public_path,
+                "caption": caption,
+            }
+        )
+
+    for upload in upload_iter:
+        if not allowed_file(upload.filename, ALLOWED_RELATED_MEDIA_EXTENSIONS):
+            raise ValueError(
+                f"Unsupported related media file: {upload.filename}. "
+                "Allowed types are JPG, PNG, WEBP, GIF, MP4, WEBM, and OGG."
+            )
+        stored_upload = save_user_upload(upload, upload_root, user_id)
+        normalized_rows.append({"media_path": stored_upload.public_path, "caption": ""})
+
+    return normalized_rows
+
 # New post form
 def render_image_form(title, **kwargs):
     kwargs.update({t: fetch_options(t) for t in DB_TABLES if t not in ["guide_camera"]})
     kwargs.update({"softwares": fetch_options("software")})
     kwargs.update({"filters": fetch_options("cam_filter")})
+    related_media_json = kwargs.pop("related_media_json", "[]")
 
     filter_options = "".join(
         [f'<option value="{f["name"]}">{f["name"]}</option>' for f in kwargs["filters"]]
@@ -272,6 +329,7 @@ def render_image_form(title, **kwargs):
         title=title,
         filter_options=filter_options,
         option_none=option_none,
+        related_media_json=related_media_json,
         **kwargs,
     )
 
@@ -285,6 +343,7 @@ def new_image():
         capture_dates=[],
         software_list=[],
         lights_json=json.dumps([]),
+        related_media_json=json.dumps([]),
         is_edit=False,
     )
 
@@ -296,7 +355,7 @@ def edit_image(image_id):
     if len(tables) == 1:
         return tables
 
-    image, equipment_list, dates, lights, software_list, _, _, _, _ = tables
+    image, equipment_list, dates, lights, software_list, _, _, _, _, related_media = tables
     require_owner(image["author"])
 
     capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates]
@@ -305,6 +364,16 @@ def edit_image(image_id):
     for eq in equipment_list:
         equipment[eq["table"]] = eq["id"]
 
+    related_media_payload = [
+        {
+            "existing_path": row.get("media_path") or "",
+            "caption": row.get("caption") or "",
+            "display_name": row.get("display_name")
+            or os.path.basename((row.get("media_path") or "").replace("\\", "/")),
+        }
+        for row in related_media
+    ]
+
     return render_image_form(
         "Edit Post",
         image=image,
@@ -312,6 +381,7 @@ def edit_image(image_id):
         capture_dates=capture_dates,
         software_list=software_list,
         lights_json=json.dumps(lights),
+        related_media_json=json.dumps(related_media_payload),
         is_edit=True,
     )
 
@@ -328,14 +398,7 @@ def delete_image(image_id):
     conn = get_conn()
     cur = conn.cursor()
     # Clear and reinsert related tables
-    for table in [
-        "image_views",
-        "image_likes",
-        "image_comments",
-        "capture_dates",
-        "image_lights",
-        "image_software",
-    ]:
+    for table in IMAGE_RELATION_TABLES:
         cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (image_id,))
     cur.execute("DELETE FROM images WHERE id = %s", (image_id,))
     
@@ -411,6 +474,7 @@ def save_image():
 
         file = request.files.get("image_path")
         fits_path = request.files.get("fits_file")
+        starless_file = request.files.get("starless_image_path")
         svg_image = None
         if file and file.filename:
             debug_log("Received preview image upload filename=%s", file.filename)
@@ -460,6 +524,38 @@ def save_image():
         else:
             debug_log("Rejecting new post because preview image is missing.", level=logging.WARNING)
             return image_form_redirect("A preview image is required when creating a post.")
+
+        starless_path_upload = form.get("prev_starless_img") or ""
+        if starless_file and starless_file.filename:
+            debug_log("Received starless image upload filename=%s", starless_file.filename)
+            if not allowed_file(starless_file.filename, ALLOWED_IMG_EXTENSIONS):
+                debug_log(
+                    "Rejected starless image with unsupported extension: %s",
+                    starless_file.filename,
+                    level=logging.WARNING,
+                )
+                return image_form_redirect("Starless image must be a JPG or PNG file.")
+
+            stored_starless = save_user_upload(starless_file, current_app.config["UPLOAD_PATH"], user_id)
+            starless_path_upload = stored_starless.public_path
+            debug_log("Starless image persisted (public_path=%s)", starless_path_upload)
+
+        try:
+            related_media_rows = build_related_media_rows(
+                form,
+                request.files.getlist("related_media_files"),
+                current_app.config["UPLOAD_PATH"],
+                user_id,
+            )
+        except ValueError as exc:
+            debug_log(
+                "Rejected related media submission for user=%s: %s",
+                user,
+                exc,
+                level=logging.WARNING,
+            )
+            return image_form_redirect(str(exc))
+        debug_log("Prepared %s related media row(s) for image submission.", len(related_media_rows))
 
         if svg_image is None:
             svg_image = json.dumps(get_overlays(header_json))
@@ -539,6 +635,7 @@ def save_image():
             "created_at",
             "edited_at",
             "image_path",
+            "starless_image_path",
             "image_thumbnail",
             "pixel_scale",
             "object_type",
@@ -566,6 +663,7 @@ def save_image():
             created_at,
             edited_at,
             img_path_upload,
+            starless_path_upload,
             thumbnail_path,
             pixel_scale,
             object_type,
@@ -600,14 +698,7 @@ def save_image():
                 ),
             )
             # Clear and reinsert related tables
-            for table in [
-                "image_views",
-                "image_likes",
-                "image_comments",
-                "capture_dates",
-                "image_lights",
-                "image_software",
-            ]:
+            for table in IMAGE_RELATION_TABLES:
                 cur.execute(f"DELETE FROM {table} WHERE image_id = %s", (img_id,))
 
         else:
@@ -664,12 +755,22 @@ def save_image():
                 (img_id, sid),
             )
 
+        for order, media in enumerate(related_media_rows):
+            cur.execute(
+                """
+                INSERT INTO related_image_media (image_id, media_path, caption, sort_order)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (img_id, media["media_path"], media["caption"], order),
+            )
+
         conn.commit()
         cur.close()
         debug_log(
-            "save_image committed successfully (image_id=%s, light_rows=%s)",
+            "save_image committed successfully (image_id=%s, light_rows=%s, related_media=%s)",
             img_id,
             light_rows,
+            len(related_media_rows),
             level=logging.INFO,
         )
         flash("Post updated successfully!")

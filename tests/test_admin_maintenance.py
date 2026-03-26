@@ -19,8 +19,10 @@ class FakeCursor:
             self.rows = list(self.db.guiding_rows)
         elif "SELECT id, image_path, header_json" in sql:
             self.rows = list(self.db.plate_rows)
-        elif "SELECT image_path, image_thumbnail" in sql:
+        elif "SELECT image_path, image_thumbnail, starless_image_path" in sql:
             self.rows = list(self.db.image_rows)
+        elif "SELECT media_path" in sql:
+            self.rows = list(self.db.related_media_rows)
         elif "SELECT display_image" in sql:
             self.rows = list(self.db.user_rows)
         else:
@@ -31,10 +33,11 @@ class FakeCursor:
 
 
 class FakeDB:
-    def __init__(self, guiding_rows=None, plate_rows=None, image_rows=None, user_rows=None):
+    def __init__(self, guiding_rows=None, plate_rows=None, image_rows=None, related_media_rows=None, user_rows=None):
         self.guiding_rows = guiding_rows or []
         self.plate_rows = plate_rows or []
         self.image_rows = image_rows or []
+        self.related_media_rows = related_media_rows or []
         self.user_rows = user_rows or []
         self.executed = []
         self.commit_count = 0
@@ -167,14 +170,17 @@ def test_purge_unbound_image_uploads_deletes_only_unreferenced_files(tmp_path):
 
     image_path = user_dir / "bound.jpg"
     thumb_path = user_dir / "bound_thumbnail.jpg"
+    starless_path = user_dir / "bound_starless.png"
+    related_media_path = user_dir / "setup.mp4"
     profile_thumb = user_dir / "profile_thumbnail.jpg"
     orphan_path = user_dir / "orphan.jpg"
 
-    for path in [image_path, thumb_path, profile_thumb, orphan_path]:
+    for path in [image_path, thumb_path, starless_path, related_media_path, profile_thumb, orphan_path]:
         path.write_text("x", encoding="utf-8")
 
     db = FakeDB(
-        image_rows=[{"image_path": "1/bound.jpg", "image_thumbnail": "1/bound_thumbnail.jpg"}],
+        image_rows=[{"image_path": "1/bound.jpg", "image_thumbnail": "1/bound_thumbnail.jpg", "starless_image_path": "1/bound_starless.png"}],
+        related_media_rows=[{"media_path": "1/setup.mp4"}],
         user_rows=[{"display_image": "1/profile_thumbnail.jpg"}],
     )
 
@@ -184,6 +190,8 @@ def test_purge_unbound_image_uploads_deletes_only_unreferenced_files(tmp_path):
     assert stats["deleted_paths"] == ["1/orphan.jpg"]
     assert image_path.exists()
     assert thumb_path.exists()
+    assert starless_path.exists()
+    assert related_media_path.exists()
     assert profile_thumb.exists()
     assert not orphan_path.exists()
 

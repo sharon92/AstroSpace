@@ -4,7 +4,7 @@ import logging
 from flask import Blueprint, render_template, current_app, g, request, jsonify
 from psycopg2 import sql
 from psycopg2.extras import Json
-from AstroSpace.constants import INVENTORY_TABLES
+from AstroSpace.constants import INVENTORY_TABLES, RELATED_MEDIA_VIDEO_EXTENSIONS
 from AstroSpace.db import get_conn
 from AstroSpace.auth import login_required
 from AstroSpace.logging_utils import debug_log
@@ -28,7 +28,14 @@ INVENTORY_FIELD_CHOICES = {
     "rotator": {"type": ("manual", "motorized")},
     "software": {"type": ("acquisition", "processing")},
 }
-PURGE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+PURGE_UPLOAD_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif",
+    *{f".{extension}" for extension in RELATED_MEDIA_VIDEO_EXTENSIONS},
+}
 
 
 def normalize_inventory_values(table, values):
@@ -92,7 +99,7 @@ def collect_orphan_image_uploads(upload_root, referenced_paths):
     for root, _, files in os.walk(upload_root):
         for filename in files:
             ext = os.path.splitext(filename)[1].lower()
-            if ext not in PURGE_IMAGE_EXTENSIONS:
+            if ext not in PURGE_UPLOAD_EXTENSIONS:
                 continue
 
             absolute_path = os.path.join(root, filename)
@@ -241,11 +248,19 @@ def purge_unbound_image_uploads(db, upload_root):
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT image_path, image_thumbnail
+            SELECT image_path, image_thumbnail, starless_image_path
             FROM images
             """
         )
         image_rows = cur.fetchall()
+        cur.execute(
+            """
+            SELECT media_path
+            FROM related_image_media
+            WHERE media_path IS NOT NULL AND NULLIF(BTRIM(media_path), '') IS NOT NULL
+            """
+        )
+        related_media_rows = cur.fetchall()
         cur.execute(
             """
             SELECT display_image
@@ -256,7 +271,15 @@ def purge_unbound_image_uploads(db, upload_root):
         user_rows = cur.fetchall()
 
     referenced = collect_referenced_upload_paths(
-        [(row.get("image_path"), row.get("image_thumbnail")) for row in image_rows]
+        [
+            (
+                row.get("image_path"),
+                row.get("image_thumbnail"),
+                row.get("starless_image_path"),
+            )
+            for row in image_rows
+        ]
+        + [(row.get("media_path"),) for row in related_media_rows]
         + [(row.get("display_image"),) for row in user_rows]
     )
     orphans = collect_orphan_image_uploads(upload_root, referenced)

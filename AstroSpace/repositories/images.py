@@ -1,8 +1,9 @@
 import json
+import os
 
 from psycopg2 import sql
 
-from AstroSpace.constants import DB_TABLES
+from AstroSpace.constants import DB_TABLES, RELATED_MEDIA_VIDEO_EXTENSIONS
 from AstroSpace.db import get_conn
 from AstroSpace.utils.phd2logparser import deserialize_plot_payload
 from AstroSpace.utils.platesolve import get_overlays
@@ -10,6 +11,11 @@ from AstroSpace.utils.utils import print_time
 
 
 OPTION_TABLES = {*DB_TABLES, "software", "cam_filter"}
+
+
+def _related_media_kind(path):
+    extension = os.path.splitext(path or "")[1].lower().lstrip(".")
+    return "video" if extension in RELATED_MEDIA_VIDEO_EXTENSIONS else "image"
 
 
 def get_all_images(unique=False, limit=None):
@@ -418,6 +424,21 @@ def get_image_tables(image_id, keep_original=False, testing=False):
     else:
         software_list = [software_row["software_id"] for software_row in software]
 
+    cur.execute(
+        """
+        SELECT id, image_id, media_path, caption, sort_order, created_at
+        FROM related_image_media
+        WHERE image_id = %s
+        ORDER BY sort_order ASC, id ASC
+        """,
+        (image_id,),
+    )
+    related_media = cur.fetchall()
+    for media in related_media:
+        media.pop("created_at", None)
+        media["media_kind"] = _related_media_kind(media.get("media_path"))
+        media["display_name"] = os.path.basename((media.get("media_path") or "").replace("\\", "/"))
+
     cur.close()
 
     guiding_plot, calibration_plot, svg_image = "", "", ""
@@ -441,4 +462,5 @@ def get_image_tables(image_id, keep_original=False, testing=False):
         calibration_plot,
         svg_image,
         meta_json,
+        related_media,
     )

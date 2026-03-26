@@ -309,17 +309,25 @@
       </div>
 
       <!-- Image Tab -->
+      {% set primary_image_src = url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) %}
+      {% set starless_image_src = url_for('blog.upload', filename=il.image.starless_image_path|replace('\\', '/')) if il.image.starless_image_path else '' %}
       <div x-show="mainTab === 'image'" class="space-y-2 md:p-4">
         <div id="zoom-container-{{il.image.id}}"
-          class="relative w-full max-w-full overflow-x-auto overflow-y-hidden md:rounded-[10px]  px-1 flex items-center justify-center group touch-none">
+          class="relative w-full max-w-full overflow-hidden md:rounded-[10px] px-1 flex items-center justify-center group touch-none">
 
           <div class="relative transition-transform duration-100 ease-in-out origin-center w-full h-full"
             id="zoom-wrapper-{{il.image.id}}">
             <img
               class="object-contain block w-full h-auto origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
               id="zoomable-image-{{il.image.id}}"
-              src="{{ url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) }}"
+              src="{{ primary_image_src }}"
               alt="{{ il.image.title }}">
+            <video
+              id="zoomable-video-{{il.image.id}}"
+              class="hidden object-contain block w-full h-auto origin-center transition-transform duration-100 ease-in-out"
+              controls
+              playsinline
+              preload="metadata"></video>
             <div id="svg-overlay-{{il.image.id}}"
               class="absolute top-0 left-0 w-full h-full pointer-events-none z-10  duration-300">
             </div>
@@ -338,60 +346,55 @@
             </div>
           </div>
 
-          <div class="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between p-1">
-            <a href="{{ url_for('profile.public', username=il.image.author) }}"
-              class="pointer-events-auto flex max-w-[70%] items-center gap-3 rounded-full bg-black/20 px-3 py-1 text-white shadow-lg backdrop-blur-sm transition hover:bg-gray-600/60">
-              {% if il.image.user_image %}
-              <img
-                src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
-                class="h-8 w-8 rounded-full object-cover border border-white/40"
-                alt="author image">
-              {% else %}
-              <img
-                src="{{ url_for('static', filename='default_profile.png') }}"
-                class="h-8 w-8 rounded-full object-cover border border-white/40"
-                alt="default profile">
-              {% endif %}
-              <span class="flex min-w-0 flex-col leading-tight">
-                <span class="truncate font-medium text-white">@{{ il.image.author }}</span>
-                <span class="truncate text-xs text-gray-200">{{ il.image.location }}</span>
-              </span>
-            </a>
+          {% if il.related_media %}
+          <button id="media-prev-{{il.image.id}}" type="button"
+            class="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg transition hover:bg-black/65"
+            aria-label="Previous media">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M12.78 15.53a.75.75 0 0 1-1.06 0L6.72 10.53a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 1.06L8.31 10l4.47 4.47a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+            </svg>
+          </button>
 
-            <div class="pointer-events-auto flex items-center gap-2">
-              <button id="reset-btn-{{il.image.id}}" title="Resize"
-                class="p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
-                aria-label="Resize image" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
-                  stroke-width="6">
-                  <line x1="36" y1="28" x2="60" y2="4" />
-                  <polyline points="38 4 60 4 60 26" />
+          <button id="media-next-{{il.image.id}}" type="button"
+            class="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg transition hover:bg-black/65"
+            aria-label="Next media">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.22 4.47a.75.75 0 0 1 1.06 0l5 5a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 0 1-1.06-1.06L11.69 10 7.22 5.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          {% endif %}
 
-                  <line x1="28" y1="36" x2="4" y2="60" />
-                  <polyline points="4 38 4 60 26 60 " />
-                </svg>
-              </button>
+          <button id="fullscreen-btn-{{il.image.id}}" title="Full Screen"
+            class="absolute bottom-3 left-3 z-20 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
+            aria-label="Full Screen" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
+              stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="24 4 4 4 4 24" />
+              <line x1="4" y1="4" x2="22" y2="22" />
 
-              <button id="fullscreen-btn-{{il.image.id}}" title="Full Screen"
-                class="p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
-                aria-label="Full Screen" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
-                  stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="24 4 4 4 4 24" />
-                  <line x1="4" y1="4" x2="22" y2="22" />
+              <polyline points="40 4 60 4 60 24" />
+              <line x1="60" y1="4" x2="42" y2="22" />
 
-                  <polyline points="40 4 60 4 60 24" />
-                  <line x1="60" y1="4" x2="42" y2="22" />
+              <polyline points="4 40 4 60 24 60" />
+              <line x1="4" y1="60" x2="22" y2="42" />
 
-                  <polyline points="4 40 4 60 24 60" />
-                  <line x1="4" y1="60" x2="22" y2="42" />
+              <polyline points="40 60 60 60 60 40" />
+              <line x1="60" y1="60" x2="42" y2="42" />
+            </svg>
+          </button>
 
-                  <polyline points="40 60 60 60 60 40" />
-                  <line x1="60" y1="60" x2="42" y2="42" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <button id="reset-btn-{{il.image.id}}" title="Resize"
+            class="absolute bottom-3 right-3 z-20 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
+            aria-label="Resize image" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
+              stroke-width="6">
+              <line x1="36" y1="28" x2="60" y2="4" />
+              <polyline points="38 4 60 4 60 26" />
+
+              <line x1="28" y1="36" x2="4" y2="60" />
+              <polyline points="4 38 4 60 26 60 " />
+            </svg>
+          </button>
         </div>
 
         <div id="fullscreen-modal-{{il.image.id}}"
@@ -409,8 +412,15 @@
                   class="object-contain block w-auto h-auto origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
                   style="max-width: 100%; max-height: calc(100vh - 10rem);"
                   id="fullscreen-zoomable-image-{{il.image.id}}"
-                  src="{{ url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) }}"
+                  src="{{ primary_image_src }}"
                   alt="{{ il.image.title }} fullscreen">
+                <video
+                  id="fullscreen-zoomable-video-{{il.image.id}}"
+                  class="hidden object-contain block w-auto h-auto origin-center transition-transform duration-100 ease-in-out"
+                  style="max-width: 100%; max-height: calc(100vh - 10rem);"
+                  controls
+                  playsinline
+                  preload="metadata"></video>
                 <div id="fullscreen-svg-overlay-{{il.image.id}}"
                   class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 duration-300">
                 </div>
@@ -451,7 +461,7 @@
                 </svg>
               </button>
 
-              <div class="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+              <div id="fullscreen-tool-tray-{{il.image.id}}" class="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
                 <div class="pointer-events-auto flex items-center space-x-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
                   <div>
                     <input id="fullscreen-graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
@@ -524,9 +534,29 @@
           </div>
         </div>
 
-        <div class="flex px-1 justify-between items-center text-sm md:text-gp-1.5 text-gray-600 dark:text-gray-300">
+        <div class="flex flex-col gap-3 px-1 text-sm text-gray-600 dark:text-gray-300 xl:flex-row xl:items-center xl:justify-between">
 
-          <div class="flex items-start space-x-2">
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ url_for('profile.public', username=il.image.author) }}"
+              class="flex items-center gap-3 rounded-full bg-white/70 px-3 py-1.5 text-gray-800 shadow-sm backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/60 dark:text-gray-100 dark:hover:bg-gray-900/80">
+              {% if il.image.user_image %}
+              <img
+                src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
+                class="h-8 w-8 rounded-full object-cover border border-white/40"
+                alt="author image">
+              {% else %}
+              <img
+                src="{{ url_for('static', filename='default_profile.png') }}"
+                class="h-8 w-8 rounded-full object-cover border border-white/40"
+                alt="default profile">
+              {% endif %}
+              <span class="flex min-w-0 flex-col leading-tight">
+                <span class="truncate font-medium">@{{ il.image.author }}</span>
+                <span class="truncate text-xs text-gray-500 dark:text-gray-400">{{ il.image.location }}</span>
+              </span>
+            </a>
+
+            <div id="inline-tools-{{il.image.id}}" class="flex flex-wrap items-center gap-2">
             <div>
               <input id="graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
 
@@ -605,9 +635,32 @@
               </label>
             </div>
 
+            {% if il.image.starless_image_path %}
+            <div>
+              <input id="starless-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+              <label for="starless-toggle-{{il.image.id}}" title="Show starless image" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
+                bg-gray-300 text-gray-900 border-slate-300
+                hover:bg-gray-400 hover:border-slate-500
+                hover:dark:bg-slate-600 hover:dark:border-slate-400
+                peer-checked:hover:bg-green-700
+                peer-checked:bg-green-800 peer-checked:text-white
+                dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
+                dark:peer-checked:bg-green-500 dark:peer-checked:text-black
+                shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3l1.9 4.1L18 9l-4.1 1.9L12 15l-1.9-4.1L6 9l4.1-1.9L12 3z" />
+                  <path d="M19 14l.95 2.05L22 17l-2.05.95L19 20l-.95-2.05L16 17l2.05-.95L19 14z" />
+                  <path d="M5 15l.95 2.05L8 18l-2.05.95L5 21l-.95-2.05L2 18l2.05-.95L5 15z" />
+                </svg>
+              </label>
+            </div>
+            {% endif %}
           </div>
 
-            <div x-data="{ open: false }" class="relative inline-block">
+          <p id="inline-media-caption-{{il.image.id}}" class="min-h-[1.5rem] flex-1 px-2 text-center text-sm text-gray-600 dark:text-gray-300"></p>
+
+            <div x-data="{ open: false }" class="relative inline-block self-start xl:self-auto">
               <button @click="open = !open" title="Share this image" class="flex items-center p-1 rounded-full bg-gray-300 text-gray-900   shadow
            hover:bg-gray-400
            hover:dark:bg-slate-600
@@ -1045,6 +1098,10 @@
         // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
 
         const overlayData = {{ il.svg_image | tojson | safe  }};
+        const uploadBase = {{ url_for('blog.upload', filename='') | tojson | safe }};
+        const primaryImageSrc = {{ primary_image_src | tojson | safe }};
+        const starlessImageSrc = {{ starless_image_src | tojson | safe }};
+        const relatedMedia = {{ il.related_media | tojson | safe }};
 
         function renderObjectOverlay(target, enabled) {
           if (!enabled) {
@@ -1181,6 +1238,8 @@
           const elements = {
             container: document.getElementById(`${prefix}zoom-container-${imageId}`),
             wrapper: document.getElementById(`${prefix}zoom-wrapper-${imageId}`),
+            image: document.getElementById(`${prefix}zoomable-image-${imageId}`),
+            video: document.getElementById(`${prefix}zoomable-video-${imageId}`),
             overlay: document.getElementById(`${prefix}svg-overlay-${imageId}`),
             graticule: document.getElementById(`${prefix}graticule-${imageId}`),
             compareWrapper: document.getElementById(`${prefix}comp-wrapper-${imageId}`),
@@ -1188,18 +1247,36 @@
             graticuleToggle: document.getElementById(`${prefix}graticule-toggle-${imageId}`),
             compareToggle: document.getElementById(`${prefix}compare-toggle-${imageId}`),
             resetButton: document.getElementById(`${prefix}reset-btn-${imageId}`),
+            toolTray: document.getElementById(`${prefix}tool-tray-${imageId}`),
+          };
+
+          const state = {
+            astroEnabled: true,
+            activeKind: "image",
           };
 
           const panzoom = Panzoom(elements.wrapper, {
             maxScale: 50
           });
 
-          elements.container.addEventListener("wheel", panzoom.zoomWithWheel, { passive: false });
+          elements.container.addEventListener("wheel", (event) => {
+            if (state.activeKind === "video") {
+              return;
+            }
+            panzoom.zoomWithWheel(event);
+          }, { passive: false });
 
           const renderAll = () => {
-            renderObjectOverlay(elements.overlay, elements.overlayToggle.checked);
-            renderGraticuleOverlay(elements.graticule, elements.graticuleToggle.checked);
-            syncCompareOverlay(elements.compareWrapper, elements.compareToggle.checked);
+            const astroEnabled = state.astroEnabled;
+            renderObjectOverlay(elements.overlay, astroEnabled && elements.overlayToggle.checked);
+            renderGraticuleOverlay(elements.graticule, astroEnabled && elements.graticuleToggle.checked);
+            syncCompareOverlay(elements.compareWrapper, astroEnabled && elements.compareToggle.checked);
+
+            elements.overlay.classList.toggle("hidden", !astroEnabled);
+            elements.graticule.classList.toggle("hidden", !astroEnabled);
+            if (elements.toolTray) {
+              elements.toolTray.classList.toggle("hidden", !astroEnabled);
+            }
           };
 
           elements.resetButton.addEventListener("click", () => {
@@ -1219,6 +1296,35 @@
               panzoom.reset();
               elements.compareWrapper._panzoomInstance?.reset?.();
             },
+            setSlide(slide) {
+              state.activeKind = slide.kind;
+              state.astroEnabled = !!slide.astro;
+
+              elements.image.classList.toggle("hidden", slide.kind === "video");
+              if (elements.video) {
+                elements.video.classList.toggle("hidden", slide.kind !== "video");
+              }
+
+              elements.resetButton.classList.toggle("hidden", slide.kind === "video");
+
+              if (slide.kind === "video") {
+                if (elements.video) {
+                  elements.video.src = slide.src;
+                  elements.video.load();
+                }
+              } else {
+                elements.image.src = slide.src;
+                if (elements.video) {
+                  elements.video.pause();
+                  elements.video.removeAttribute("src");
+                  elements.video.load();
+                }
+              }
+
+              renderAll();
+              panzoom.reset();
+              elements.compareWrapper._panzoomInstance?.reset?.();
+            },
             setToolState(state) {
               elements.overlayToggle.checked = !!state.overlay;
               elements.graticuleToggle.checked = !!state.graticule;
@@ -1226,6 +1332,54 @@
               renderAll();
             }
           };
+        }
+
+        const inlineCaption = document.getElementById(`inline-media-caption-${imageId}`);
+        const inlineTools = document.getElementById(`inline-tools-${imageId}`);
+        const starlessToggle = document.getElementById(`starless-toggle-${imageId}`);
+        const mediaPrevButton = document.getElementById(`media-prev-${imageId}`);
+        const mediaNextButton = document.getElementById(`media-next-${imageId}`);
+
+        function normalizeMediaSrc(path) {
+          return `${uploadBase}${String(path || "").replace(/\\/g, "/").replace(/^\/+/, "")}`;
+        }
+
+        const slideCount = 1 + relatedMedia.length;
+        let activeSlideIndex = 0;
+
+        function getActiveSlide() {
+          if (activeSlideIndex === 0) {
+            return {
+              kind: "image",
+              src: starlessToggle?.checked && starlessImageSrc ? starlessImageSrc : primaryImageSrc,
+              caption: "",
+              astro: true,
+            };
+          }
+
+          const media = relatedMedia[activeSlideIndex - 1] || {};
+          return {
+            kind: media.media_kind === "video" ? "video" : "image",
+            src: normalizeMediaSrc(media.media_path),
+            caption: media.caption || "",
+            astro: false,
+          };
+        }
+
+        function setToggleAvailability(toggle, enabled) {
+          if (!toggle) {
+            return;
+          }
+
+          toggle.disabled = !enabled;
+          const label = document.querySelector(`label[for="${toggle.id}"]`);
+          if (!label) {
+            return;
+          }
+
+          label.classList.toggle("opacity-40", !enabled);
+          label.classList.toggle("cursor-not-allowed", !enabled);
+          label.classList.toggle("pointer-events-none", !enabled);
         }
 
         const inlineViewer = createViewer("");
@@ -1245,6 +1399,40 @@
           return fullscreenViewer;
         }
 
+        function renderActiveSlide() {
+          const slide = getActiveSlide();
+          inlineViewer.setSlide(slide);
+
+          inlineCaption.textContent = slide.caption || "";
+
+          const astroEnabled = slide.astro;
+          setToggleAvailability(inlineViewer.elements.graticuleToggle, astroEnabled);
+          setToggleAvailability(inlineViewer.elements.compareToggle, astroEnabled);
+          setToggleAvailability(inlineViewer.elements.overlayToggle, astroEnabled);
+          setToggleAvailability(starlessToggle, astroEnabled);
+          if (inlineTools) {
+            inlineTools.classList.toggle("opacity-90", !astroEnabled);
+          }
+
+          if (fullscreenViewer && !fullscreenModal.classList.contains("hidden")) {
+            fullscreenViewer.setSlide(slide);
+            fullscreenViewer.setToolState({
+              overlay: inlineViewer.elements.overlayToggle.checked,
+              graticule: inlineViewer.elements.graticuleToggle.checked,
+              compare: inlineViewer.elements.compareToggle.checked,
+            });
+          }
+        }
+
+        function changeSlide(delta) {
+          if (slideCount <= 1) {
+            return;
+          }
+
+          activeSlideIndex = (activeSlideIndex + delta + slideCount) % slideCount;
+          renderActiveSlide();
+        }
+
         function openFullscreenViewer() {
           fullscreenModal.classList.remove("hidden");
           fullscreenModal.classList.add("flex");
@@ -1258,12 +1446,13 @@
                 graticule: inlineViewer.elements.graticuleToggle.checked,
                 compare: inlineViewer.elements.compareToggle.checked,
               });
-              viewer.reset();
+              renderActiveSlide();
             });
           });
         }
 
         function closeFullscreenViewer() {
+          fullscreenViewer?.elements?.video?.pause?.();
           fullscreenModal.classList.add("hidden");
           fullscreenModal.classList.remove("flex");
           document.body.style.overflow = "";
@@ -1272,6 +1461,9 @@
         fullscreenOpenButton.addEventListener("click", openFullscreenViewer);
         fullscreenCloseButton.addEventListener("click", closeFullscreenViewer);
         fullscreenBackdrop.addEventListener("click", closeFullscreenViewer);
+        mediaPrevButton?.addEventListener("click", () => changeSlide(-1));
+        mediaNextButton?.addEventListener("click", () => changeSlide(1));
+        starlessToggle?.addEventListener("change", renderActiveSlide);
 
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape" && !fullscreenModal.classList.contains("hidden")) {
@@ -1280,6 +1472,7 @@
         });
 
         document.addEventListener("DOMContentLoaded", () => {
+            renderActiveSlide();
             drawHRDiagram(overlayData);
             renderGuidingPlot("guiding-root-{{il.image.id}}", {{ il.guiding_plot | tojson | safe }});
             renderCalibrationPlot("calibration-root-{{il.image.id}}", {{ il.calibration_plot | tojson | safe }});
