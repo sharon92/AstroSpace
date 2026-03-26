@@ -293,6 +293,30 @@
       background-color 180ms ease;
   }
 
+  .inline-fullscreen-control {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+  .inline-resize-control {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+  .fullscreen-close-control {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .fullscreen-resize-control {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+  }
+
   .image-meta-strip {
     display: flex;
     align-items: center;
@@ -729,7 +753,7 @@
           {% endif %}
 
           <button id="fullscreen-btn-{{il.image.id}}" title="Full Screen"
-            class="inline-corner-control absolute bottom-3 left-3 z-20 p-1 border-2 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:bg-gray-200/30"
+            class="inline-corner-control inline-fullscreen-control z-20 p-1 border-2 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:bg-gray-200/30"
             aria-label="Full Screen" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
               stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
@@ -748,7 +772,7 @@
           </button>
 
           <button id="reset-btn-{{il.image.id}}" title="Resize"
-            class="inline-corner-control absolute bottom-3 right-3 z-20 p-1 border-2 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:bg-gray-200/30"
+            class="inline-corner-control inline-resize-control z-20 p-1 border-2 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:bg-gray-200/30"
             aria-label="Resize image" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
               stroke-width="6">
@@ -805,7 +829,7 @@
               </div>
 
               <button id="fullscreen-close-btn-{{il.image.id}}" title="Close fullscreen viewer"
-                class="absolute top-3 right-3 p-2 border-2 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 text-white hover:bg-gray-200/35 transition"
+                class="fullscreen-close-control p-2 border-2 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 text-white hover:bg-gray-200/35 transition"
                 aria-label="Close fullscreen viewer" type="button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -815,7 +839,7 @@
               </button>
 
               <button id="fullscreen-reset-btn-{{il.image.id}}" title="Resize"
-                class="absolute bottom-4 right-4 p-2 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 hover:opacity-100 transition"
+                class="fullscreen-resize-control p-2 border-2 opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 hover:opacity-100 transition"
                 aria-label="Resize image" type="button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16" fill="none" stroke="grey"
                   stroke-width="6">
