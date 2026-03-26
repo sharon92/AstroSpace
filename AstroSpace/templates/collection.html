@@ -354,7 +354,8 @@
     const form = document.getElementById('collectionFiltersForm');
     const filterPanel = document.getElementById('collectionFiltersPanel');
     const panelLabel = document.querySelector('[data-filter-panel-label]');
-    const panelStorageKey = 'astrospace.collection.filters.open';
+    const panelStorageKey = 'collection_filters_panel_open';
+    const consentManager = window.AstroSpaceConsent;
     let submitTimer = null;
 
     const syncPanelLabel = () => {
@@ -365,13 +366,13 @@
     };
 
     if (filterPanel) {
-      const savedState = localStorage.getItem(panelStorageKey);
-      if (savedState === 'false') {
+      const savedState = consentManager?.getPreference(panelStorageKey);
+      if (savedState === false || savedState === 'false') {
         filterPanel.open = false;
       }
       syncPanelLabel();
       filterPanel.addEventListener('toggle', () => {
-        localStorage.setItem(panelStorageKey, filterPanel.open ? 'true' : 'false');
+        consentManager?.setPreference(panelStorageKey, !!filterPanel.open);
         syncPanelLabel();
       });
     }

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from AstroSpace import create_app
 from AstroSpace import db
 from AstroSpace.__main__ import handle_management_command
@@ -190,3 +192,21 @@ def test_handle_management_command_runs_stamp(monkeypatch):
 
 def test_handle_management_command_returns_false_for_web_args():
     assert handle_management_command(["--debug"]) is False
+
+
+def test_anonymous_engagement_migration_tracks_privacy_safe_hash_fields():
+    migration_path = (
+        Path(__file__).resolve().parents[1]
+        / "AstroSpace"
+        / "migrations"
+        / "versions"
+        / "20260326_0004_anonymous_engagement.py"
+    )
+    migration_source = migration_path.read_text(encoding="utf-8")
+
+    assert 'revision = "20260326_0004"' in migration_source
+    assert 'op.add_column("image_views", sa.Column("visitor_hash"' in migration_source
+    assert 'uq_image_views_image_visitor_hash' in migration_source
+    assert 'uq_image_likes_image_visitor_hash' in migration_source
+    assert 'md5(ip_address)' in migration_source
+    assert 'status", sa.Text(), nullable=False, server_default="published"' in migration_source

@@ -320,6 +320,222 @@
       margin 180ms ease;
   }
 
+  .engagement-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgb(229 231 235);
+  }
+
+  .dark .engagement-bar {
+    border-color: rgb(55 65 81);
+  }
+
+  .engagement-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .engagement-button,
+  .engagement-chip,
+  .engagement-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgb(209 213 219);
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.78);
+    padding: 0.6rem 0.95rem;
+    color: rgb(17 24 39);
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease;
+  }
+
+  .dark .engagement-button,
+  .dark .engagement-chip,
+  .dark .engagement-secondary-button {
+    border-color: rgb(75 85 99);
+    background: rgb(17 24 39 / 0.72);
+    color: rgb(243 244 246);
+  }
+
+  .engagement-button:hover,
+  .engagement-secondary-button:hover {
+    background: rgb(243 244 246);
+  }
+
+  .dark .engagement-button:hover,
+  .dark .engagement-secondary-button:hover {
+    background: rgb(31 41 55 / 0.88);
+  }
+
+  .engagement-button.is-active {
+    border-color: rgb(245 158 11);
+    background: rgb(254 243 199);
+    color: rgb(146 64 14);
+  }
+
+  .dark .engagement-button.is-active {
+    border-color: rgb(245 158 11 / 0.65);
+    background: rgb(120 53 15 / 0.48);
+    color: rgb(253 230 138);
+  }
+
+  .engagement-count {
+    font-weight: 700;
+    color: rgb(37 99 235);
+  }
+
+  .dark .engagement-count {
+    color: rgb(147 197 253);
+  }
+
+  .comment-thread {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgb(229 231 235);
+  }
+
+  .dark .comment-thread {
+    border-color: rgb(55 65 81);
+  }
+
+  .comment-thread[hidden] {
+    display: none;
+  }
+
+  .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .comment-card {
+    border: 1px solid rgb(229 231 235);
+    border-radius: 0.9rem;
+    background: rgb(255 255 255 / 0.65);
+    padding: 0.9rem 1rem;
+  }
+
+  .dark .comment-card {
+    border-color: rgb(55 65 81);
+    background: rgb(17 24 39 / 0.55);
+  }
+
+  .comment-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .comment-card-name {
+    font-weight: 700;
+    color: rgb(31 41 55);
+  }
+
+  .dark .comment-card-name {
+    color: rgb(243 244 246);
+  }
+
+  .comment-card-time {
+    font-size: 0.8rem;
+    color: rgb(107 114 128);
+  }
+
+  .dark .comment-card-time {
+    color: rgb(156 163 175);
+  }
+
+  .comment-card-body {
+    margin: 0;
+    white-space: pre-wrap;
+    color: rgb(55 65 81);
+  }
+
+  .dark .comment-card-body {
+    color: rgb(229 231 235);
+  }
+
+  .comment-empty {
+    font-size: 0.95rem;
+    color: rgb(107 114 128);
+  }
+
+  .dark .comment-empty {
+    color: rgb(156 163 175);
+  }
+
+  .comment-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgb(0 0 0 / 0.72);
+  }
+
+  .comment-modal-backdrop.hidden {
+    display: none;
+  }
+
+  .comment-modal-card {
+    width: min(34rem, 100%);
+    border: 1px solid rgb(229 231 235);
+    border-radius: 1rem;
+    background: rgb(255 255 255 / 0.98);
+    padding: 1.25rem;
+    box-shadow: 0 24px 48px rgb(15 23 42 / 0.24);
+  }
+
+  .dark .comment-modal-card {
+    border-color: rgb(55 65 81);
+    background: rgb(17 24 39 / 0.98);
+  }
+
+  .comment-modal-input,
+  .comment-modal-textarea {
+    width: 100%;
+    border: 1px solid rgb(209 213 219);
+    border-radius: 0.75rem;
+    background: rgb(255 255 255);
+    padding: 0.75rem 0.9rem;
+    color: rgb(17 24 39);
+  }
+
+  .comment-modal-textarea {
+    min-height: 9rem;
+    resize: vertical;
+  }
+
+  .dark .comment-modal-input,
+  .dark .comment-modal-textarea {
+    border-color: rgb(75 85 99);
+    background: rgb(31 41 55);
+    color: rgb(243 244 246);
+  }
+
+  .comment-modal-status {
+    min-height: 1.25rem;
+    font-size: 0.9rem;
+    color: rgb(37 99 235);
+  }
+
+  .dark .comment-modal-status {
+    color: rgb(147 197 253);
+  }
+
   @media (min-width: 1024px) {
     .calibration-layout {
       grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
@@ -360,7 +576,8 @@
     <!-- Main Card Container -->
     <div x-data="{ mainTab: 'image', explorePane: 'hr', showObjects: false }"
       x-init="
-        const storageKey = `image-tabs:${window.location.pathname}:{{ il.image.id }}`;
+        const storageKey = `image_tabs_{{ il.image.id }}`;
+        const consentManager = window.AstroSpaceConsent;
         const validMainTabs = ['image', 'details', 'explore'];
         const validExplorePanes = ['hr'{% if il.meta_json and 'variable' in il.meta_json %}, 'analyse'{% endif %}{% if il.guiding_plot %}, 'guiding'{% endif %}{% if il.calibration_plot %}, 'calibration'{% endif %}];
         const resizeExplorePane = value => {
@@ -384,7 +601,7 @@
         };
 
         try {
-          const savedTabs = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          const savedTabs = consentManager?.getPreference(storageKey) || {};
 
           if (validMainTabs.includes(savedTabs.mainTab)) {
             mainTab = savedTabs.mainTab;
@@ -410,7 +627,7 @@
             resizeExplorePane(explorePane);
           }
 
-          localStorage.setItem(storageKey, JSON.stringify({ mainTab: value, explorePane }));
+          consentManager?.setPreference(storageKey, { mainTab: value, explorePane });
         });
 
         $watch('explorePane', value => {
@@ -419,7 +636,7 @@
           }
 
           resizeExplorePane(value);
-          localStorage.setItem(storageKey, JSON.stringify({ mainTab, explorePane: value }));
+          consentManager?.setPreference(storageKey, { mainTab, explorePane: value });
         });
       "
       class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
@@ -843,9 +1060,113 @@
             </div>
         </div>
 
-        <div class=" p-2 text-gray-700 dark:text-gray-200">
-
+        <div class="p-2 text-gray-700 dark:text-gray-200">
           <p>{{ il.image.description | safe }}</p>
+
+          <div class="engagement-bar">
+            <div class="engagement-actions">
+              <button id="image-like-btn-{{il.image.id}}" type="button"
+                class="engagement-button{% if il.engagement.liked %} is-active{% endif %}"
+                aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2.75 14.2 8l5.65.49-4.29 3.72 1.28 5.52L12 14.71 7.16 17.73l1.28-5.52L4.15 8.49 9.8 8 12 2.75z" />
+                </svg>
+                <span id="image-like-label-{{il.image.id}}">{{ 'Starred' if il.engagement.liked else 'Star' }}</span>
+                <span id="image-like-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.like_count }}</span>
+              </button>
+
+              <span class="engagement-chip">
+                <span class="font-semibold">Views</span>
+                <span id="image-view-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.view_count }}</span>
+              </span>
+
+              <button id="image-comments-toggle-{{il.image.id}}" type="button" class="engagement-secondary-button"
+                aria-expanded="false">
+                <span class="font-semibold">Comments</span>
+                <span id="image-comment-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.comment_count }}</span>
+              </button>
+            </div>
+
+            <button id="image-comment-open-{{il.image.id}}" type="button" class="engagement-secondary-button">
+              Leave Comment
+            </button>
+          </div>
+
+          <div id="comment-thread-{{il.image.id}}" class="comment-thread" hidden>
+            <div id="comments-list-{{il.image.id}}" class="comment-list">
+              {% if il.engagement.comments %}
+              {% for comment in il.engagement.comments %}
+              <article class="comment-card">
+                <div class="comment-card-header">
+                  <span class="comment-card-name">{{ comment.commented_by or 'Anonymous' }}</span>
+                  <time class="comment-card-time">{{ comment.commented_at.strftime('%d %b %Y %H:%M') }}</time>
+                </div>
+                <p class="comment-card-body">{{ comment.comment }}</p>
+              </article>
+              {% endfor %}
+              {% else %}
+              <p id="comments-empty-{{il.image.id}}" class="comment-empty">No comments yet. Be the first to leave one.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div id="image-comment-modal-{{il.image.id}}" class="comment-modal-backdrop hidden" aria-hidden="true">
+            <div class="comment-modal-card" role="dialog" aria-modal="true" aria-labelledby="image-comment-title-{{il.image.id}}">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p id="image-comment-title-{{il.image.id}}" class="text-lg font-semibold text-gray-900 dark:text-white">Leave a comment</p>
+                  <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">No account is required. We rate-limit anonymous comments to reduce abuse.</p>
+                </div>
+                <button id="image-comment-close-{{il.image.id}}" type="button"
+                  class="rounded-full border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                  Close
+                </button>
+              </div>
+
+              <form id="image-comment-form-{{il.image.id}}" class="mt-4 space-y-4">
+                <div class="space-y-2">
+                  <label for="image-comment-name-{{il.image.id}}" class="block text-sm font-semibold text-gray-700 dark:text-gray-200">Display name</label>
+                  <input id="image-comment-name-{{il.image.id}}" name="display_name" type="text" maxlength="40"
+                    class="comment-modal-input"
+                    value="{{ remembered_commenter_name }}"
+                    placeholder="How should your name appear?">
+                </div>
+
+                <div class="space-y-2">
+                  <label for="image-comment-text-{{il.image.id}}" class="block text-sm font-semibold text-gray-700 dark:text-gray-200">Comment</label>
+                  <textarea id="image-comment-text-{{il.image.id}}" name="comment" maxlength="1500"
+                    class="comment-modal-textarea"
+                    placeholder="Share what you noticed, liked, or learned from this post."></textarea>
+                </div>
+
+                <label class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
+                  <input id="image-comment-remember-{{il.image.id}}" name="remember_name" type="checkbox"
+                    class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+                    {% if not preference_cookies_enabled %}disabled{% endif %}
+                    {% if remembered_commenter_name %}checked{% endif %}>
+                  <span>
+                    Remember this display name on this browser for future comments.
+                    {% if not preference_cookies_enabled %}
+                    Enable preference cookies in Cookie Settings to save it.
+                    {% endif %}
+                  </span>
+                </label>
+
+                <p id="image-comment-status-{{il.image.id}}" class="comment-modal-status"></p>
+
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <button id="image-comment-cancel-{{il.image.id}}" type="button"
+                    class="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                    Cancel
+                  </button>
+                  <button id="image-comment-submit-{{il.image.id}}" type="submit"
+                    class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    Post Comment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1483,11 +1804,116 @@
         const starlessToggle = document.getElementById(`starless-toggle-${imageId}`);
         const mediaPrevButton = document.getElementById(`media-prev-${imageId}`);
         const mediaNextButton = document.getElementById(`media-next-${imageId}`);
+        const likeButton = document.getElementById(`image-like-btn-${imageId}`);
+        const likeLabel = document.getElementById(`image-like-label-${imageId}`);
+        const likeCount = document.getElementById(`image-like-count-${imageId}`);
+        const commentsToggleButton = document.getElementById(`image-comments-toggle-${imageId}`);
+        const commentOpenButton = document.getElementById(`image-comment-open-${imageId}`);
+        const commentThread = document.getElementById(`comment-thread-${imageId}`);
+        const commentCount = document.getElementById(`image-comment-count-${imageId}`);
+        const commentsList = document.getElementById(`comments-list-${imageId}`);
+        let commentsEmpty = document.getElementById(`comments-empty-${imageId}`);
+        const commentModal = document.getElementById(`image-comment-modal-${imageId}`);
+        const commentCloseButton = document.getElementById(`image-comment-close-${imageId}`);
+        const commentCancelButton = document.getElementById(`image-comment-cancel-${imageId}`);
+        const commentForm = document.getElementById(`image-comment-form-${imageId}`);
+        const commentNameInput = document.getElementById(`image-comment-name-${imageId}`);
+        const commentTextInput = document.getElementById(`image-comment-text-${imageId}`);
+        const commentRememberInput = document.getElementById(`image-comment-remember-${imageId}`);
+        const commentStatus = document.getElementById(`image-comment-status-${imageId}`);
+        const commentSubmitButton = document.getElementById(`image-comment-submit-${imageId}`);
         let inlineToolHideTimer = null;
         let inlineChromeHideTimer = null;
         let inlineAstroControlsAvailable = true;
         let inlineChromeHovered = false;
         let inlineChromeActive = false;
+        let commentSubmitInFlight = false;
+
+        function setLikeState(liked, totalLikes) {
+          if (!likeButton) {
+            return;
+          }
+
+          likeButton.classList.toggle("is-active", liked);
+          likeButton.setAttribute("aria-pressed", liked ? "true" : "false");
+          if (likeLabel) {
+            likeLabel.textContent = liked ? "Starred" : "Star";
+          }
+          if (likeCount) {
+            likeCount.textContent = String(totalLikes ?? likeCount.textContent ?? 0);
+          }
+        }
+
+        function setCommentCount(totalComments) {
+          if (commentCount) {
+            commentCount.textContent = String(totalComments ?? commentCount.textContent ?? 0);
+          }
+        }
+
+        function setCommentStatus(message, isError = false) {
+          if (!commentStatus) {
+            return;
+          }
+
+          commentStatus.textContent = message || "";
+          commentStatus.style.color = isError ? "rgb(220 38 38)" : "";
+        }
+
+        function escapeHTML(value) {
+          return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function renderCommentCard(comment) {
+          const article = document.createElement("article");
+          article.className = "comment-card";
+          article.innerHTML = `
+            <div class="comment-card-header">
+              <span class="comment-card-name">${escapeHTML(comment.display_name || "Anonymous")}</span>
+              <time class="comment-card-time">${escapeHTML(comment.commented_at_label || "")}</time>
+            </div>
+            <p class="comment-card-body">${escapeHTML(comment.comment || "")}</p>
+          `;
+          return article;
+        }
+
+        function appendComment(comment) {
+          if (!commentsList) {
+            return;
+          }
+
+          if (commentsEmpty) {
+            commentsEmpty.remove();
+            commentsEmpty = null;
+          }
+          commentsList.appendChild(renderCommentCard(comment));
+        }
+
+        function openCommentModal() {
+          if (!commentModal) {
+            return;
+          }
+
+          commentModal.classList.remove("hidden");
+          commentModal.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+          window.setTimeout(() => commentNameInput?.focus(), 20);
+        }
+
+        function closeCommentModal() {
+          if (!commentModal) {
+            return;
+          }
+
+          commentModal.classList.add("hidden");
+          commentModal.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = fullscreenModal?.classList.contains("hidden") ? "" : "hidden";
+          setCommentStatus("");
+        }
 
         function normalizeMediaSrc(path) {
           return `${uploadBase}${String(path || "").replace(/\\/g, "/").replace(/^\/+/, "")}`;
@@ -1692,7 +2118,7 @@
           fullscreenViewer?.elements?.video?.pause?.();
           fullscreenModal.classList.add("hidden");
           fullscreenModal.classList.remove("flex");
-          document.body.style.overflow = "";
+          document.body.style.overflow = commentModal?.classList.contains("hidden") ? "" : "hidden";
         }
 
         fullscreenOpenButton.addEventListener("click", openFullscreenViewer);
@@ -1716,7 +2142,110 @@
           hideInlineChrome();
         });
 
+        commentsToggleButton?.addEventListener("click", () => {
+          const willOpen = commentThread?.hasAttribute("hidden");
+          if (!commentThread) {
+            return;
+          }
+
+          if (willOpen) {
+            commentThread.removeAttribute("hidden");
+          } else {
+            commentThread.setAttribute("hidden", "");
+          }
+          commentsToggleButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
+        });
+
+        commentOpenButton?.addEventListener("click", openCommentModal);
+        commentCloseButton?.addEventListener("click", closeCommentModal);
+        commentCancelButton?.addEventListener("click", closeCommentModal);
+        commentModal?.addEventListener("click", (event) => {
+          if (event.target === commentModal) {
+            closeCommentModal();
+          }
+        });
+
+        likeButton?.addEventListener("click", async () => {
+          likeButton.disabled = true;
+
+          try {
+            const response = await fetch({{ url_for('blog.like_image_endpoint', image_id=il.image.id) | tojson | safe }}, {
+              method: "POST",
+              headers: {
+                "X-CSRFToken": csrfToken,
+              },
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(data.message || "Could not star this post right now.");
+            }
+
+            setLikeState(!!data.liked, data.like_count);
+          } catch (error) {
+            alert(error.message || "Could not star this post right now.");
+          } finally {
+            likeButton.disabled = false;
+          }
+        });
+
+        commentForm?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (commentSubmitInFlight) {
+            return;
+          }
+
+          commentSubmitInFlight = true;
+          commentSubmitButton.disabled = true;
+          setCommentStatus("Posting comment...");
+
+          try {
+            const response = await fetch({{ url_for('blog.comment_on_image', image_id=il.image.id) | tojson | safe }}, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+              },
+              body: JSON.stringify({
+                display_name: commentNameInput?.value || "",
+                comment: commentTextInput?.value || "",
+                remember_name: !!commentRememberInput?.checked,
+              }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(data.message || "Could not post your comment right now.");
+            }
+
+            appendComment(data.comment || {});
+            setCommentCount(data.comment_count);
+            commentThread?.removeAttribute("hidden");
+            commentsToggleButton?.setAttribute("aria-expanded", "true");
+            if (commentTextInput) {
+              commentTextInput.value = "";
+            }
+            if (!data.preferences_enabled && commentRememberInput) {
+              commentRememberInput.checked = false;
+              setCommentStatus("Comment posted. Enable preference cookies if you want AstroSpace to remember your name.");
+            } else {
+              setCommentStatus("Comment posted.");
+            }
+
+            window.setTimeout(() => {
+              closeCommentModal();
+            }, 500);
+          } catch (error) {
+            setCommentStatus(error.message || "Could not post your comment right now.", true);
+          } finally {
+            commentSubmitInFlight = false;
+            commentSubmitButton.disabled = false;
+          }
+        });
+
         document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && commentModal && !commentModal.classList.contains("hidden")) {
+            closeCommentModal();
+            return;
+          }
           if (event.key === "Escape" && !fullscreenModal.classList.contains("hidden")) {
             closeFullscreenViewer();
           }

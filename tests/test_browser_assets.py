@@ -19,6 +19,12 @@ def test_base_template_uses_lato_preloads_without_explicit_favicon(app):
     assert "fonts/Lato-Medium.woff2" in html
     assert "fonts/Lato-Black.woff2" in html
     assert "fonts/Patung.woff2" not in html
+    assert 'static/js/consent.js' in html
+    assert 'id="cookieBanner"' in html
+    assert "Reject Optional" in html
+    assert "Accept All" in html
+    assert "Cookie Policy" in html
+    assert "Cookie Settings" in html
 
 
 def test_home_template_adds_patung_preload(app):
@@ -99,6 +105,20 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300"' in template_source
     assert 'class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"' in template_source
     assert '@media (max-width: 920px)' not in template_source
+    assert ".engagement-bar {" in template_source
+    assert ".comment-modal-backdrop {" in template_source
+    assert 'id="image-like-btn-{{il.image.id}}"' in template_source
+    assert 'id="image-comments-toggle-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-open-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-modal-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-form-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-name-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-text-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-status-{{il.image.id}}"' in template_source
+    assert 'renderCommentCard(comment)' in template_source
+    assert 'fetch({{ url_for(\'blog.like_image_endpoint\', image_id=il.image.id) | tojson | safe }}, {' in template_source
+    assert 'fetch({{ url_for(\'blog.comment_on_image\', image_id=il.image.id) | tojson | safe }}, {' in template_source
+    assert 'commentThread?.removeAttribute("hidden");' in template_source
 
 
 def test_image_detail_template_uses_unified_details_and_explore_radio_switch():
@@ -165,3 +185,16 @@ def test_image_detail_template_keeps_details_tabs_outside_image_panel():
 
     assert template_source.count("<div") == template_source.count("</div>")
     assert '</div>\n\n          <p id="inline-media-caption-{{il.image.id}}"' in template_source
+
+
+def test_templates_no_longer_use_raw_local_storage():
+    template_paths = [
+        Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "base.html",
+        Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "collection.html",
+        Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html",
+        Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "profile.html",
+    ]
+
+    for template_path in template_paths:
+        template_source = template_path.read_text(encoding="utf-8")
+        assert "localStorage" not in template_source

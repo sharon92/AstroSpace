@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS
     flat_panel,
     image_lights,
     image_software,
+    related_image_media,
     images,
     image_views,
     image_likes,
@@ -155,6 +156,7 @@ CREATE TABLE images (
     description TEXT,
     author TEXT, -- username or email of the uploader
     image_path TEXT,
+    starless_image_path TEXT,
     image_thumbnail TEXT,
     pixel_scale FLOAT DEFAULT 1.0 NOT NULL, -- in arcseconds per pixel
     object_type TEXT, -- e.g., galaxy, nebula, star cluster
@@ -192,24 +194,42 @@ CREATE TABLE image_views (
     id SERIAL PRIMARY KEY,
     image_id INTEGER REFERENCES images(id),
     user_id TEXT,
-    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    visitor_hash TEXT NOT NULL,
+    visitor_source TEXT DEFAULT 'network' NOT NULL,
+    ip_hash TEXT,
+    user_agent_hash TEXT,
+    visitor_cookie_hash TEXT,
+    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(image_id, visitor_hash)
 );
 
 CREATE TABLE image_likes (
     id SERIAL PRIMARY KEY,
     image_id INTEGER REFERENCES images(id),
     user_id TEXT,
+    visitor_hash TEXT NOT NULL,
+    visitor_source TEXT DEFAULT 'network' NOT NULL,
+    ip_hash TEXT,
+    user_agent_hash TEXT,
+    visitor_cookie_hash TEXT,
     liked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(image_id, user_id)  -- prevents multiple likes from same IP
+    UNIQUE(image_id, visitor_hash)
 );
 
 CREATE TABLE image_comments (
     id SERIAL PRIMARY KEY,
     image_id INTEGER REFERENCES images(id),
     ip_address TEXT,
+    visitor_hash TEXT NOT NULL,
+    visitor_source TEXT DEFAULT 'legacy' NOT NULL,
+    ip_hash TEXT,
+    user_agent_hash TEXT,
+    visitor_cookie_hash TEXT,
     comment TEXT NOT NULL,
     commented_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    commented_by TEXT -- username or email of the commenter
+    commented_by TEXT, -- username or email of the commenter
+    status TEXT DEFAULT 'published' NOT NULL
 );
 
 CREATE TABLE capture_dates (
@@ -242,6 +262,15 @@ CREATE TABLE image_software (
     id SERIAL PRIMARY KEY,
     image_id INT REFERENCES images(id) ON DELETE CASCADE,
     software_id INT REFERENCES software(id) ON DELETE CASCADE
+);
+
+CREATE TABLE related_image_media (
+    id SERIAL PRIMARY KEY,
+    image_id INT REFERENCES images(id) ON DELETE CASCADE,
+    media_path TEXT NOT NULL,
+    caption TEXT,
+    sort_order INT DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE users (

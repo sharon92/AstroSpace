@@ -16,6 +16,7 @@ from flask import (
     g,
     send_from_directory,
     jsonify,
+    make_response,
 )
 from collections import defaultdict
 
@@ -44,7 +45,23 @@ from AstroSpace.services.collection_filters import (
     normalize_collection_filters,
 )
 from AstroSpace.services.content import parse_meta_store, sanitize_rich_text
+from AstroSpace.services.content import sanitize_plain_text
 from AstroSpace.logging_utils import debug_log
+from AstroSpace.services.cookies import COOKIE_POLICY_ROWS, consent_allows
+from AstroSpace.services.engagement import (
+    COMMENT_NAME_LIMIT,
+    COMMENT_TEXT_LIMIT,
+    CommentRateLimitError,
+    apply_commenter_cookie,
+    apply_visitor_cookie,
+    build_visitor_identity,
+    clear_commenter_cookie,
+    commenter_name_from_request,
+    fetch_image_engagement_state,
+    like_image as register_image_like,
+    record_image_view,
+    submit_image_comment,
+)
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import build_plotly_payloads
@@ -110,6 +127,14 @@ def collection():
         active_filters=active_filters,
         result_count=len(images),
         unix_epoch_ordinal=PYTHON_UNIX_EPOCH_ORDINAL,
+    )
+
+
+@bp.route("/cookie-policy")
+def cookie_policy():
+    return render_template(
+        "cookie_policy.html",
+        cookie_policy_rows=COOKIE_POLICY_ROWS,
     )
 
 @bp.route("/extract_stats", methods=["POST"])
@@ -242,6 +267,10 @@ def image_detail(image_id, image_name):
     background_image = tables[0]["image_path"]
     images = [dict(zip(IMAGE_DETAIL_TABLE_NAMES, tables))]
 
+    visitor_identity = build_visitor_identity()
+    record_image_view(image_id, visitor_identity)
+    images[0]["engagement"] = fetch_image_engagement_state(image_id, visitor_identity)
+
     db = get_conn()
     with db.cursor() as cur:
         cur.execute(
@@ -252,13 +281,90 @@ def image_detail(image_id, image_name):
 
     for i in prev_images:
         if i["id"] != image_id:
-            images += [dict(zip(IMAGE_DETAIL_TABLE_NAMES, get_image_tables(i["id"])))]
-    
-    return render_template(
-        "image_detail.html",
-        background_image=background_image,
-        images=images,
+            related_tables = get_image_tables(i["id"])
+            related_image = dict(zip(IMAGE_DETAIL_TABLE_NAMES, related_tables))
+            related_image["engagement"] = fetch_image_engagement_state(i["id"], visitor_identity)
+            images += [related_image]
+
+    response = make_response(
+        render_template(
+            "image_detail.html",
+            background_image=background_image,
+            images=images,
+            remembered_commenter_name=commenter_name_from_request(),
+            preference_cookies_enabled=consent_allows("preferences"),
+        )
     )
+    apply_visitor_cookie(response, visitor_identity)
+    return response
+
+
+@bp.route("/image/<int:image_id>/like", methods=["POST"])
+def like_image_endpoint(image_id):
+    image = get_image_by_id(image_id)
+    if not image:
+        return jsonify({"message": "Post not found."}), 404
+
+    visitor_identity = build_visitor_identity()
+    inserted = register_image_like(image_id, visitor_identity)
+    engagement = fetch_image_engagement_state(image_id, visitor_identity, include_comments=False)
+
+    response = jsonify(
+        {
+            "message": "Thanks for starring this post." if inserted else "You have already starred this post.",
+            "liked": engagement["liked"],
+            "like_count": engagement["like_count"],
+        }
+    )
+    apply_visitor_cookie(response, visitor_identity)
+    return response
+
+
+@bp.route("/image/<int:image_id>/comment", methods=["POST"])
+def comment_on_image(image_id):
+    image = get_image_by_id(image_id)
+    if not image:
+        return jsonify({"message": "Post not found."}), 404
+
+    payload = request.get_json(silent=True) or request.form
+    display_name = sanitize_plain_text(payload.get("display_name"), max_length=COMMENT_NAME_LIMIT)
+    comment = sanitize_plain_text(payload.get("comment"), max_length=COMMENT_TEXT_LIMIT)
+    remember_name = str(payload.get("remember_name", "")).lower() in {"1", "true", "yes", "on"}
+
+    if not display_name:
+        return jsonify({"message": "Please enter a display name."}), 400
+    if not comment:
+        return jsonify({"message": "Please enter a comment."}), 400
+
+    visitor_identity = build_visitor_identity()
+
+    try:
+        inserted = submit_image_comment(image_id, visitor_identity, display_name, comment)
+    except CommentRateLimitError as exc:
+        return jsonify({"message": str(exc)}), exc.status_code
+
+    engagement = fetch_image_engagement_state(image_id, visitor_identity, include_comments=False)
+    preferences_enabled = consent_allows("preferences")
+    response = jsonify(
+        {
+            "message": "Comment posted.",
+            "comment_count": engagement["comment_count"],
+            "preferences_enabled": preferences_enabled,
+            "comment": {
+                "id": inserted["id"],
+                "display_name": display_name,
+                "comment": comment,
+                "commented_at": inserted["commented_at"].isoformat(),
+                "commented_at_label": inserted["commented_at"].strftime("%d %b %Y %H:%M"),
+            },
+        }
+    )
+    apply_visitor_cookie(response, visitor_identity)
+    if remember_name and preferences_enabled:
+        apply_commenter_cookie(response, display_name)
+    else:
+        clear_commenter_cookie(response)
+    return response
 
 
 def build_related_media_rows(form, uploaded_files, upload_root, user_id):

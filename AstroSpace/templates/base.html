@@ -14,15 +14,46 @@
 
         <!-- Custom Stylesheet and js-->
         <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+        <script src="{{ url_for('static', filename='js/consent.js') }}"></script>
+        <style>
+            #cookieBanner {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 80;
+                padding: 0 1rem 1rem;
+            }
+
+            #cookieBanner.hidden,
+            #cookieSettingsPanel.hidden {
+                display: none;
+            }
+
+            .cookie-banner-shell {
+                margin: 0 auto;
+                max-width: 64rem;
+                border: 1px solid rgb(229 231 235);
+                border-radius: 1rem;
+                background: rgb(255 255 255 / 0.95);
+                padding: 1.25rem;
+                box-shadow: 0 24px 48px rgb(15 23 42 / 0.25);
+            }
+
+            .dark .cookie-banner-shell {
+                border-color: rgb(55 65 81);
+                background: rgb(17 24 39 / 0.96);
+            }
+        </style>
 
         <script>
             // This code should be added to <head>.
             // It's used to prevent page load glitches.
             const html = document.documentElement;
-            const theme = localStorage.getItem('hs_theme');
+            const theme = window.AstroSpaceConsent?.getTheme();
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-            if (theme === 'dark' || (theme === 'auto' && prefersDark)) {
+            if (theme === 'dark' || (!theme && prefersDark)) {
                 html.classList.add('dark');
             } else {
                 html.classList.remove('dark');
@@ -146,7 +177,101 @@
         <!-- Footer -->
         <footer class="text-black bg-white/80 py-3 text-center dark:bg-gray-800/60 dark:text-white shrink-0 shadow-md">
             <p>&copy; 2026 {{WebName}}. All rights reserved.</p>
+            <div class="mt-2 flex flex-wrap items-center justify-center gap-3 text-sm">
+                <a href="{{ url_for('blog.cookie_policy') }}"
+                    class="text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200">
+                    Cookie Policy
+                </a>
+                <button id="cookieSettingsButton" type="button"
+                    class="text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200">
+                    Cookie Settings
+                </button>
+            </div>
         </footer>
+
+        <div id="cookieBanner" class="hidden">
+            <div class="cookie-banner-shell">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="max-w-3xl space-y-2 text-left">
+                        <p class="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Cookie Choices</p>
+                        <h2 class="text-xl font-black text-gray-900 dark:text-white">Necessary cookies only by default</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">
+                            We use necessary cookies for security and consent storage. Optional preference cookies remember interface choices,
+                            and optional community cookies improve anonymous view, like, and comment accuracy. You can reject or change these at any time.
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">
+                            Read our <a href="{{ url_for('blog.cookie_policy') }}" class="font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200">Cookie Policy</a>.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col gap-2 lg:min-w-[260px]">
+                        <button id="cookieAcceptAllButton" type="button"
+                            class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                            Accept All
+                        </button>
+                        <button id="cookieRejectOptionalButton" type="button"
+                            class="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                            Reject Optional
+                        </button>
+                        <button id="cookieCustomizeButton" type="button"
+                            class="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                            Customize
+                        </button>
+                    </div>
+                </div>
+
+                <div id="cookieSettingsPanel" class="mt-5 hidden rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 dark:border-gray-700 dark:bg-gray-800/70">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div class="rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-900/60">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-semibold text-gray-900 dark:text-white">Necessary</p>
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Security, sessions, CSRF, and your consent choice.</p>
+                                </div>
+                                <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-900 dark:bg-green-950/30 dark:text-green-100">Always on</span>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-900/60">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-semibold text-gray-900 dark:text-white">Preferences</p>
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Theme, saved tabs, remembered commenter name, and similar interface choices.</p>
+                                </div>
+                                <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    <input id="cookiePreferenceToggle" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <span>Allow</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-900/60">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-semibold text-gray-900 dark:text-white">Community</p>
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">A pseudonymous visitor cookie that improves unique views, likes, and comment abuse controls.</p>
+                                </div>
+                                <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    <input id="cookieCommunityToggle" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600">
+                                    <span>Allow</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+                        <button id="cookieCancelButton" type="button"
+                            class="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                            Cancel
+                        </button>
+                        <button id="cookieSaveButton" type="button"
+                            class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                            Save Choices
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </body>
     <script>
@@ -156,14 +281,8 @@
         themeToggle.addEventListener('click', () => {
             const html = document.documentElement;
             const isDark = html.classList.toggle('dark');
-            localStorage.setItem('hs_theme', isDark ? 'dark' : 'light');
+            window.AstroSpaceConsent?.setTheme(isDark ? 'dark' : 'light');
         });
-
-        // Set initial theme from localStorage
-        if (localStorage.getItem('hs_theme') === 'dark') {
-            document.documentElement.classList.add('dark');
-        }
-        ;
 
         const navLinksStyle = document.querySelectorAll('.nav-link');
 
@@ -210,6 +329,67 @@
                 }
                 // Toggle nav menu
                 navMenu?.classList.toggle('hidden');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const consentManager = window.AstroSpaceConsent;
+            const banner = document.getElementById('cookieBanner');
+            const panel = document.getElementById('cookieSettingsPanel');
+            const preferenceToggle = document.getElementById('cookiePreferenceToggle');
+            const communityToggle = document.getElementById('cookieCommunityToggle');
+            const openSettingsButton = document.getElementById('cookieSettingsButton');
+            const customizeButton = document.getElementById('cookieCustomizeButton');
+            const acceptAllButton = document.getElementById('cookieAcceptAllButton');
+            const rejectOptionalButton = document.getElementById('cookieRejectOptionalButton');
+            const saveButton = document.getElementById('cookieSaveButton');
+            const cancelButton = document.getElementById('cookieCancelButton');
+
+            if (!consentManager || !banner) {
+                return;
+            }
+
+            const syncToggles = () => {
+                const consent = consentManager.getConsent();
+                if (preferenceToggle) {
+                    preferenceToggle.checked = !!consent.preferences;
+                }
+                if (communityToggle) {
+                    communityToggle.checked = !!consent.community;
+                }
+            };
+
+            const openBanner = (showSettings) => {
+                syncToggles();
+                banner.classList.remove('hidden');
+                panel?.classList.toggle('hidden', !showSettings);
+            };
+
+            const closeBanner = () => {
+                banner.classList.add('hidden');
+                panel?.classList.add('hidden');
+            };
+
+            const saveConsentAndReload = (consent) => {
+                consentManager.saveConsent(consent);
+                closeBanner();
+                window.location.reload();
+            };
+
+            if (!consentManager.hasStoredConsent()) {
+                openBanner(false);
+            }
+
+            openSettingsButton?.addEventListener('click', () => openBanner(true));
+            customizeButton?.addEventListener('click', () => openBanner(true));
+            cancelButton?.addEventListener('click', closeBanner);
+            acceptAllButton?.addEventListener('click', () => saveConsentAndReload({ preferences: true, community: true }));
+            rejectOptionalButton?.addEventListener('click', () => saveConsentAndReload({ preferences: false, community: false }));
+            saveButton?.addEventListener('click', () => {
+                saveConsentAndReload({
+                    preferences: !!preferenceToggle?.checked,
+                    community: !!communityToggle?.checked,
+                });
             });
         });
     </script>

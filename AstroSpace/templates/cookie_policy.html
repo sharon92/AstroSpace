@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 py-10 text-gray-800 dark:text-gray-100">
+  <div class="rounded-2xl border border-gray-200 bg-white/85 p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800/75">
+    <div class="space-y-2">
+      <p class="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Cookie Policy</p>
+      <h1 class="text-3xl font-black">How AstroSpace uses cookies</h1>
+      <p class="text-sm text-gray-600 dark:text-gray-300">
+        We default to necessary cookies only. Optional preference and community cookies are off until you choose otherwise.
+      </p>
+    </div>
+
+    <div class="mt-6 space-y-4 text-sm leading-6 text-gray-700 dark:text-gray-200">
+      <p>
+        AstroSpace uses first-party cookies to keep the site secure, remember your consent choices, and optionally save interface preferences.
+        If you allow community cookies, we also store a pseudonymous visitor identifier to improve unique view counting, anonymous like detection,
+        and comment-abuse protection.
+      </p>
+      <p>
+        When optional community cookies are off, anonymous views, likes, and comments can still work. In that case we fall back to a hashed
+        fingerprint derived from network and browser information so we can limit abuse without storing raw IP addresses in the database.
+      </p>
+    </div>
+
+    <div class="mt-8 overflow-x-auto">
+      <table class="min-w-full border-collapse text-left text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            <th class="px-0 py-3 font-semibold text-gray-900 dark:text-white">Name</th>
+            <th class="px-4 py-3 font-semibold text-gray-900 dark:text-white">Category</th>
+            <th class="px-4 py-3 font-semibold text-gray-900 dark:text-white">Duration</th>
+            <th class="px-4 py-3 font-semibold text-gray-900 dark:text-white">Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in cookie_policy_rows %}
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            <td class="px-0 py-3 font-mono text-xs text-blue-700 dark:text-blue-300">{{ row.name }}</td>
+            <td class="px-4 py-3">{{ row.category }}</td>
+            <td class="px-4 py-3">{{ row.duration }}</td>
+            <td class="px-4 py-3">{{ row.purpose }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+      <p class="font-semibold">Need to change your choice later?</p>
+      <p class="mt-1">
+        Use the <span class="font-semibold">Cookie Settings</span> button in the footer at any time.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

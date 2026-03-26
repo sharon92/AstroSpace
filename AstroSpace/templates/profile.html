@@ -5,7 +5,7 @@
 
 <div class="m-5 p-5 flex justify-center w-auto">
     <!-- Main Card Container -->
-    <div x-data="settingsData" x-init="$watch('tab', value => localStorage.setItem('activeTab', value))"
+    <div x-data="settingsData" x-init="$watch('tab', value => window.AstroSpaceConsent?.setPreference('profile_active_tab', value))"
         class="inline-block rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
 
         <!-- Main Tabs -->
@@ -439,7 +439,7 @@
 <script>
     document.addEventListener("alpine:init", () => {
         Alpine.data("settingsData", () => ({
-            tab: {{ active_tab | tojson }} || localStorage.getItem("activeTab") || "Posts",
+            tab: {{ active_tab | tojson }} || window.AstroSpaceConsent?.getPreference("profile_active_tab") || "Posts",
             uploadBaseUrl: "{{ url_for('blog.upload', filename='') }}",
             settings: {
                 display_name: {{ user_settings.display_name | default('') | tojson }},
