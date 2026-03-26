@@ -186,6 +186,140 @@
     min-height: 440px;
   }
 
+  .author-pill {
+    overflow: hidden;
+  }
+
+  .author-pill-text {
+    min-width: 0;
+    max-width: 14rem;
+    margin-left: 0.75rem;
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+      max-width 180ms ease,
+      margin-left 180ms ease,
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+
+  @media (max-width: 767px) {
+    .author-pill-text {
+      max-width: 0;
+      margin-left: 0;
+      opacity: 0;
+      transform: translateX(-0.85rem);
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .author-pill.is-expanded .author-pill-text,
+    .author-pill:hover .author-pill-text,
+    .author-pill:focus-within .author-pill-text {
+      max-width: 12rem;
+      margin-left: 0.75rem;
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+  }
+
+  .inline-tool-tray {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(1rem);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 0s linear 180ms;
+  }
+
+  .inline-tool-tray.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 0s;
+  }
+
+  .inline-tools-bubble {
+    pointer-events: auto;
+  }
+
+  .inline-media-arrow {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 180ms ease,
+      visibility 0s linear 180ms,
+      background-color 180ms ease;
+  }
+
+  .inline-media-arrow.is-hover {
+    opacity: 0.2;
+    visibility: visible;
+    transition:
+      opacity 180ms ease,
+      visibility 0s,
+      background-color 180ms ease;
+  }
+
+  .inline-media-arrow.is-active {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 180ms ease,
+      visibility 0s,
+      background-color 180ms ease;
+  }
+
+  .inline-corner-control {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 180ms ease,
+      visibility 0s linear 180ms,
+      background-color 180ms ease;
+  }
+
+  .inline-corner-control.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 180ms ease,
+      visibility 0s,
+      background-color 180ms ease;
+  }
+
+  .image-meta-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .image-meta-strip > * {
+    min-width: 0;
+  }
+
+  .inline-media-caption-strip {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 1;
+    max-width: 100%;
+    transition:
+      opacity 180ms ease,
+      max-width 180ms ease,
+      margin 180ms ease;
+  }
+
   @media (min-width: 1024px) {
     .calibration-layout {
       grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
@@ -348,7 +482,7 @@
 
           {% if il.related_media %}
           <button id="media-prev-{{il.image.id}}" type="button"
-            class="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg transition hover:bg-black/65"
+            class="inline-media-arrow absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg hover:bg-black/65"
             aria-label="Previous media">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M12.78 15.53a.75.75 0 0 1-1.06 0L6.72 10.53a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 1.06L8.31 10l4.47 4.47a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
@@ -356,7 +490,7 @@
           </button>
 
           <button id="media-next-{{il.image.id}}" type="button"
-            class="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg transition hover:bg-black/65"
+            class="inline-media-arrow absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg hover:bg-black/65"
             aria-label="Next media">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M7.22 4.47a.75.75 0 0 1 1.06 0l5 5a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 0 1-1.06-1.06L11.69 10 7.22 5.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
@@ -365,7 +499,7 @@
           {% endif %}
 
           <button id="fullscreen-btn-{{il.image.id}}" title="Full Screen"
-            class="absolute bottom-3 left-3 z-20 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
+            class="inline-corner-control absolute bottom-3 left-3 z-20 p-1 border-2 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:bg-gray-200/30"
             aria-label="Full Screen" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
               stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
@@ -384,7 +518,7 @@
           </button>
 
           <button id="reset-btn-{{il.image.id}}" title="Resize"
-            class="absolute bottom-3 right-3 z-20 p-1 border-2 opacity-15 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:opacity-100 transition"
+            class="inline-corner-control absolute bottom-3 right-3 z-20 p-1 border-2 border-gray-600 dark:border-white rounded-md bg-gray-200/15 hover:bg-gray-200/30"
             aria-label="Resize image" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="14" height="14" fill="none" stroke="grey"
               stroke-width="6">
@@ -395,6 +529,8 @@
               <polyline points="4 38 4 60 26 60 " />
             </svg>
           </button>
+
+          <div id="inline-tool-tray-{{il.image.id}}" class="inline-tool-tray pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4"></div>
         </div>
 
         <div id="fullscreen-modal-{{il.image.id}}"
@@ -534,11 +670,17 @@
           </div>
         </div>
 
-        <div class="flex flex-col gap-3 px-1 text-sm text-gray-600 dark:text-gray-300 xl:flex-row xl:items-center xl:justify-between">
-
-          <div class="flex flex-wrap items-center gap-3">
+        <div class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300">
             <a href="{{ url_for('profile.public', username=il.image.author) }}"
-              class="flex items-center gap-3 rounded-full bg-white/70 px-3 py-1.5 text-gray-800 shadow-sm backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/60 dark:text-gray-100 dark:hover:bg-gray-900/80">
+              x-data="{ expanded: false }"
+              @mouseenter="if (window.innerWidth < 768) expanded = true"
+              @mouseleave="if (window.innerWidth < 768) expanded = false"
+              @focusin="expanded = true"
+              @click.outside="expanded = false"
+              @click="if (window.innerWidth < 768 && !expanded) { $event.preventDefault(); expanded = true }"
+              :class="{ 'is-expanded': expanded }"
+              :aria-expanded="expanded ? 'true' : 'false'"
+              class="author-pill shrink-0 flex items-center rounded-full bg-white/70 px-3 py-1.5 text-gray-800 shadow-sm backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/60 dark:text-gray-100 dark:hover:bg-gray-900/80">
               {% if il.image.user_image %}
               <img
                 src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
@@ -550,17 +692,17 @@
                 class="h-8 w-8 rounded-full object-cover border border-white/40"
                 alt="default profile">
               {% endif %}
-              <span class="flex min-w-0 flex-col leading-tight">
+              <span class="author-pill-text flex min-w-0 flex-col leading-tight">
                 <span class="truncate font-medium">@{{ il.image.author }}</span>
                 <span class="truncate text-xs text-gray-500 dark:text-gray-400">{{ il.image.location }}</span>
               </span>
             </a>
 
-            <div id="inline-tools-{{il.image.id}}" class="flex flex-wrap items-center gap-2">
+            <div id="inline-tools-{{il.image.id}}" class="inline-tools-bubble flex flex-wrap items-center gap-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
             <div>
               <input id="graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
 
-              <label for="graticule-toggle-{{il.image.id}}" title="Overlay Coordinate Grid" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
+              <label for="graticule-toggle-{{il.image.id}}" title="Graticule" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
          bg-gray-300 text-gray-900 border-slate-300 
          hover:bg-gray-400 hover:border-slate-500 
          hover:dark:bg-slate-600 hover:dark:border-slate-400
@@ -595,7 +737,7 @@
             <div>
               <input id="compare-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
 
-              <label for="compare-toggle-{{il.image.id}}" title="compare with apparent size of solar objects" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
+              <label for="compare-toggle-{{il.image.id}}" title="Moon Size Comparison" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
            bg-gray-300 text-gray-900 border-slate-300
            hover:bg-gray-400 hover:border-slate-500
            hover:dark:bg-slate-600 hover:dark:border-slate-400
@@ -616,7 +758,7 @@
             <div>
               <input id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
 
-              <label for="overlay-toggle-{{il.image.id}}" title="Label celestial objects in the image" class="inline-block px-3 p-1.5 rounded-full cursor-pointer  shadow-sm text-sm font-medium
+              <label for="overlay-toggle-{{il.image.id}}" title="Object Annotation" class="inline-block px-3 p-1.5 rounded-full cursor-pointer  shadow-sm text-sm font-medium
          bg-gray-300 text-gray-900 border-slate-300 
          hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
          peer-checked:hover:bg-green-700 
@@ -639,7 +781,7 @@
             <div>
               <input id="starless-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
 
-              <label for="starless-toggle-{{il.image.id}}" title="Show starless image" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
+              <label for="starless-toggle-{{il.image.id}}" title="Remove Stars" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
                 bg-gray-300 text-gray-900 border-slate-300
                 hover:bg-gray-400 hover:border-slate-500
                 hover:dark:bg-slate-600 hover:dark:border-slate-400
@@ -658,9 +800,9 @@
             {% endif %}
           </div>
 
-          <p id="inline-media-caption-{{il.image.id}}" class="min-h-[1.5rem] flex-1 px-2 text-center text-sm text-gray-600 dark:text-gray-300"></p>
+          <p id="inline-media-caption-{{il.image.id}}" class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"></p>
 
-            <div x-data="{ open: false }" class="relative inline-block self-start xl:self-auto">
+            <div x-data="{ open: false }" class="relative ml-auto inline-block shrink-0">
               <button @click="open = !open" title="Share this image" class="flex items-center p-1 rounded-full bg-gray-300 text-gray-900   shadow
            hover:bg-gray-400
            hover:dark:bg-slate-600
@@ -1100,6 +1242,7 @@
         const overlayData = {{ il.svg_image | tojson | safe  }};
         const uploadBase = {{ url_for('blog.upload', filename='') | tojson | safe }};
         const primaryImageSrc = {{ primary_image_src | tojson | safe }};
+        const primaryCaption = {{ il.image.title | tojson | safe }};
         const starlessImageSrc = {{ starless_image_src | tojson | safe }};
         const relatedMedia = {{ il.related_media | tojson | safe }};
 
@@ -1335,10 +1478,16 @@
         }
 
         const inlineCaption = document.getElementById(`inline-media-caption-${imageId}`);
+        const inlineToolTray = document.getElementById(`inline-tool-tray-${imageId}`);
         const inlineTools = document.getElementById(`inline-tools-${imageId}`);
         const starlessToggle = document.getElementById(`starless-toggle-${imageId}`);
         const mediaPrevButton = document.getElementById(`media-prev-${imageId}`);
         const mediaNextButton = document.getElementById(`media-next-${imageId}`);
+        let inlineToolHideTimer = null;
+        let inlineChromeHideTimer = null;
+        let inlineAstroControlsAvailable = true;
+        let inlineChromeHovered = false;
+        let inlineChromeActive = false;
 
         function normalizeMediaSrc(path) {
           return `${uploadBase}${String(path || "").replace(/\\/g, "/").replace(/^\/+/, "")}`;
@@ -1352,7 +1501,7 @@
             return {
               kind: "image",
               src: starlessToggle?.checked && starlessImageSrc ? starlessImageSrc : primaryImageSrc,
-              caption: "",
+              caption: primaryCaption,
               astro: true,
             };
           }
@@ -1385,6 +1534,10 @@
         const inlineViewer = createViewer("");
         let fullscreenViewer = null;
 
+        if (inlineTools && inlineToolTray) {
+          inlineToolTray.appendChild(inlineTools);
+        }
+
         const fullscreenModal = document.getElementById(`fullscreen-modal-${imageId}`);
         const fullscreenOpenButton = document.getElementById(`fullscreen-btn-${imageId}`);
         const fullscreenCloseButton = document.getElementById(`fullscreen-close-btn-${imageId}`);
@@ -1399,6 +1552,84 @@
           return fullscreenViewer;
         }
 
+        function setInlineToolTrayVisible(visible) {
+          if (!inlineToolTray || !inlineAstroControlsAvailable) {
+            inlineToolTray?.classList.remove("is-visible");
+            return;
+          }
+
+          inlineToolTray.classList.toggle("is-visible", visible);
+        }
+
+        function clearInlineToolTrayHideTimer() {
+          if (inlineToolHideTimer !== null) {
+            window.clearTimeout(inlineToolHideTimer);
+            inlineToolHideTimer = null;
+          }
+        }
+
+        function scheduleInlineToolTrayHide() {
+          clearInlineToolTrayHideTimer();
+          if (!inlineAstroControlsAvailable) {
+            return;
+          }
+
+          inlineToolHideTimer = window.setTimeout(() => setInlineToolTrayVisible(false), 6000);
+        }
+
+        function pokeInlineToolTray() {
+          if (!inlineAstroControlsAvailable) {
+            return;
+          }
+
+          setInlineToolTrayVisible(true);
+          scheduleInlineToolTrayHide();
+        }
+
+        function renderInlineChrome() {
+          const arrowButtons = [mediaPrevButton, mediaNextButton].filter(Boolean);
+          const arrowsShouldHover = inlineChromeHovered && arrowButtons.length > 0;
+
+          arrowButtons.forEach(button => {
+            button.classList.toggle("is-hover", arrowsShouldHover || inlineChromeActive);
+            button.classList.toggle("is-active", inlineChromeActive);
+          });
+
+          [fullscreenOpenButton, inlineViewer.elements.resetButton].filter(Boolean).forEach(button => {
+            button.classList.toggle("is-visible", inlineChromeActive);
+          });
+        }
+
+        function clearInlineChromeHideTimer() {
+          if (inlineChromeHideTimer !== null) {
+            window.clearTimeout(inlineChromeHideTimer);
+            inlineChromeHideTimer = null;
+          }
+        }
+
+        function scheduleInlineChromeHide() {
+          clearInlineChromeHideTimer();
+          inlineChromeHideTimer = window.setTimeout(() => {
+            inlineChromeActive = false;
+            inlineChromeHovered = !!inlineContainer?.matches(":hover");
+            renderInlineChrome();
+          }, 5000);
+        }
+
+        function pokeInlineChrome() {
+          inlineChromeHovered = true;
+          inlineChromeActive = true;
+          renderInlineChrome();
+          scheduleInlineChromeHide();
+        }
+
+        function hideInlineChrome() {
+          clearInlineChromeHideTimer();
+          inlineChromeHovered = false;
+          inlineChromeActive = false;
+          renderInlineChrome();
+        }
+
         function renderActiveSlide() {
           const slide = getActiveSlide();
           inlineViewer.setSlide(slide);
@@ -1406,13 +1637,19 @@
           inlineCaption.textContent = slide.caption || "";
 
           const astroEnabled = slide.astro;
+          inlineAstroControlsAvailable = astroEnabled;
           setToggleAvailability(inlineViewer.elements.graticuleToggle, astroEnabled);
           setToggleAvailability(inlineViewer.elements.compareToggle, astroEnabled);
           setToggleAvailability(inlineViewer.elements.overlayToggle, astroEnabled);
           setToggleAvailability(starlessToggle, astroEnabled);
           if (inlineTools) {
-            inlineTools.classList.toggle("opacity-90", !astroEnabled);
+            inlineTools.classList.toggle("hidden", !astroEnabled);
           }
+          if (!astroEnabled) {
+            clearInlineToolTrayHideTimer();
+            setInlineToolTrayVisible(false);
+          }
+          renderInlineChrome();
 
           if (fullscreenViewer && !fullscreenModal.classList.contains("hidden")) {
             fullscreenViewer.setSlide(slide);
@@ -1464,6 +1701,20 @@
         mediaPrevButton?.addEventListener("click", () => changeSlide(-1));
         mediaNextButton?.addEventListener("click", () => changeSlide(1));
         starlessToggle?.addEventListener("change", renderActiveSlide);
+        const inlineContainer = inlineViewer.elements.container;
+        inlineContainer?.addEventListener("mouseenter", pokeInlineToolTray);
+        inlineContainer?.addEventListener("mousemove", pokeInlineToolTray);
+        inlineContainer?.addEventListener("pointerdown", pokeInlineToolTray);
+        inlineContainer?.addEventListener("focusin", pokeInlineToolTray);
+        inlineContainer?.addEventListener("mouseenter", pokeInlineChrome);
+        inlineContainer?.addEventListener("mousemove", pokeInlineChrome);
+        inlineContainer?.addEventListener("pointerdown", pokeInlineChrome);
+        inlineContainer?.addEventListener("focusin", pokeInlineChrome);
+        inlineContainer?.addEventListener("mouseleave", () => {
+          clearInlineToolTrayHideTimer();
+          setInlineToolTrayVisible(false);
+          hideInlineChrome();
+        });
 
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape" && !fullscreenModal.classList.contains("hidden")) {

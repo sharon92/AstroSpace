@@ -1,6 +1,7 @@
 from AstroSpace import create_app
 from AstroSpace import db
 from AstroSpace.__main__ import handle_management_command
+from flask import Flask
 
 
 def make_app(tmp_path):
@@ -41,6 +42,45 @@ def test_build_database_url_works_without_flask_app_context(tmp_path, monkeypatc
     url = db.build_database_url()
 
     assert url == "postgresql+psycopg2://astro_user:astro+password@db.example:5432/astro_db"
+
+
+def test_get_db_config_loads_instance_config_without_flask_app_context(tmp_path, monkeypatch):
+    instance_dir = tmp_path / "instance"
+    instance_dir.mkdir()
+    (instance_dir / "config.py").write_text(
+        "\n".join(
+            [
+                "DB_NAME = 'instance_db'",
+                "DB_USER = 'instance_user'",
+                "DB_PASSWORD = 'instance_password'",
+                "DB_HOST = 'instance_host'",
+                "DB_PORT = 6543",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    for key in ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT"):
+        monkeypatch.delenv(key, raising=False)
+
+    def fake_flask(import_name, instance_relative_config=False):
+        return Flask(
+            import_name,
+            instance_relative_config=instance_relative_config,
+            instance_path=str(instance_dir),
+        )
+
+    monkeypatch.setattr("AstroSpace.db.Flask", fake_flask)
+
+    db_config = db.get_db_config()
+
+    assert db_config == {
+        "dbname": "instance_db",
+        "user": "instance_user",
+        "password": "instance_password",
+        "host": "instance_host",
+        "port": 6543,
+    }
 
 
 def test_init_db_resets_public_schema_and_runs_alembic_upgrade(tmp_path, monkeypatch):

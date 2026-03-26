@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block font_preloads %}
+<link rel="preload" href="{{ url_for('static', filename='fonts/Patung.woff2') }}" as="font" type="font/woff2"
+    crossorigin="anonymous">
+{% endblock %}
 {% block content %}
 <script src="//unpkg.com/alpinejs" defer></script>
 

@@ -7,12 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set working directory
 WORKDIR /AstroSpace
 
-# Install dependencies (add gevent too, to avoid resource exhaustion)
-COPY requirements.txt /AstroSpace/requirements.txt
+# Install the published AstroSpace wheel plus the production WSGI stack.
+ARG ASTROSPACE_VERSION=1.3.0.post1
 RUN pip install --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt gunicorn gevent
-
-COPY AstroSpace /AstroSpace/AstroSpace
+    && pip install --no-cache-dir "astrospace==${ASTROSPACE_VERSION}" gunicorn gevent
 
 # Expose app port
 EXPOSE 9000

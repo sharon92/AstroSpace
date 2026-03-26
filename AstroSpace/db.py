@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 import click
+from flask import Flask
 from flask import current_app, g
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -23,30 +24,32 @@ LEGACY_BASELINE_COLUMNS = {
 }
 
 
-def get_db_config(config_source=None):
-    source = config_source
-    if source is None:
-        env_keys = ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
-        if all(key in os.environ for key in env_keys):
-            source = {
-                "DB_NAME": os.environ["DB_NAME"],
-                "DB_USER": os.environ["DB_USER"],
-                "DB_PASSWORD": os.environ["DB_PASSWORD"],
-                "DB_HOST": os.environ["DB_HOST"],
-                "DB_PORT": int(os.environ["DB_PORT"]),
-            }
-        else:
-            try:
-                source = current_app.config
-            except RuntimeError:
-                from AstroSpace import create_app
+def load_runtime_config(config_source=None):
+    if config_source is not None:
+        return config_source
 
-                source = create_app(
-                    {
-                        "SKIP_DB_INIT": True,
-                        "SECRET_KEY": os.environ.get("SECRET_KEY", "alembic-placeholder"),
-                    }
-                ).config
+    env_keys = ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
+    if all(key in os.environ for key in env_keys):
+        return {
+            "DB_NAME": os.environ["DB_NAME"],
+            "DB_USER": os.environ["DB_USER"],
+            "DB_PASSWORD": os.environ["DB_PASSWORD"],
+            "DB_HOST": os.environ["DB_HOST"],
+            "DB_PORT": int(os.environ["DB_PORT"]),
+        }
+
+    try:
+        return current_app.config
+    except RuntimeError:
+        app = Flask("AstroSpace", instance_relative_config=True)
+        app.config.from_object("AstroSpace.config.Config")
+        app.config.from_envvar("ASTROSPACE_SETTINGS", silent=True)
+        app.config.from_pyfile("config.py", silent=True)
+        return app.config
+
+
+def get_db_config(config_source=None):
+    source = load_runtime_config(config_source)
     return {
         "dbname": source["DB_NAME"],
         "user": source["DB_USER"],

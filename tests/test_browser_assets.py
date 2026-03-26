@@ -42,23 +42,63 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     template_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html"
     template_source = template_path.read_text(encoding="utf-8")
 
+    assert ".author-pill {" in template_source
+    assert ".author-pill-text {" in template_source
+    assert ".author-pill.is-expanded .author-pill-text," in template_source
+    assert ".image-meta-strip {" in template_source
+    assert ".inline-media-caption-strip {" in template_source
     assert 'title="Full Screen"' in template_source
     assert template_source.count('title="Resize"') >= 2
+    assert 'title="Graticule"' in template_source
+    assert 'title="Moon Size Comparison"' in template_source
+    assert 'title="Object Annotation"' in template_source
+    assert 'title="Remove Stars"' in template_source
     assert 'let fullscreenViewer = null;' in template_source
     assert 'function ensureFullscreenViewer()' in template_source
     assert 'const fullscreenViewer = createViewer("fullscreen-");' not in template_source
     assert 'id="fullscreen-tool-tray-{{il.image.id}}"' in template_source
-    assert 'opacity-15 border-gray-600 dark:border-white rounded-md z-20 bg-gray-200/20 hover:bg-gray-200/35 hover:opacity-100 transition' in template_source
-    assert 'absolute bottom-3 left-3 z-20' in template_source
-    assert 'absolute bottom-3 right-3 z-20' in template_source
+    assert ".inline-media-arrow {" in template_source
+    assert ".inline-media-arrow.is-hover {" in template_source
+    assert ".inline-media-arrow.is-active {" in template_source
+    assert ".inline-corner-control {" in template_source
+    assert ".inline-corner-control.is-visible {" in template_source
+    assert 'class="inline-corner-control absolute bottom-3 left-3 z-20' in template_source
+    assert 'class="inline-corner-control absolute bottom-3 right-3 z-20' in template_source
+    assert 'class="inline-media-arrow absolute left-3 top-1/2 z-20' in template_source
+    assert 'class="inline-media-arrow absolute right-3 top-1/2 z-20' in template_source
     assert 'id="zoomable-video-{{il.image.id}}"' in template_source
     assert 'id="fullscreen-zoomable-video-{{il.image.id}}"' in template_source
     assert 'id="media-prev-{{il.image.id}}"' in template_source
     assert 'id="media-next-{{il.image.id}}"' in template_source
+    assert 'x-data="{ expanded: false }"' in template_source
+    assert '@click="if (window.innerWidth < 768 && !expanded) { $event.preventDefault(); expanded = true }"' in template_source
+    assert ':class="{ \'is-expanded\': expanded }"' in template_source
+    assert 'class="author-pill shrink-0 flex items-center rounded-full' in template_source
+    assert 'class="author-pill-text flex min-w-0 flex-col leading-tight"' in template_source
+    assert ".inline-tool-tray {" in template_source
+    assert ".inline-tool-tray.is-visible {" in template_source
+    assert 'id="inline-tool-tray-{{il.image.id}}"' in template_source
     assert 'id="inline-media-caption-{{il.image.id}}"' in template_source
+    assert 'id="inline-tools-{{il.image.id}}"' in template_source
+    assert 'const primaryCaption = {{ il.image.title | tojson | safe }};' in template_source
+    assert 'caption: primaryCaption,' in template_source
+    assert 'inlineToolTray.appendChild(inlineTools);' in template_source
+    assert 'window.setTimeout(() => setInlineToolTrayVisible(false), 6000);' in template_source
+    assert 'window.setTimeout(() => {' in template_source
+    assert '}, 5000);' in template_source
+    assert 'button.classList.toggle("is-hover", arrowsShouldHover || inlineChromeActive);' in template_source
+    assert 'button.classList.toggle("is-visible", inlineChromeActive);' in template_source
+    assert 'inlineContainer?.addEventListener("mousemove", pokeInlineToolTray);' in template_source
+    assert 'inlineContainer?.addEventListener("mousemove", pokeInlineChrome);' in template_source
+    assert 'inlineContainer?.addEventListener("mouseleave", () => {' in template_source
     assert 'id="starless-toggle-{{il.image.id}}"' in template_source
+    assert 'inlineTools.classList.toggle("hidden", !astroEnabled);' in template_source
+    assert 'inlineTools.classList.toggle("opacity-90", !astroEnabled);' not in template_source
     assert 'pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between' not in template_source
     assert 'pointer-events-auto flex max-w-[70%] items-center gap-3 rounded-full' not in template_source
+    assert 'class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300"' in template_source
+    assert 'class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"' in template_source
+    assert '@media (max-width: 920px)' not in template_source
 
 
 def test_image_detail_template_uses_unified_details_and_explore_radio_switch():
@@ -117,3 +157,11 @@ def test_image_detail_template_uses_consistent_details_cards_and_table_exports()
     assert 'table[html-id="software-${id}"]' in template_source
     assert "Weighted Total Exposure" not in template_source
     assert "Weighted Red Channel Exposure" not in template_source
+
+
+def test_image_detail_template_keeps_details_tabs_outside_image_panel():
+    template_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html"
+    template_source = template_path.read_text(encoding="utf-8")
+
+    assert template_source.count("<div") == template_source.count("</div>")
+    assert '</div>\n\n          <p id="inline-media-caption-{{il.image.id}}"' in template_source

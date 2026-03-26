@@ -391,6 +391,20 @@
 
                     <div class="rounded-md border border-amber-200 bg-white/50 p-4 dark:border-amber-800 dark:bg-black/10">
                         <div>
+                            <p class="font-medium">Redo plate solving for all images</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                Rebuild thumbnails, overlays, and pixel scale from each image's stored plate-solving header.
+                            </p>
+                        </div>
+                        <button @click="runRedoPlateSolvingOnce" type="button"
+                            class="mt-3 w-full px-4 py-2 text-white rounded"
+                            style="background-color: rgb(37 99 235);">
+                            Run Once
+                        </button>
+                    </div>
+
+                    <div class="rounded-md border border-amber-200 bg-white/50 p-4 dark:border-amber-800 dark:bg-black/10">
+                        <div>
                             <p class="font-medium">Redo guiding graphs for all images</p>
                             <p class="text-sm text-gray-600 dark:text-gray-300">
                                 Rebuild stored guiding and calibration plots from each image's saved guide logs.
@@ -440,6 +454,22 @@
 
         uploadImage(event) {
         this.settings.display_image = event.target.files[0];
+    },
+
+        async runRedoPlateSolvingOnce() {
+        if (!confirm("Redo plate solving for all images now?")) {
+        return;
+    }
+
+    const response = await fetch("/private/admin/redo_plate_solving", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrfToken
+        }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    alert(data.message || "Action finished.");
     },
 
         async runRedoGraphsOnce() {

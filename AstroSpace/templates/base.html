@@ -6,11 +6,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{web_info.site_name}}</title>
-
         <link rel="preload" href="{{ url_for('static', filename='fonts/Lato-Medium.woff2') }}" as="font"
             type="font/woff2" crossorigin="anonymous">
-        <link rel="preload" href="{{ url_for('static', filename='fonts/Patung.woff2') }}" as="font" type="font/woff2"
-            crossorigin="anonymous">
+        <link rel="preload" href="{{ url_for('static', filename='fonts/Lato-Black.woff2') }}" as="font"
+            type="font/woff2" crossorigin="anonymous">
+        {% block font_preloads %}{% endblock %}
 
         <!-- Custom Stylesheet and js-->
         <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
