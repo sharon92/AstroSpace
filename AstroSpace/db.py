@@ -1,5 +1,7 @@
-import json
 import logging
+import os
+from pathlib import Path
+from urllib.parse import quote_plus
 
 import click
 from flask import current_app, g
@@ -7,24 +9,159 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from AstroSpace.logging_utils import debug_log
-from AstroSpace.utils.phd2logparser import legacy_plot_payload
 
 
-PLOT_COLUMN_MIGRATIONS = (
-    ("guiding_html", "guiding_plot_json", "Guiding"),
-    ("calibration_html", "calibration_plot_json", "Calibration"),
-)
+BASELINE_MIGRATION_REVISION = "20260325_0001"
+DEFAULT_MIGRATION_REVISION = "head"
+ALEMBIC_CONFIG_PATH = Path(__file__).resolve().with_name("alembic.ini")
+ALEMBIC_SCRIPT_PATH = Path(__file__).resolve().parent / "migrations"
+LEGACY_BASELINE_TABLES = {"camera", "images", "software", "telescope", "users"}
+LEGACY_BASELINE_COLUMNS = {
+    "images": {"title", "slug", "image_path", "image_thumbnail"},
+    "software": {"name", "type", "link", "metadata"},
+    "users": {"username", "password", "admin"},
+}
+
+
+def get_db_config(config_source=None):
+    source = config_source
+    if source is None:
+        env_keys = ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
+        if all(key in os.environ for key in env_keys):
+            source = {
+                "DB_NAME": os.environ["DB_NAME"],
+                "DB_USER": os.environ["DB_USER"],
+                "DB_PASSWORD": os.environ["DB_PASSWORD"],
+                "DB_HOST": os.environ["DB_HOST"],
+                "DB_PORT": int(os.environ["DB_PORT"]),
+            }
+        else:
+            try:
+                source = current_app.config
+            except RuntimeError:
+                from AstroSpace import create_app
+
+                source = create_app(
+                    {
+                        "SKIP_DB_INIT": True,
+                        "SECRET_KEY": os.environ.get("SECRET_KEY", "alembic-placeholder"),
+                    }
+                ).config
+    return {
+        "dbname": source["DB_NAME"],
+        "user": source["DB_USER"],
+        "password": source["DB_PASSWORD"],
+        "host": source["DB_HOST"],
+        "port": source["DB_PORT"],
+    }
+
+
+def build_database_url(config_source=None):
+    db_config = get_db_config(config_source)
+    user = quote_plus(str(db_config["user"]))
+    password = quote_plus(str(db_config["password"]))
+    host = db_config["host"]
+    port = db_config["port"]
+    dbname = quote_plus(str(db_config["dbname"]))
+    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+
+
+def get_alembic_config(config_source=None):
+    from alembic.config import Config
+
+    alembic_config = Config(str(ALEMBIC_CONFIG_PATH))
+    alembic_config.set_main_option("script_location", str(ALEMBIC_SCRIPT_PATH))
+    alembic_config.set_main_option("sqlalchemy.url", build_database_url(config_source))
+    return alembic_config
+
+
+def get_public_schema_snapshot(config_source=None):
+    db_config = {
+        **get_db_config(config_source),
+        "cursor_factory": RealDictCursor,
+    }
+    connection = psycopg2.connect(**db_config)
+    try:
+        with connection.cursor() as cur:
+            cur.execute(
+                """
+                SELECT table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                ORDER BY table_name, ordinal_position
+                """
+            )
+            rows = cur.fetchall()
+    finally:
+        connection.close()
+
+    tables = {}
+    for row in rows:
+        table_name = row["table_name"]
+        tables.setdefault(table_name, set()).add(row["column_name"])
+    return tables
+
+
+def classify_database_for_migrations(schema_snapshot):
+    tables = set(schema_snapshot)
+    if "alembic_version" in tables:
+        return "migrated"
+
+    if not tables:
+        return "empty"
+
+    if LEGACY_BASELINE_TABLES.issubset(tables):
+        for table_name, required_columns in LEGACY_BASELINE_COLUMNS.items():
+            if not required_columns.issubset(schema_snapshot.get(table_name, set())):
+                return "unknown"
+        return "legacy"
+
+    return "unknown"
+
+
+def ensure_database_revision_state(config_source=None):
+    schema_snapshot = get_public_schema_snapshot(config_source)
+    state = classify_database_for_migrations(schema_snapshot)
+
+    if state == "legacy":
+        debug_log(
+            "Detected legacy AstroSpace schema without Alembic history; stamping revision=%s before upgrade.",
+            BASELINE_MIGRATION_REVISION,
+            level=logging.INFO,
+        )
+        stamp_db(revision=BASELINE_MIGRATION_REVISION, config_source=config_source)
+        return "stamped"
+
+    if state == "unknown":
+        raise RuntimeError(
+            "Database contains tables but no Alembic history and does not match the legacy AstroSpace schema. "
+            "Back up the database and run a manual stamp only after verifying the schema."
+        )
+
+    return state
+
+
+def upgrade_db(revision=DEFAULT_MIGRATION_REVISION, config_source=None):
+    from alembic import command
+
+    state = ensure_database_revision_state(config_source)
+    debug_log("Applying Alembic migrations up to revision=%s", revision, level=logging.INFO)
+    debug_log("Database migration readiness state=%s", state)
+    command.upgrade(get_alembic_config(config_source), revision)
+
+
+def stamp_db(revision=BASELINE_MIGRATION_REVISION, config_source=None):
+    from alembic import command
+
+    debug_log("Stamping database with Alembic revision=%s", revision, level=logging.INFO)
+    command.stamp(get_alembic_config(config_source), revision)
+
 
 def get_conn():
-    if 'db' not in g:
-        # Database configuration
+    if "db" not in g:
         db_config = {
-            'dbname': current_app.config['DB_NAME'],
-            'user': current_app.config['DB_USER'],
-            'password': current_app.config['DB_PASSWORD'],
-            'host': current_app.config['DB_HOST'],
-            'port': current_app.config['DB_PORT'],
-            'cursor_factory': RealDictCursor
+            **get_db_config(),
+            "cursor_factory": RealDictCursor,
         }
         debug_log(
             "Opening PostgreSQL connection to %s:%s/%s as %s",
@@ -37,125 +174,67 @@ def get_conn():
 
     return g.db
 
+
 def check_images_table_exists():
     db = get_conn()
     with db.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'images'
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name = 'images'
             );
-        """)
-        return cur.fetchone()['exists']
+            """
+        )
+        return cur.fetchone()["exists"]
 
-
-def _get_column_type(cur, table_name, column_name):
-    cur.execute(
-        """
-        SELECT data_type
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
-        """,
-        (table_name, column_name),
-    )
-    row = cur.fetchone()
-    return row["data_type"] if row else None
-
-
-def _coerce_legacy_plot_sql(column_name):
-    return f"""
-        CASE
-            WHEN {column_name} IS NULL OR NULLIF(BTRIM({column_name}::text), '') IS NULL THEN NULL
-            WHEN LEFT(LTRIM({column_name}::text), 1) IN ('{{', '[') THEN ({column_name}::text)::jsonb
-            ELSE %s::jsonb
-        END
-    """
-
-
-def ensure_runtime_schema():
-    db = get_conn()
-    with db.cursor() as cur:
-        for legacy_column, target_column, title in PLOT_COLUMN_MIGRATIONS:
-            target_type = _get_column_type(cur, "images", target_column)
-            legacy_type = _get_column_type(cur, "images", legacy_column)
-
-            if target_type is None:
-                debug_log(
-                    "Adding missing runtime column images.%s",
-                    target_column,
-                    level=logging.INFO,
-                )
-                cur.execute(f"ALTER TABLE images ADD COLUMN {target_column} JSONB")
-            elif target_type != "jsonb":
-                debug_log(
-                    "Converting images.%s from %s to jsonb",
-                    target_column,
-                    target_type,
-                    level=logging.INFO,
-                )
-                cur.execute(
-                    f"""
-                    ALTER TABLE images
-                    ALTER COLUMN {target_column} TYPE JSONB
-                    USING {_coerce_legacy_plot_sql(target_column)}
-                    """,
-                    (json.dumps(legacy_plot_payload(title)),),
-                )
-
-            if legacy_type is not None:
-                debug_log(
-                    "Migrating legacy plot column images.%s into images.%s",
-                    legacy_column,
-                    target_column,
-                    level=logging.INFO,
-                )
-                cur.execute(
-                    f"""
-                    UPDATE images
-                    SET {target_column} = COALESCE(
-                        {target_column},
-                        {_coerce_legacy_plot_sql(legacy_column)}
-                    )
-                    WHERE {legacy_column} IS NOT NULL
-                    """,
-                    (json.dumps(legacy_plot_payload(title)),),
-                )
-                cur.execute(f"ALTER TABLE images DROP COLUMN {legacy_column}")
-
-    db.commit()
-    debug_log("Runtime schema check completed successfully.")
 
 def close_db(e=None):
-    db = g.pop('db', None)
+    db = g.pop("db", None)
 
     if db is not None:
         debug_log("Closing PostgreSQL connection.")
         db.close()
 
+
 def init_db():
     db = get_conn()
+    debug_log("Resetting public schema before applying Alembic migrations.", level=logging.INFO)
 
-    with current_app.open_resource('schema.sql') as f:
-        sql_statements = f.read().decode('utf8')
-        statements = [statement.strip() for statement in sql_statements.split(';') if statement.strip()]
-        debug_log(
-            "Initializing database schema with %s SQL statements.",
-            len(statements),
-            level=logging.INFO,
-        )
-        
-        with db.cursor() as cur:
-            for stmt in statements:
-                cur.execute(stmt)
-            db.commit()
+    with db.cursor() as cur:
+        cur.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        cur.execute("CREATE SCHEMA public")
+    db.commit()
+    close_db()
+    upgrade_db()
+
 
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+    app.cli.add_command(migrate_db_command)
+    app.cli.add_command(stamp_db_command)
 
-@click.command('init-db')
+
+@click.command("init-db")
 def init_db_command():
-    """Clear the existing data and create new tables."""
+    """Clear the existing data and recreate it via Alembic migrations."""
     init_db()
-    click.echo('Initialized the database.')
+    click.echo("Initialized the database.")
+
+
+@click.command("migrate-db")
+@click.option("--revision", default=DEFAULT_MIGRATION_REVISION, show_default=True)
+def migrate_db_command(revision):
+    """Apply Alembic migrations."""
+    upgrade_db(revision=revision)
+    click.echo(f"Migrated database to {revision}.")
+
+
+@click.command("stamp-db")
+@click.option("--revision", default=BASELINE_MIGRATION_REVISION, show_default=True)
+def stamp_db_command(revision):
+    """Mark an existing database with an Alembic revision without running migrations."""
+    stamp_db(revision=revision)
+    click.echo(f"Stamped database with {revision}.")

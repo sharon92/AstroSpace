@@ -1,5 +1,4 @@
 import os
-import logging
 from flask import Flask, jsonify, g
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -61,17 +60,9 @@ def create_app(test_config=None):
     from . import db
     if not skip_db_init:
         db.init_app(app)
-
-        with app.app_context():
-            exists = db.check_images_table_exists()
-            debug_log("Database bootstrap check completed (images_table_exists=%s)", exists)
-            if not exists:
-                debug_log(
-                    "images table is missing; initializing database schema.",
-                    level=logging.INFO,
-                )
-                db.init_db()
-            db.ensure_runtime_schema()
+        debug_log(
+            "Database bootstrap is managed via Alembic migrations; runtime schema mutation is disabled."
+        )
     
     @app.before_request
     def load_web_info():

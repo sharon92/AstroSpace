@@ -1,6 +1,7 @@
 Flask
 flask-login
 flask_wtf
+alembic
 psycopg2-binary
 numpy
 pandas

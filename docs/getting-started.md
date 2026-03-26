@@ -53,6 +53,12 @@ MAX_USERS = 2
 
 ## Run Locally
 
+Apply migrations first:
+
+```bash
+python -m AstroSpace migrate
+```
+
 ```bash
 set ASTROSPACE_SETTINGS=path\to\config.py
 flask --app AstroSpace run
@@ -71,6 +77,19 @@ set ASTROSPACE_DEBUG=1
 flask --app AstroSpace run
 ```
 
+If you are upgrading an existing pre-Alembic AstroSpace database, this is usually enough:
+
+```bash
+python -m AstroSpace migrate
+```
+
+`migrate` will auto-stamp a compatible legacy AstroSpace schema before applying newer revisions. The explicit stamp command is still available if you want to control that step manually:
+
+```bash
+python -m AstroSpace stamp
+python -m AstroSpace migrate
+```
+
 ## Run with Docker
 
 Build:
@@ -80,6 +99,21 @@ docker build -t astrospace .
 ```
 
 Run:
+
+```bash
+docker run --rm ^
+  -e SECRET_KEY=change-me ^
+  -e DB_NAME=astrospace ^
+  -e DB_USER=astrospace ^
+  -e DB_PASSWORD=change-me ^
+  -e DB_HOST=host.docker.internal ^
+  -e DB_PORT=5432 ^
+  -e UPLOAD_PATH=/uploads ^
+  -v C:\astrospace\uploads:/uploads ^
+  astrospace migrate
+```
+
+Then start the app:
 
 ```bash
 docker run ^

@@ -575,27 +575,6 @@ def update_settings():
         level=logging.INFO,
     )
 
-    # Required columns
-    required_columns = {
-        "display_name": "TEXT",
-        "display_image": "TEXT",
-        "bio": "TEXT",
-        "astrometry_api_key": "TEXT",
-        "open_weather_api_key": "TEXT",
-        "telescopius_api_key": "TEXT",
-    }
-
-    with db.cursor() as cur:
-        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
-        existing_cols = {row["column_name"] for row in cur.fetchall()}
-
-        for col, col_type in required_columns.items():
-            if col not in existing_cols:
-                debug_log("Adding missing users column=%s", col, level=logging.INFO)
-                cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
-
-    db.commit()
-
     # Get form values
     display_name = request.form.get("display_name")
     bio = request.form.get("bio")
@@ -674,59 +653,7 @@ def update_settings():
     welcome_note = request.form.get("welcome_note")
     welcome_note = sanitize_rich_text(welcome_note)
 
-
     site_name = request.form.get("site_name")
-
-    try:
-        with db.cursor() as cur:
-            # Check if table exists
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT 1 
-                    FROM information_schema.tables 
-                    WHERE table_schema = 'public'
-                    AND table_name = 'web_info'
-                )
-            """)
-            exists = cur.fetchone()["exists"]
-            debug_log("web_info table exists=%s", exists)
-
-            if not exists and current_user_is_admin():
-                debug_log("Creating missing web_info table", level=logging.INFO)
-                cur.execute("""
-                    CREATE TABLE web_info (
-                        id SERIAL PRIMARY KEY,
-                        site_name TEXT,
-                        site_description TEXT,
-                        welcome_message TEXT,
-                        contact_email TEXT,
-                        social_links JSONB
-                    );
-                """)
-                db.commit()
-
-            elif current_user_is_admin():
-                debug_log("Checking web_info columns for admin update")
-                cur.execute("""
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_name = 'web_info'
-                """)
-                existing_web_cols = {row["column_name"] for row in cur.fetchall()}
-
-                for col in ["site_name", "welcome_message"]:
-                    if col not in existing_web_cols:
-                        cur.execute(f"ALTER TABLE web_info ADD COLUMN {col} TEXT;")
-                        db.commit()
-
-    except Exception as e:
-        debug_log(
-            "web_info schema check failed during settings update",
-            level=logging.WARNING,
-            exc_info=True,
-        )
-
-    db.commit()
 
     if current_user_is_admin():
         debug_log("Updating web_info content for admin user_id=%s", user_id)
