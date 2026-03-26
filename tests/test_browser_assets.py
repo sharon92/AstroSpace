@@ -52,6 +52,7 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert ".author-pill-text {" in template_source
     assert ".author-pill.is-expanded .author-pill-text," in template_source
     assert ".image-meta-strip {" in template_source
+    assert "overflow: visible;" in template_source
     assert ".inline-media-caption-strip {" in template_source
     assert 'title="Full Screen"' in template_source
     assert template_source.count('title="Resize"') >= 2
@@ -114,6 +115,7 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'id="image-comments-toggle-{{il.image.id}}"' in template_source
     assert 'id="image-comment-count-{{il.image.id}}"' in template_source
     assert 'id="comment-thread-toggle-{{il.image.id}}"' in template_source
+    assert 'x-data="{ open: false }" class="relative inline-block shrink-0"' in template_source
     assert 'id="image-comment-modal-{{il.image.id}}"' in template_source
     assert 'id="image-comment-form-{{il.image.id}}"' in template_source
     assert 'id="image-comment-name-{{il.image.id}}"' in template_source
