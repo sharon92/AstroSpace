@@ -1,6 +1,6 @@
 services:
   astrospace_app:
-    image: sharonshaji92/astrospace:v1.2.2
+    image: sharonshaji92/astrospace:latest
     container_name: astrospace_app
     expose:
       - "9000"

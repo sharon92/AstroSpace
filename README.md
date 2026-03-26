@@ -4,6 +4,114 @@ AstroSpace is a Flask application for hosting and organizing astrophotography po
 
 You can see a public instance here: [astro.space-js.de](https://astro.space-js.de/)
 
+## Preferred Docker Deployment
+
+The preferred way to run AstroSpace in production is with `nginx/docker-compose.yml`. That stack starts:
+
+- `astrospace_app`: the published AstroSpace image, which runs Gunicorn on internal port `9000`
+- `astrospace_nginx`: the public entrypoint, which listens on port `8181`, serves static/uploaded files directly, and proxies app requests to `astrospace_app`
+
+PostgreSQL is intentionally not included in this compose file. AstroSpace expects an existing database server, and you provide its connection details through environment variables.
+
+### How Compose Settings Work
+
+`nginx/docker-compose.yml` uses `${...}` placeholders for runtime settings. The simplest setup is:
+
+1. `cd nginx`
+2. create a `.env` file next to `docker-compose.yml`
+3. run `docker compose ...` from that `nginx/` directory
+
+Example `nginx/.env`:
+
+```env
+SECRET_KEY=change-me
+DB_NAME=astrospace
+DB_USER=astrospace
+DB_PASSWORD=change-me
+DB_HOST=192.168.1.20
+DB_PORT=5432
+TITLE=AstroSpace
+MAX_USERS=2
+```
+
+What each setting is for:
+
+- `SECRET_KEY`: Flask session and CSRF signing key. Set this to a long random value.
+- `DB_NAME`: PostgreSQL database name AstroSpace should use.
+- `DB_USER`: PostgreSQL username.
+- `DB_PASSWORD`: PostgreSQL password.
+- `DB_HOST`: hostname or IP address of your PostgreSQL server. This is usually another machine or another container stack.
+- `DB_PORT`: PostgreSQL port, usually `5432`.
+- `TITLE`: site title shown in the UI.
+- `MAX_USERS`: maximum allowed registered users.
+
+`UPLOAD_PATH` is already fixed inside the compose file as `/uploads`. That path must match the mounted uploads volume, so you normally do not override it in `.env`.
+
+### Volume Mounts And Purpose
+
+The bind mounts in `nginx/docker-compose.yml` are important because both the app and nginx need access to specific files on the host:
+
+- `/mnt/user/AstroSpaceUploads:/uploads`
+  This is the persistent data directory for uploaded preview images, thumbnails, FITS/XISF files, generated overlays, starless variants, and other user media. This path must survive container recreation.
+- `/mnt/user/Astro/_web_/AstroSpace/AstroSpace/static:/static`
+  This exposes AstroSpace static assets to nginx so `/static/...` can be served directly instead of going through Flask. Keep this host directory in sync with the AstroSpace version you deploy.
+- `/mnt/user/Astro/_web_/AstroSpace/nginx/nginx.conf:/etc/nginx/nginx.conf:ro`
+  This mounts the nginx configuration file into the nginx container as read-only.
+
+Before first start, edit the host-side paths in `nginx/docker-compose.yml` so they match your machine. The left side of each mount is your host path; the right side is the fixed path used inside the container.
+
+### What `nginx.conf` Does
+
+`nginx/nginx.conf` is the reverse-proxy layer in front of AstroSpace:
+
+- listens on port `8181`
+- serves `/uploads/` directly from the mounted uploads folder
+- serves `/static/` directly from the mounted static folder
+- proxies all other requests to `http://astrospace_app:9000/`
+- forwards the original `Host` header and visitor IP via `X-Real-IP`
+- raises `client_max_body_size` to `2000M` so large astrophotography uploads are accepted
+- increases proxy/read/send timeouts so long-running requests are less likely to be cut off early
+
+In short: nginx handles public HTTP traffic and file serving, while the AstroSpace app container focuses on Flask/Gunicorn.
+
+### Commands To Run
+
+Use these commands from `nginx/`:
+
+```bash
+docker compose pull
+docker compose run --rm astrospace_app migrate
+docker compose up -d
+```
+
+What each command does:
+
+- `docker compose pull`
+  Downloads the image versions referenced by the compose file.
+- `docker compose run --rm astrospace_app migrate`
+  Runs Alembic migrations before the web stack starts. On compatible older AstroSpace databases, this also auto-stamps the legacy schema before applying newer revisions.
+- `docker compose up -d`
+  Starts the app and nginx containers in the background.
+
+Useful follow-up commands:
+
+```bash
+docker compose logs -f astrospace_app astrospace_nginx
+docker compose down
+```
+
+After startup, open `http://YOUR_HOST:8181`.
+
+For updates, the normal sequence is the same:
+
+```bash
+docker compose pull
+docker compose run --rm astrospace_app migrate
+docker compose up -d
+```
+
+If you prefer to pin a specific image version instead of `latest`, change the `image:` line in `nginx/docker-compose.yml` to a concrete tag such as `sharonshaji92/astrospace:1.3.2`.
+
 ## Features
 
 - User registration with a configurable user limit
@@ -116,7 +224,7 @@ flask --app AstroSpace run
 
 For the Docker image, append `--debug` to the container command or set `ASTROSPACE_DEBUG=1`.
 
-## Docker
+## Manual Docker
 
 Build the image locally:
 
