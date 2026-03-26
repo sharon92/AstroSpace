@@ -105,17 +105,26 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300"' in template_source
     assert 'class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"' in template_source
     assert '@media (max-width: 920px)' not in template_source
-    assert ".engagement-bar {" in template_source
     assert ".comment-modal-backdrop {" in template_source
+    assert ".engagement-actions {" in template_source
+    assert "margin-left: auto;" in template_source
     assert 'id="image-like-btn-{{il.image.id}}"' in template_source
+    assert 'id="image-like-count-{{il.image.id}}"' in template_source
+    assert 'id="image-view-count-{{il.image.id}}"' in template_source
     assert 'id="image-comments-toggle-{{il.image.id}}"' in template_source
-    assert 'id="image-comment-open-{{il.image.id}}"' in template_source
+    assert 'id="image-comment-count-{{il.image.id}}"' in template_source
+    assert 'id="comment-thread-toggle-{{il.image.id}}"' in template_source
     assert 'id="image-comment-modal-{{il.image.id}}"' in template_source
     assert 'id="image-comment-form-{{il.image.id}}"' in template_source
     assert 'id="image-comment-name-{{il.image.id}}"' in template_source
     assert 'id="image-comment-text-{{il.image.id}}"' in template_source
     assert 'id="image-comment-status-{{il.image.id}}"' in template_source
     assert 'renderCommentCard(comment)' in template_source
+    assert 'function formatCompactCount(value)' in template_source
+    assert 'function setViewCount(totalViews)' in template_source
+    assert 'commentsToggleButton?.addEventListener("click", () => {' in template_source
+    assert "openCommentModal();" in template_source
+    assert 'commentThreadToggle?.addEventListener("click", () => {' in template_source
     assert 'fetch({{ url_for(\'blog.like_image_endpoint\', image_id=il.image.id) | tojson | safe }}, {' in template_source
     assert 'fetch({{ url_for(\'blog.comment_on_image\', image_id=il.image.id) | tojson | safe }}, {' in template_source
     assert 'commentThread?.removeAttribute("hidden");' in template_source

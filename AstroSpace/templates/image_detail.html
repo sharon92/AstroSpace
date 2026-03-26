@@ -320,26 +320,13 @@
       margin 180ms ease;
   }
 
-  .engagement-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgb(229 231 235);
-  }
-
-  .dark .engagement-bar {
-    border-color: rgb(55 65 81);
-  }
-
   .engagement-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .engagement-button,
@@ -402,6 +389,32 @@
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid rgb(229 231 235);
+  }
+
+  .comment-thread-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgb(37 99 235);
+    cursor: pointer;
+  }
+
+  .comment-thread-toggle:hover {
+    color: rgb(29 78 216);
+  }
+
+  .dark .comment-thread-toggle {
+    color: rgb(147 197 253);
+  }
+
+  .dark .comment-thread-toggle:hover {
+    color: rgb(191 219 254);
   }
 
   .dark .comment-thread {
@@ -1019,7 +1032,34 @@
 
           <p id="inline-media-caption-{{il.image.id}}" class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"></p>
 
-            <div x-data="{ open: false }" class="relative ml-auto inline-block shrink-0">
+          <div class="engagement-actions">
+            <button id="image-like-btn-{{il.image.id}}" type="button"
+              class="engagement-button{% if il.engagement.liked %} is-active{% endif %}"
+              aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}"
+              title="Star this image">
+              <span aria-hidden="true">★</span>
+              <span id="image-like-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.like_count }}</span>
+            </button>
+
+            <span class="engagement-chip" title="Unique views">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span id="image-view-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.view_count }}</span>
+            </span>
+
+            <button id="image-comments-toggle-{{il.image.id}}" type="button" class="engagement-secondary-button"
+              title="Leave a comment">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M7 10h10M7 14h6" />
+                <path d="M5 19l-1 3 3.5-1.5H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v10a3 3 0 0 0 2 2z" />
+              </svg>
+              <span id="image-comment-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.comment_count }}</span>
+            </button>
+          </div>
+
+            <div x-data="{ open: false }" class="relative inline-block shrink-0">
               <button @click="open = !open" title="Share this image" class="flex items-center p-1 rounded-full bg-gray-300 text-gray-900   shadow
            hover:bg-gray-400
            hover:dark:bg-slate-600
@@ -1063,34 +1103,9 @@
         <div class="p-2 text-gray-700 dark:text-gray-200">
           <p>{{ il.image.description | safe }}</p>
 
-          <div class="engagement-bar">
-            <div class="engagement-actions">
-              <button id="image-like-btn-{{il.image.id}}" type="button"
-                class="engagement-button{% if il.engagement.liked %} is-active{% endif %}"
-                aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 2.75 14.2 8l5.65.49-4.29 3.72 1.28 5.52L12 14.71 7.16 17.73l1.28-5.52L4.15 8.49 9.8 8 12 2.75z" />
-                </svg>
-                <span id="image-like-label-{{il.image.id}}">{{ 'Starred' if il.engagement.liked else 'Star' }}</span>
-                <span id="image-like-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.like_count }}</span>
-              </button>
-
-              <span class="engagement-chip">
-                <span class="font-semibold">Views</span>
-                <span id="image-view-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.view_count }}</span>
-              </span>
-
-              <button id="image-comments-toggle-{{il.image.id}}" type="button" class="engagement-secondary-button"
-                aria-expanded="false">
-                <span class="font-semibold">Comments</span>
-                <span id="image-comment-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.comment_count }}</span>
-              </button>
-            </div>
-
-            <button id="image-comment-open-{{il.image.id}}" type="button" class="engagement-secondary-button">
-              Leave Comment
-            </button>
-          </div>
+          <button id="comment-thread-toggle-{{il.image.id}}" type="button" class="comment-thread-toggle" aria-expanded="false">
+            Show comments ({{ il.engagement.comment_count }})
+          </button>
 
           <div id="comment-thread-{{il.image.id}}" class="comment-thread" hidden>
             <div id="comments-list-{{il.image.id}}" class="comment-list">
@@ -1805,10 +1820,10 @@
         const mediaPrevButton = document.getElementById(`media-prev-${imageId}`);
         const mediaNextButton = document.getElementById(`media-next-${imageId}`);
         const likeButton = document.getElementById(`image-like-btn-${imageId}`);
-        const likeLabel = document.getElementById(`image-like-label-${imageId}`);
         const likeCount = document.getElementById(`image-like-count-${imageId}`);
+        const viewCount = document.getElementById(`image-view-count-${imageId}`);
         const commentsToggleButton = document.getElementById(`image-comments-toggle-${imageId}`);
-        const commentOpenButton = document.getElementById(`image-comment-open-${imageId}`);
+        const commentThreadToggle = document.getElementById(`comment-thread-toggle-${imageId}`);
         const commentThread = document.getElementById(`comment-thread-${imageId}`);
         const commentCount = document.getElementById(`image-comment-count-${imageId}`);
         const commentsList = document.getElementById(`comments-list-${imageId}`);
@@ -1829,6 +1844,36 @@
         let inlineChromeActive = false;
         let commentSubmitInFlight = false;
 
+        function formatCompactCount(value) {
+          const count = Math.max(Number(value || 0), 0);
+          if (count < 1000) {
+            return String(Math.round(count));
+          }
+
+          if (count < 999500) {
+            const scaled = count / 1000;
+            const digits = scaled >= 10 ? 0 : 1;
+            return `${Number(scaled.toFixed(digits))}k+`;
+          }
+
+          if (count < 1000000) {
+            return "1M+";
+          }
+
+          const scaled = count / 1000000;
+          const digits = scaled >= 10 ? 0 : 1;
+          return `${Number(scaled.toFixed(digits))}M+`;
+        }
+
+        function setCountLabel(element, value) {
+          if (!element) {
+            return;
+          }
+
+          element.dataset.count = String(Number(value || 0));
+          element.textContent = formatCompactCount(value);
+        }
+
         function setLikeState(liked, totalLikes) {
           if (!likeButton) {
             return;
@@ -1836,17 +1881,18 @@
 
           likeButton.classList.toggle("is-active", liked);
           likeButton.setAttribute("aria-pressed", liked ? "true" : "false");
-          if (likeLabel) {
-            likeLabel.textContent = liked ? "Starred" : "Star";
-          }
-          if (likeCount) {
-            likeCount.textContent = String(totalLikes ?? likeCount.textContent ?? 0);
-          }
+          setCountLabel(likeCount, totalLikes);
+        }
+
+        function setViewCount(totalViews) {
+          setCountLabel(viewCount, totalViews);
         }
 
         function setCommentCount(totalComments) {
-          if (commentCount) {
-            commentCount.textContent = String(totalComments ?? commentCount.textContent ?? 0);
+          setCountLabel(commentCount, totalComments);
+          if (commentThreadToggle) {
+            const threadOpen = commentThread && !commentThread.hasAttribute("hidden");
+            commentThreadToggle.textContent = `${threadOpen ? "Hide" : "Show"} comments (${formatCompactCount(totalComments)})`;
           }
         }
 
@@ -2143,20 +2189,24 @@
         });
 
         commentsToggleButton?.addEventListener("click", () => {
-          const willOpen = commentThread?.hasAttribute("hidden");
+          openCommentModal();
+        });
+
+        commentThreadToggle?.addEventListener("click", () => {
           if (!commentThread) {
             return;
           }
 
+          const willOpen = commentThread.hasAttribute("hidden");
           if (willOpen) {
             commentThread.removeAttribute("hidden");
           } else {
             commentThread.setAttribute("hidden", "");
           }
-          commentsToggleButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
+          commentThreadToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+          setCommentCount(Number(commentCount?.dataset.count || commentCount?.textContent || 0));
         });
 
-        commentOpenButton?.addEventListener("click", openCommentModal);
         commentCloseButton?.addEventListener("click", closeCommentModal);
         commentCancelButton?.addEventListener("click", closeCommentModal);
         commentModal?.addEventListener("click", (event) => {
@@ -2219,7 +2269,7 @@
             appendComment(data.comment || {});
             setCommentCount(data.comment_count);
             commentThread?.removeAttribute("hidden");
-            commentsToggleButton?.setAttribute("aria-expanded", "true");
+            commentThreadToggle?.setAttribute("aria-expanded", "true");
             if (commentTextInput) {
               commentTextInput.value = "";
             }
@@ -2252,6 +2302,9 @@
         });
 
         document.addEventListener("DOMContentLoaded", () => {
+            setLikeState(likeButton?.getAttribute("aria-pressed") === "true", Number(likeCount?.textContent || 0));
+            setViewCount(Number(viewCount?.textContent || 0));
+            setCommentCount(Number(commentCount?.textContent || 0));
             renderActiveSlide();
             drawHRDiagram(overlayData);
             renderGuidingPlot("guiding-root-{{il.image.id}}", {{ il.guiding_plot | tojson | safe }});
