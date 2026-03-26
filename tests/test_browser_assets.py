@@ -69,12 +69,8 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert ".inline-media-arrow.is-active {" in template_source
     assert ".inline-corner-control {" in template_source
     assert ".inline-corner-control.is-visible {" in template_source
-    assert ".inline-fullscreen-control {" in template_source
-    assert ".inline-resize-control {" in template_source
-    assert ".fullscreen-close-control {" in template_source
-    assert ".fullscreen-resize-control {" in template_source
-    assert 'class="inline-corner-control inline-fullscreen-control z-20' in template_source
-    assert 'class="inline-corner-control inline-resize-control z-20' in template_source
+    assert 'class="inline-corner-control absolute bottom-3 left-3 z-20' in template_source
+    assert 'class="inline-corner-control absolute bottom-3 right-3 z-20' in template_source
     assert 'class="inline-media-arrow absolute left-3 top-1/2 z-20' in template_source
     assert 'class="inline-media-arrow absolute right-3 top-1/2 z-20' in template_source
     assert 'id="zoomable-video-{{il.image.id}}"' in template_source
