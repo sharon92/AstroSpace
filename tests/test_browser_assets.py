@@ -16,10 +16,11 @@ def test_base_template_uses_lato_preloads_without_explicit_favicon(app):
         html = render_template("base.html", WebName="AstroSpace Test")
 
     assert 'rel="icon"' not in html
-    assert "fonts/Lato-Medium.woff2" in html
-    assert "fonts/Lato-Black.woff2" in html
+    assert "fonts/Lato-Medium.woff2?v=" in html
+    assert "fonts/Lato-Black.woff2?v=" in html
     assert "fonts/Patung.woff2" not in html
-    assert 'static/js/consent.js' in html
+    assert 'static/styles.css?v=' in html
+    assert 'static/js/consent.js?v=' in html
     assert 'id="cookieBanner"' in html
     assert "Reject Optional" in html
     assert "Accept All" in html
@@ -32,9 +33,9 @@ def test_home_template_adds_patung_preload(app):
         g.user = None
         html = render_template("home.html", top_images=[])
 
-    assert "fonts/Lato-Medium.woff2" in html
-    assert "fonts/Lato-Black.woff2" in html
-    assert "fonts/Patung.woff2" in html
+    assert "fonts/Lato-Medium.woff2?v=" in html
+    assert "fonts/Lato-Black.woff2?v=" in html
+    assert "fonts/Patung.woff2?v=" in html
 
 
 def test_image_detail_template_does_not_include_headlessui_react_cdn():

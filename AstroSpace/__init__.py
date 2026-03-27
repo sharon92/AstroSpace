@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify, g
+from flask import Flask, jsonify, g, url_for
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import RequestEntityTooLarge
 from AstroSpace.logging_utils import configure_app_logging, debug_log
@@ -77,10 +77,27 @@ def create_app(test_config=None):
 
         g.web_info = info or {}  # fallback to empty dict
     
+    def static_asset_url(filename):
+        static_root = app.static_folder or os.path.join(app.root_path, "static")
+        asset_path = os.path.abspath(os.path.join(static_root, filename.replace("/", os.sep)))
+        static_root_abs = os.path.abspath(static_root)
+
+        version = None
+        if asset_path.startswith(static_root_abs):
+            try:
+                version = int(os.path.getmtime(asset_path))
+            except OSError:
+                version = None
+
+        if version is None:
+            return url_for("static", filename=filename)
+        return url_for("static", filename=filename, v=version)
+
     @app.context_processor
     def inject_web_info():
         return {
-            "web_info": getattr(g, "web_info", {})
+            "web_info": getattr(g, "web_info", {}),
+            "static_asset_url": static_asset_url,
         }
 
     from . import auth
