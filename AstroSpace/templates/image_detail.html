@@ -23,550 +23,36 @@
   }
 </script>
 
-<style>
-  [x-cloak] {
-    display: none !important;
-  }
-
-  .calibration-layout {
-    display: grid;
-    gap: 1rem;
-    align-items: start;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "session"
-      "heading"
-      "plot";
-  }
-
-  .calibration-session {
-    grid-area: session;
-  }
-
-  .calibration-heading {
-    grid-area: heading;
-  }
-
-  .calibration-plot {
-    grid-area: plot;
-  }
-
-  .detail-card {
-    --detail-card-surface: rgb(255 255 255 / 0.7);
-    border: 1px solid rgb(229 231 235);
-    border-radius: 0.75rem;
-    background: var(--detail-card-surface);
-    padding: 1rem;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
-  }
-
-  .dark .detail-card {
-    --detail-card-surface: rgb(31 41 55 / 0.8);
-    border-color: rgb(55 65 81);
-    background: var(--detail-card-surface);
-  }
-
-  .detail-card-title {
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgb(75 85 99);
-  }
-
-  .dark .detail-card-title {
-    color: rgb(209 213 219);
-  }
-
-  .detail-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-  }
-
-  .detail-table tr {
-    border-bottom: 1px solid rgb(229 231 235);
-  }
-
-  .detail-table tr:last-child {
-    border-bottom: none;
-  }
-
-  .dark .detail-table tr {
-    border-color: rgb(55 65 81);
-  }
-
-  .detail-table th,
-  .detail-table td {
-    padding: 0.75rem 1rem 0.75rem 0;
-    vertical-align: top;
-  }
-
-  .detail-table th:last-child,
-  .detail-table td:last-child {
-    padding-right: 0;
-  }
-
-  .detail-table th {
-    font-weight: 600;
-    color: rgb(55 65 81);
-  }
-
-  .dark .detail-table th {
-    color: rgb(229 231 235);
-  }
-
-  .detail-table td {
-    color: rgb(37 99 235);
-  }
-
-  .dark .detail-table td {
-    color: rgb(96 165 250);
-  }
-
-  .detail-table a {
-    color: inherit;
-  }
-
-  .detail-table a:hover {
-    text-decoration: underline;
-  }
-
-  .detail-sticky-col {
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    box-shadow: none;
-  }
-
-  .detail-card-scroll {
-    height: 18rem;
-    overflow: hidden;
-  }
-
-  .detail-card-scroll-inner {
-    height: 100%;
-    overflow: auto;
-    padding-right: 0.25rem;
-  }
-
-  .detail-card-scroll .detail-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-  }
-
-  .details-two-up,
-  .details-three-up {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-
-  @media (min-width: 1280px) {
-    .details-two-up,
-    .details-three-up {
-      flex-direction: row;
-    }
-
-    .details-two-up > *,
-    .details-three-up > * {
-      flex: 1 1 0;
-      min-width: 0;
-    }
-  }
-
-  .phd2-plot-shell {
-    min-height: 34rem;
-  }
-
-  .phd2-plot-shell [data-role="plot"] {
-    min-height: 440px;
-  }
-
-  .author-pill {
-    overflow: hidden;
-  }
-
-  .author-pill-text {
-    min-width: 0;
-    max-width: 14rem;
-    margin-left: 0.75rem;
-    opacity: 1;
-    transform: translateX(0);
-    transition:
-      max-width 180ms ease,
-      margin-left 180ms ease,
-      opacity 180ms ease,
-      transform 180ms ease;
-  }
-
-  @media (max-width: 767px) {
-    .author-pill-text {
-      max-width: 0;
-      margin-left: 0;
-      opacity: 0;
-      transform: translateX(-0.85rem);
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    .author-pill.is-expanded .author-pill-text,
-    .author-pill:hover .author-pill-text,
-    .author-pill:focus-within .author-pill-text {
-      max-width: 12rem;
-      margin-left: 0.75rem;
-      opacity: 1;
-      transform: translateX(0);
-      pointer-events: auto;
-    }
-  }
-
-  .inline-tool-tray {
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(1rem);
-    transition:
-      opacity 180ms ease,
-      transform 180ms ease,
-      visibility 0s linear 180ms;
-  }
-
-  .inline-tool-tray.is-visible {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-    transition:
-      opacity 180ms ease,
-      transform 180ms ease,
-      visibility 0s;
-  }
-
-  .inline-tools-bubble {
-    pointer-events: auto;
-  }
-
-  .inline-media-arrow {
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 180ms ease,
-      visibility 0s linear 180ms,
-      background-color 180ms ease;
-  }
-
-  .inline-media-arrow.is-hover {
-    opacity: 0.2;
-    visibility: visible;
-    transition:
-      opacity 180ms ease,
-      visibility 0s,
-      background-color 180ms ease;
-  }
-
-  .inline-media-arrow.is-active {
-    opacity: 1;
-    visibility: visible;
-    transition:
-      opacity 180ms ease,
-      visibility 0s,
-      background-color 180ms ease;
-  }
-
-  .inline-corner-control {
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 180ms ease,
-      visibility 0s linear 180ms,
-      background-color 180ms ease;
-  }
-
-  .inline-corner-control.is-visible {
-    opacity: 1;
-    visibility: visible;
-    transition:
-      opacity 180ms ease,
-      visibility 0s,
-      background-color 180ms ease;
-  }
-
-  .image-meta-strip {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-    flex-wrap: nowrap;
-    overflow: visible;
-  }
-
-  .image-meta-strip > * {
-    min-width: 0;
-  }
-
-  .inline-media-caption-strip {
-    flex: 1 1 auto;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    opacity: 1;
-    max-width: 100%;
-    transition:
-      opacity 180ms ease,
-      max-width 180ms ease,
-      margin 180ms ease;
-  }
-
-  .engagement-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-
-  .engagement-button,
-  .engagement-chip,
-  .engagement-secondary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: 1px solid rgb(209 213 219);
-    border-radius: 9999px;
-    background: rgb(255 255 255 / 0.78);
-    padding: 0.6rem 0.95rem;
-    color: rgb(17 24 39);
-    transition:
-      background-color 180ms ease,
-      border-color 180ms ease,
-      color 180ms ease;
-  }
-
-  .dark .engagement-button,
-  .dark .engagement-chip,
-  .dark .engagement-secondary-button {
-    border-color: rgb(75 85 99);
-    background: rgb(17 24 39 / 0.72);
-    color: rgb(243 244 246);
-  }
-
-  .engagement-button:hover,
-  .engagement-secondary-button:hover {
-    background: rgb(243 244 246);
-  }
-
-  .dark .engagement-button:hover,
-  .dark .engagement-secondary-button:hover {
-    background: rgb(31 41 55 / 0.88);
-  }
-
-  .engagement-button.is-active {
-    border-color: rgb(245 158 11);
-    background: rgb(254 243 199);
-    color: rgb(146 64 14);
-  }
-
-  .dark .engagement-button.is-active {
-    border-color: rgb(245 158 11 / 0.65);
-    background: rgb(120 53 15 / 0.48);
-    color: rgb(253 230 138);
-  }
-
-  .engagement-count {
-    font-weight: 700;
-    color: rgb(37 99 235);
-  }
-
-  .dark .engagement-count {
-    color: rgb(147 197 253);
-  }
-
-  .comment-thread {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgb(229 231 235);
-  }
-
-  .comment-thread-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-top: 1rem;
-    background: transparent;
-    border: none;
-    padding: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: rgb(37 99 235);
-    cursor: pointer;
-  }
-
-  .comment-thread-toggle:hover {
-    color: rgb(29 78 216);
-  }
-
-  .dark .comment-thread-toggle {
-    color: rgb(147 197 253);
-  }
-
-  .dark .comment-thread-toggle:hover {
-    color: rgb(191 219 254);
-  }
-
-  .dark .comment-thread {
-    border-color: rgb(55 65 81);
-  }
-
-  .comment-thread[hidden] {
-    display: none;
-  }
-
-  .comment-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .comment-card {
-    border: 1px solid rgb(229 231 235);
-    border-radius: 0.9rem;
-    background: rgb(255 255 255 / 0.65);
-    padding: 0.9rem 1rem;
-  }
-
-  .dark .comment-card {
-    border-color: rgb(55 65 81);
-    background: rgb(17 24 39 / 0.55);
-  }
-
-  .comment-card-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.4rem;
-  }
-
-  .comment-card-name {
-    font-weight: 700;
-    color: rgb(31 41 55);
-  }
-
-  .dark .comment-card-name {
-    color: rgb(243 244 246);
-  }
-
-  .comment-card-time {
-    font-size: 0.8rem;
-    color: rgb(107 114 128);
-  }
-
-  .dark .comment-card-time {
-    color: rgb(156 163 175);
-  }
-
-  .comment-card-body {
-    margin: 0;
-    white-space: pre-wrap;
-    color: rgb(55 65 81);
-  }
-
-  .dark .comment-card-body {
-    color: rgb(229 231 235);
-  }
-
-  .comment-empty {
-    font-size: 0.95rem;
-    color: rgb(107 114 128);
-  }
-
-  .dark .comment-empty {
-    color: rgb(156 163 175);
-  }
-
-  .comment-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 80;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgb(0 0 0 / 0.72);
-  }
-
-  .comment-modal-backdrop.hidden {
-    display: none;
-  }
-
-  .comment-modal-card {
-    width: min(34rem, 100%);
-    border: 1px solid rgb(229 231 235);
-    border-radius: 1rem;
-    background: rgb(255 255 255 / 0.98);
-    padding: 1.25rem;
-    box-shadow: 0 24px 48px rgb(15 23 42 / 0.24);
-  }
-
-  .dark .comment-modal-card {
-    border-color: rgb(55 65 81);
-    background: rgb(17 24 39 / 0.98);
-  }
-
-  .comment-modal-input,
-  .comment-modal-textarea {
-    width: 100%;
-    border: 1px solid rgb(209 213 219);
-    border-radius: 0.75rem;
-    background: rgb(255 255 255);
-    padding: 0.75rem 0.9rem;
-    color: rgb(17 24 39);
-  }
-
-  .comment-modal-textarea {
-    min-height: 9rem;
-    resize: vertical;
-  }
-
-  .dark .comment-modal-input,
-  .dark .comment-modal-textarea {
-    border-color: rgb(75 85 99);
-    background: rgb(31 41 55);
-    color: rgb(243 244 246);
-  }
-
-  .comment-modal-status {
-    min-height: 1.25rem;
-    font-size: 0.9rem;
-    color: rgb(37 99 235);
-  }
-
-  .dark .comment-modal-status {
-    color: rgb(147 197 253);
-  }
-
-  @media (min-width: 1024px) {
-    .calibration-layout {
-      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-      grid-template-areas:
-        "session plot"
-        "heading plot";
-    }
-
-    .calibration-heading {
-      max-height: 28rem;
-    }
-  }
-</style>
-
 <div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover dark:text-white"
   style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
 
   <div class="absolute w-full h-full backdrop-blur-md"></div>
+
+  {% if previous_post %}
+  <a
+    id="previous-post-link"
+    href="{{ url_for('blog.image_detail', image_id=previous_post.id, image_name=previous_post.slug) }}"
+    class="fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 p-3 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/65 md:flex"
+    aria-label="Previous post"
+    title="Previous post">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M12.78 15.53a.75.75 0 0 1-1.06 0L6.72 10.53a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 1.06L8.31 10l4.47 4.47a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+    </svg>
+  </a>
+  {% endif %}
+
+  {% if next_post %}
+  <a
+    id="next-post-link"
+    href="{{ url_for('blog.image_detail', image_id=next_post.id, image_name=next_post.slug) }}"
+    class="fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 p-3 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/65 md:flex"
+    aria-label="Next post"
+    title="Next post">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M7.22 4.47a.75.75 0 0 1 1.06 0l5 5a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 1 1-1.06-1.06L11.69 10 7.22 5.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+    </svg>
+  </a>
+  {% endif %}
 
   <div class="relative w-0 top-0 h-4 border-1 border-gray-200 dark:border-gray-400">
   </div>
@@ -1032,72 +518,66 @@
 
           <p id="inline-media-caption-{{il.image.id}}" class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"></p>
 
-          <div class="engagement-actions">
-            <button id="image-like-btn-{{il.image.id}}" type="button"
-              class="engagement-button{% if il.engagement.liked %} is-active{% endif %}"
-              aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}"
-              title="Star this image">
-              <span aria-hidden="true">★</span>
-              <span id="image-like-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.like_count }}</span>
-            </button>
-
-            <span class="engagement-chip" title="Unique views">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <span id="image-view-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.view_count }}</span>
-            </span>
-
-            <button id="image-comments-toggle-{{il.image.id}}" type="button" class="engagement-secondary-button"
-              title="Leave a comment">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M7 10h10M7 14h6" />
-                <path d="M5 19l-1 3 3.5-1.5H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v10a3 3 0 0 0 2 2z" />
-              </svg>
-              <span id="image-comment-count-{{il.image.id}}" class="engagement-count">{{ il.engagement.comment_count }}</span>
-            </button>
-          </div>
-
-            <div x-data="{ open: false }" class="relative inline-block shrink-0">
-              <button @click="open = !open" title="Share this image" class="flex items-center p-1 rounded-full bg-gray-300 text-gray-900   shadow
-           hover:bg-gray-400
-           hover:dark:bg-slate-600
-           dark:bg-slate-800 dark:text-gray-100 overflow-hidden">
-
-                <!-- Left: Share Icon -->
-                <div class="flex items-center justify-center w-10 h-full px-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 22 22">
-                    <path
-                      d="M12.5 6.25a.75.75 0 0 0 0-1.5v1.5Zm7.75 6.25a.75.75 0 0 0-1.5 0h1.5Zm-.75-6.25a.75.75 0 0 0 0-1.5v1.5Zm-4.088-1.5a.75.75 0 0 0 0 1.5v-1.5Zm4.838.75a.75.75 0 0 0-1.5 0h1.5Zm-1.5 4.141a.75.75 0 0 0 1.5 0h-1.5Zm1.28-3.61a.75.75 0 0 0-1.06-1.061l1.06 1.06Zm-8.06 5.939a.75.75 0 1 0 1.06 1.06l-1.06-1.06Zm.53-7.22h-3v1.5h3v-1.5Zm-3 0A4.75 4.75 0 0 0 4.75 9.5h1.5A3.25 3.25 0 0 1 9.5 6.25v-1.5ZM4.75 9.5v6h1.5v-6h-1.5Zm0 6a4.75 4.75 0 0 0 4.75 4.75v-1.5a3.25 3.25 0 0 1-3.25-3.25h-1.5Zm4.75 4.75h6v-1.5h-6v1.5Zm6 0a4.75 4.75 0 0 0 4.75-4.75h-1.5a3.25 3.25 0 0 1-3.25 3.25v1.5Zm4.75-4.75v-3h-1.5v3h1.5ZM19.5 4.75h-4.088v1.5H19.5v-1.5Zm-.75.75v4.141h1.5V5.5h-1.5Zm.22-.53-7 7 1.06 1.06 7-7-1.06-1.06Z" />
-                  </svg>
-                </div>
-
-                <!-- Divider -->
-                <div class="h-6 w-px bg-gray-400 dark:bg-gray-500"></div>
-
-                <!-- Right: Dropdown arrow -->
-                <div class="flex items-center justify-center w-8 h-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 20 20">
-                    <path d="M5.5 7l4.5 5 4.5-5h-9z" />
-                  </svg>
-                </div>
+          <div x-data="{ open: false }" class="relative ml-auto shrink-0">
+            <div class="inline-flex items-center overflow-hidden rounded-full bg-gray-300 text-gray-900 shadow dark:bg-slate-800 dark:text-gray-100">
+              <button id="image-like-btn-{{il.image.id}}" type="button"
+                class="flex items-center gap-2 px-3 py-2 text-sm font-medium transition hover:bg-gray-400 hover:dark:bg-slate-600"
+                aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}"
+                title="Star this image">
+                <span id="image-like-icon-{{il.image.id}}" aria-hidden="true" class="text-base leading-none text-gray-700 dark:text-gray-200{% if il.engagement.liked %} text-yellow-500 dark:text-yellow-500{% endif %}">★</span>
+                <span id="image-like-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.like_count }}</span>
               </button>
 
-              <!-- Dropdown menu -->
-              <div x-show="open" @click.outside="open = false"
-                class="absolute right-0 z-300 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 dark:bg-gray-800 overflow-visible"
-                style="display: none;">
-                <div class="py-1 text-sm text-gray-700 dark:text-gray-100 overflow-visible">
-                  <button id="copy-link-{{il.image.id}}"
-                    class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ">Share
-                    link</button>
-                  <button id="copy-link-details-{{il.image.id}}"
-                    class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
-                    details </button>
-                </div>
+              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
+
+              <span class="flex items-center gap-2 px-3 py-2 text-sm font-medium" title="Unique views">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span id="image-view-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.view_count }}</span>
+              </span>
+
+              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
+
+              <button id="image-comments-toggle-{{il.image.id}}" type="button"
+                class="flex items-center gap-2 px-3 py-2 text-sm font-medium transition hover:bg-gray-400 hover:dark:bg-slate-600"
+                title="Leave a comment">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M7 10h10M7 14h6" />
+                  <path d="M5 19l-1 3 3.5-1.5H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v10a3 3 0 0 0 2 2z" />
+                </svg>
+                <span id="image-comment-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.comment_count }}</span>
+              </button>
+
+              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
+
+              <button @click="open = !open" :aria-expanded="open ? 'true' : 'false'" type="button" title="Share this image"
+                class="flex items-center gap-2 px-3 py-2 transition hover:bg-gray-400 hover:dark:bg-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 22 22" aria-hidden="true">
+                  <path
+                    d="M12.5 6.25a.75.75 0 0 0 0-1.5v1.5Zm7.75 6.25a.75.75 0 0 0-1.5 0h1.5Zm-.75-6.25a.75.75 0 0 0 0-1.5v1.5Zm-4.088-1.5a.75.75 0 0 0 0 1.5v-1.5Zm4.838.75a.75.75 0 0 0-1.5 0h1.5Zm-1.5 4.141a.75.75 0 0 0 1.5 0h-1.5Zm1.28-3.61a.75.75 0 0 0-1.06-1.061l1.06 1.06Zm-8.06 5.939a.75.75 0 1 0 1.06 1.06l-1.06-1.06Zm.53-7.22h-3v1.5h3v-1.5Zm-3 0A4.75 4.75 0 0 0 4.75 9.5h1.5A3.25 3.25 0 0 1 9.5 6.25v-1.5ZM4.75 9.5v6h1.5v-6h-1.5Zm0 6a4.75 4.75 0 0 0 4.75 4.75v-1.5a3.25 3.25 0 0 1-3.25-3.25h-1.5Zm4.75 4.75h6v-1.5h-6v1.5Zm6 0a4.75 4.75 0 0 0 4.75-4.75h-1.5a3.25 3.25 0 0 1-3.25 3.25v1.5Zm4.75-4.75v-3h-1.5v3h1.5ZM19.5 4.75h-4.088v1.5H19.5v-1.5Zm-.75.75v4.141h1.5V5.5h-1.5Zm.22-.53-7 7 1.06 1.06 7-7-1.06-1.06Z" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M5.5 7l4.5 5 4.5-5h-9z" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Dropdown menu -->
+            <div x-show="open" @click.outside="open = false"
+              class="absolute right-0 z-300 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800"
+              style="display: none;">
+              <div class="py-1 text-sm text-gray-700 dark:text-gray-100">
+                <button id="copy-link-{{il.image.id}}"
+                  class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ">Share
+                  link</button>
+                <button id="copy-link-details-{{il.image.id}}"
+                  class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
+                  details </button>
               </div>
             </div>
+          </div>
         </div>
 
         <div class="p-2 text-gray-700 dark:text-gray-200">
@@ -1820,8 +1300,11 @@
         const mediaPrevButton = document.getElementById(`media-prev-${imageId}`);
         const mediaNextButton = document.getElementById(`media-next-${imageId}`);
         const likeButton = document.getElementById(`image-like-btn-${imageId}`);
+        const likeIcon = document.getElementById(`image-like-icon-${imageId}`);
         const likeCount = document.getElementById(`image-like-count-${imageId}`);
         const viewCount = document.getElementById(`image-view-count-${imageId}`);
+        const previousPostUrl = {{ (url_for('blog.image_detail', image_id=previous_post.id, image_name=previous_post.slug) if previous_post else '') | tojson | safe }};
+        const nextPostUrl = {{ (url_for('blog.image_detail', image_id=next_post.id, image_name=next_post.slug) if next_post else '') | tojson | safe }};
         const commentsToggleButton = document.getElementById(`image-comments-toggle-${imageId}`);
         const commentThreadToggle = document.getElementById(`comment-thread-toggle-${imageId}`);
         const commentThread = document.getElementById(`comment-thread-${imageId}`);
@@ -1879,7 +1362,8 @@
             return;
           }
 
-          likeButton.classList.toggle("is-active", liked);
+          likeIcon?.classList.toggle("text-yellow-500", liked);
+          likeIcon?.classList.toggle("dark:text-yellow-500", liked);
           likeButton.setAttribute("aria-pressed", liked ? "true" : "false");
           setCountLabel(likeCount, totalLikes);
         }
@@ -2292,12 +1776,42 @@
         });
 
         document.addEventListener("keydown", (event) => {
+          const activeElement = document.activeElement;
+          const isTypingTarget = !!activeElement && (
+            activeElement.tagName === "INPUT" ||
+            activeElement.tagName === "TEXTAREA" ||
+            activeElement.tagName === "SELECT" ||
+            activeElement.isContentEditable
+          );
+          const commentModalOpen = commentModal && !commentModal.classList.contains("hidden");
+          const fullscreenOpen = !fullscreenModal.classList.contains("hidden");
+
           if (event.key === "Escape" && commentModal && !commentModal.classList.contains("hidden")) {
             closeCommentModal();
             return;
           }
           if (event.key === "Escape" && !fullscreenModal.classList.contains("hidden")) {
+            event.preventDefault();
             closeFullscreenViewer();
+            return;
+          }
+          if (
+            !event.altKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !isTypingTarget &&
+            !commentModalOpen &&
+            !fullscreenOpen
+          ) {
+            if (event.key === "ArrowLeft" && previousPostUrl) {
+              event.preventDefault();
+              window.location.assign(previousPostUrl);
+              return;
+            }
+            if (event.key === "ArrowRight" && nextPostUrl) {
+              event.preventDefault();
+              window.location.assign(nextPostUrl);
+            }
           }
         });
 

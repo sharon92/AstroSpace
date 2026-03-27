@@ -254,37 +254,48 @@ def fetch_image_engagement_state(image_id, visitor_identity, include_comments=Tr
 
 def like_image(image_id, visitor_identity):
     conn = get_conn()
-    inserted = False
+    liked = False
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO image_likes (
-                image_id,
-                user_id,
-                visitor_hash,
-                visitor_source,
-                ip_hash,
-                user_agent_hash,
-                visitor_cookie_hash,
-                liked_at
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (image_id, visitor_hash) DO NOTHING
+            DELETE FROM image_likes
+            WHERE image_id = %s
+              AND visitor_hash = %s
             RETURNING id
             """,
-            (
-                image_id,
-                visitor_identity.visitor_hash,
-                visitor_identity.visitor_hash,
-                visitor_identity.visitor_source,
-                visitor_identity.ip_hash,
-                visitor_identity.user_agent_hash,
-                visitor_identity.visitor_cookie_hash,
-            ),
+            (image_id, visitor_identity.visitor_hash),
         )
-        inserted = cur.fetchone() is not None
+        removed = cur.fetchone() is not None
+        if not removed:
+            cur.execute(
+                """
+                INSERT INTO image_likes (
+                    image_id,
+                    user_id,
+                    visitor_hash,
+                    visitor_source,
+                    ip_hash,
+                    user_agent_hash,
+                    visitor_cookie_hash,
+                    liked_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (image_id, visitor_hash) DO NOTHING
+                RETURNING id
+                """,
+                (
+                    image_id,
+                    visitor_identity.visitor_hash,
+                    visitor_identity.visitor_hash,
+                    visitor_identity.visitor_source,
+                    visitor_identity.ip_hash,
+                    visitor_identity.user_agent_hash,
+                    visitor_identity.visitor_cookie_hash,
+                ),
+            )
+            liked = cur.fetchone() is not None
     conn.commit()
-    return inserted
+    return liked
 
 
 def submit_image_comment(image_id, visitor_identity, display_name, comment):

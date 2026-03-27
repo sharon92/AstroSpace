@@ -93,6 +93,48 @@ def test_like_endpoint_returns_counts_and_sets_visitor_cookie(app, monkeypatch):
     assert "astrospace_visitor=visitor-token" in response.headers.get("Set-Cookie", "")
 
 
+def test_like_endpoint_can_remove_star_and_keep_visitor_cookie(app, monkeypatch):
+    from AstroSpace import blog
+
+    monkeypatch.setattr(blog, "get_image_by_id", lambda image_id: {"id": image_id, "title": "Soul Nebula"})
+    monkeypatch.setattr(
+        blog,
+        "build_visitor_identity",
+        lambda: VisitorIdentity(
+            visitor_hash="visitor-hash",
+            visitor_source="cookie",
+            ip_hash="ip-hash",
+            user_agent_hash="ua-hash",
+            visitor_cookie_hash="cookie-hash",
+            visitor_cookie_value="visitor-token",
+            new_visitor_cookie="visitor-token",
+        ),
+    )
+    monkeypatch.setattr(blog, "register_image_like", lambda image_id, visitor_identity: False)
+    monkeypatch.setattr(
+        blog,
+        "fetch_image_engagement_state",
+        lambda image_id, visitor_identity, include_comments=False: {
+            "liked": False,
+            "like_count": 3,
+            "view_count": 0,
+            "comment_count": 0,
+            "comments": [],
+        },
+    )
+
+    with app.test_request_context("/image/7/like", method="POST"):
+        response = blog.like_image_endpoint(7)
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "message": "Star removed.",
+        "liked": False,
+        "like_count": 3,
+    }
+    assert "astrospace_visitor=visitor-token" in response.headers.get("Set-Cookie", "")
+
+
 def test_comment_endpoint_sets_commenter_cookie_when_preferences_are_enabled(app, monkeypatch):
     from AstroSpace import blog
 

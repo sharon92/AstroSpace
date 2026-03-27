@@ -266,10 +266,22 @@ def image_detail(image_id, image_name):
         return tables
     background_image = tables[0]["image_path"]
     images = [dict(zip(IMAGE_DETAIL_TABLE_NAMES, tables))]
+    previous_post = None
+    next_post = None
 
     visitor_identity = build_visitor_identity()
     record_image_view(image_id, visitor_identity)
     images[0]["engagement"] = fetch_image_engagement_state(image_id, visitor_identity)
+
+    ordered_posts = get_all_images(unique=True)
+    current_post_index = next((idx for idx, post in enumerate(ordered_posts) if post["id"] == image_id), None)
+    if current_post_index is None:
+        current_post_index = next((idx for idx, post in enumerate(ordered_posts) if post["slug"] == image_name), None)
+    if current_post_index is not None:
+        if current_post_index > 0:
+            previous_post = ordered_posts[current_post_index - 1]
+        if current_post_index + 1 < len(ordered_posts):
+            next_post = ordered_posts[current_post_index + 1]
 
     db = get_conn()
     with db.cursor() as cur:
@@ -291,6 +303,8 @@ def image_detail(image_id, image_name):
             "image_detail.html",
             background_image=background_image,
             images=images,
+            previous_post=previous_post,
+            next_post=next_post,
             remembered_commenter_name=commenter_name_from_request(),
             preference_cookies_enabled=consent_allows("preferences"),
         )
@@ -306,12 +320,12 @@ def like_image_endpoint(image_id):
         return jsonify({"message": "Post not found."}), 404
 
     visitor_identity = build_visitor_identity()
-    inserted = register_image_like(image_id, visitor_identity)
+    register_image_like(image_id, visitor_identity)
     engagement = fetch_image_engagement_state(image_id, visitor_identity, include_comments=False)
 
     response = jsonify(
         {
-            "message": "Thanks for starring this post." if inserted else "You have already starred this post.",
+            "message": "Thanks for starring this post." if engagement["liked"] else "Star removed.",
             "liked": engagement["liked"],
             "like_count": engagement["like_count"],
         }

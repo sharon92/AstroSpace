@@ -207,7 +207,7 @@
   </div>
   {% endif %}
 
-  <details id="collectionFiltersPanel" class="mb-6 rounded-2xl bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 shadow-md px-5 py-5" open>
+  <details id="collectionFiltersPanel" class="mb-6 rounded-2xl bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 shadow-md px-5 py-5">
     <summary class="flex flex-wrap items-center justify-between gap-4 cursor-pointer">
       <div class="space-y-1">
         <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Collection Filters</p>
@@ -354,8 +354,6 @@
     const form = document.getElementById('collectionFiltersForm');
     const filterPanel = document.getElementById('collectionFiltersPanel');
     const panelLabel = document.querySelector('[data-filter-panel-label]');
-    const panelStorageKey = 'collection_filters_panel_open';
-    const consentManager = window.AstroSpaceConsent;
     let submitTimer = null;
 
     const syncPanelLabel = () => {
@@ -366,13 +364,9 @@
     };
 
     if (filterPanel) {
-      const savedState = consentManager?.getPreference(panelStorageKey);
-      if (savedState === false || savedState === 'false') {
-        filterPanel.open = false;
-      }
+      filterPanel.open = false;
       syncPanelLabel();
       filterPanel.addEventListener('toggle', () => {
-        consentManager?.setPreference(panelStorageKey, !!filterPanel.open);
         syncPanelLabel();
       });
     }

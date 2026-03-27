@@ -130,6 +130,7 @@ def test_collection_route_renders_active_filters_and_passes_normalized_values(cl
     assert captured_filters["moon_phase"] == "Waxing Gibbous"
 
     page = response.get_data(as_text=True)
+    panel_tag = page.split('id="collectionFiltersPanel"', 1)[1].split('>', 1)[0]
     assert "Applied Filters" in page
     assert "Telescope Type:" in page
     assert "Focal Length" in page
@@ -139,10 +140,16 @@ def test_collection_route_renders_active_filters_and_passes_normalized_values(cl
     assert 'id="collectionFiltersPanel"' in page
     assert 'id="collectionFiltersForm"' in page
     assert 'data-filter-panel-label' in page
+    assert ' class=' in panel_tag
+    assert ' open' not in panel_tag
     assert 'data-range-active-track' in page
     assert 'data-auto-submit="true"' in page
     assert "Filters update automatically as you change them." in page
     assert "requestSubmit" in page
+    assert "collection_filters_panel_open" not in page
+    assert "getPreference(panelStorageKey)" not in page
+    assert "setPreference(panelStorageKey" not in page
+    assert "filterPanel.open = false;" in page
     assert "Rosette Nebula - RGB blend" in page
     assert 'option value="Emission Nebula" selected' in page
     assert 'option value="refractor" selected' in page
