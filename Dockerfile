@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /AstroSpace
 
 # Install the published AstroSpace wheel plus the production WSGI stack.
-ARG ASTROSPACE_VERSION=1.3.6
+ARG ASTROSPACE_VERSION=1.3.5
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir "astrospace==${ASTROSPACE_VERSION}" gunicorn gevent
 

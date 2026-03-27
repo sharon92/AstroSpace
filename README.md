@@ -110,7 +110,7 @@ docker compose run --rm astrospace_app migrate
 docker compose up -d
 ```
 
-If you prefer to pin a specific image version instead of `latest`, change the `image:` line in `nginx/docker-compose.yml` to a concrete tag such as `sharonshaji92/astrospace:1.3.6`.
+If you prefer to pin a specific image version instead of `latest`, change the `image:` line in `nginx/docker-compose.yml` to a concrete tag such as `sharonshaji92/astrospace:1.3.5`.
 
 ## Features
 

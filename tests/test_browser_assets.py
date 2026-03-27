@@ -47,16 +47,13 @@ def test_image_detail_template_does_not_include_headlessui_react_cdn():
 def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_viewer_init():
     template_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html"
     template_source = template_path.read_text(encoding="utf-8")
-    css_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "static" / "input.css"
-    css_source = css_path.read_text(encoding="utf-8")
 
-    assert "<style>" not in template_source
-    assert ".author-pill {" in css_source
-    assert ".author-pill-text {" in css_source
-    assert ".author-pill.is-expanded .author-pill-text," in css_source
-    assert ".image-meta-strip {" in css_source
-    assert "overflow: visible;" in css_source
-    assert ".inline-media-caption-strip {" in css_source
+    assert ".author-pill {" in template_source
+    assert ".author-pill-text {" in template_source
+    assert ".author-pill.is-expanded .author-pill-text," in template_source
+    assert ".image-meta-strip {" in template_source
+    assert "overflow: visible;" in template_source
+    assert ".inline-media-caption-strip {" in template_source
     assert 'title="Full Screen"' in template_source
     assert template_source.count('title="Resize"') >= 2
     assert 'title="Graticule"' in template_source
@@ -67,11 +64,11 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'function ensureFullscreenViewer()' in template_source
     assert 'const fullscreenViewer = createViewer("fullscreen-");' not in template_source
     assert 'id="fullscreen-tool-tray-{{il.image.id}}"' in template_source
-    assert ".inline-media-arrow {" in css_source
-    assert ".inline-media-arrow.is-hover {" in css_source
-    assert ".inline-media-arrow.is-active {" in css_source
-    assert ".inline-corner-control {" in css_source
-    assert ".inline-corner-control.is-visible {" in css_source
+    assert ".inline-media-arrow {" in template_source
+    assert ".inline-media-arrow.is-hover {" in template_source
+    assert ".inline-media-arrow.is-active {" in template_source
+    assert ".inline-corner-control {" in template_source
+    assert ".inline-corner-control.is-visible {" in template_source
     assert 'class="inline-corner-control absolute bottom-3 left-3 z-20' in template_source
     assert 'class="inline-corner-control absolute bottom-3 right-3 z-20' in template_source
     assert 'class="inline-media-arrow absolute left-3 top-1/2 z-20' in template_source
@@ -85,8 +82,8 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert ':class="{ \'is-expanded\': expanded }"' in template_source
     assert 'class="author-pill shrink-0 flex items-center rounded-full' in template_source
     assert 'class="author-pill-text flex min-w-0 flex-col leading-tight"' in template_source
-    assert ".inline-tool-tray {" in css_source
-    assert ".inline-tool-tray.is-visible {" in css_source
+    assert ".inline-tool-tray {" in template_source
+    assert ".inline-tool-tray.is-visible {" in template_source
     assert 'id="inline-tool-tray-{{il.image.id}}"' in template_source
     assert 'id="inline-media-caption-{{il.image.id}}"' in template_source
     assert 'id="inline-tools-{{il.image.id}}"' in template_source
@@ -109,9 +106,9 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300"' in template_source
     assert 'class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"' in template_source
     assert '@media (max-width: 920px)' not in template_source
-    assert ".comment-modal-backdrop {" in css_source
-    assert ".engagement-actions {" in css_source
-    assert "margin-left: auto;" in css_source
+    assert ".comment-modal-backdrop {" in template_source
+    assert ".engagement-actions {" in template_source
+    assert "margin-left: auto;" in template_source
     assert 'id="image-like-btn-{{il.image.id}}"' in template_source
     assert 'id="image-like-count-{{il.image.id}}"' in template_source
     assert 'id="image-view-count-{{il.image.id}}"' in template_source
@@ -164,15 +161,13 @@ def test_image_detail_template_uses_unified_details_and_explore_radio_switch():
 def test_image_detail_template_uses_consistent_details_cards_and_table_exports():
     template_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html"
     template_source = template_path.read_text(encoding="utf-8")
-    css_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "static" / "input.css"
-    css_source = css_path.read_text(encoding="utf-8")
 
-    assert ".detail-card {" in css_source
-    assert ".detail-table {" in css_source
-    assert ".detail-sticky-col {" in css_source
-    assert "--detail-card-surface:" in css_source
-    assert ".details-two-up," in css_source
-    assert ".details-three-up {" in css_source
+    assert ".detail-card {" in template_source
+    assert ".detail-table {" in template_source
+    assert ".detail-sticky-col {" in template_source
+    assert "--detail-card-surface:" in template_source
+    assert ".details-two-up," in template_source
+    assert ".details-three-up {" in template_source
     assert 'html-id="light-{{il.image.id}}"' in template_source
     assert 'class="detail-card-title">Lights</h3>' in template_source
     assert 'class="detail-sticky-col min-w-[11rem]">Filter</th>' in template_source
