@@ -43,8 +43,13 @@ export function bindLightFramesAnalyse() {
                 formData.append("wbpp_log_file", file, file.name);
 
                 try {
+					const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
                     const res = await fetch("/extract_stats", {
                         method: "POST",
+						headers: {
+							"X-CSRFToken": csrfToken
+						},
                         body: formData
                     });
 
@@ -109,9 +114,13 @@ export function bindLightFramesAnalyse() {
              )
            );
         }
-
+        
+		const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const res = await fetch("/extract_meta", {
             method: "POST",
+			headers: {
+				"X-CSRFToken": csrfToken
+			},
             body: formData
         });
 
