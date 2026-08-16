@@ -11,6 +11,56 @@ from AstroSpace.utils.utils import print_time
 
 
 OPTION_TABLES = {*DB_TABLES, "software", "cam_filter"}
+WBPP_WEIGHT_KEYS = (
+    "WBPP weight 1",
+    "WBPP weight 2",
+    "WBPP weight 3",
+)
+
+
+def _numeric_weight_values(value):
+    """Return numeric WBPP weights from either a scalar or a sequence."""
+    values = value if isinstance(value, (list, tuple)) else [value]
+    numeric_values = []
+    for item in values:
+        try:
+            numeric_values.append(float(item))
+        except (TypeError, ValueError):
+            continue
+    return numeric_values
+
+
+def _aggregate_wbpp_weights(meta_json):
+    """Normalize current per-frame and legacy WBPP metadata into totals."""
+    wbpp_stats = meta_json.get("wbpp_stats")
+    if isinstance(wbpp_stats, dict):
+        totals = {key: 0.0 for key in WBPP_WEIGHT_KEYS}
+        found_weight = False
+        for frame_stats in wbpp_stats.values():
+            if not isinstance(frame_stats, dict):
+                continue
+            for key in WBPP_WEIGHT_KEYS:
+                values = _numeric_weight_values(frame_stats.get(key))
+                if values:
+                    found_weight = True
+                    totals[key] += sum(values)
+        if found_weight:
+            return totals
+
+    # Older metadata stored each channel as an array under variable.
+    variable = meta_json.get("variable")
+    if isinstance(variable, dict):
+        totals = {key: 0.0 for key in WBPP_WEIGHT_KEYS}
+        found_weight = False
+        for key in WBPP_WEIGHT_KEYS:
+            values = _numeric_weight_values(variable.get(key))
+            if values:
+                found_weight = True
+                totals[key] += sum(values)
+        if found_weight:
+            return totals
+
+    return None
 
 
 def _related_media_kind(path):
@@ -392,13 +442,13 @@ def get_image_tables(image_id, keep_original=False, testing=False):
     cur.execute("SELECT * FROM image_lights WHERE image_id = %s", (image_id,))
     lights = cur.fetchall()
     if not keep_original:
-        weights = meta_json.get("variable", {})
+        weight_totals = _aggregate_wbpp_weights(meta_json)
         for light in lights:
             light["temperature"] = f"{light['temperature']:.1f} °C"
-            if "WBPP weight 1" in weights:
-                red = sum(map(float, weights.get("WBPP weight 1", [])))
-                green = sum(map(float, weights.get("WBPP weight 2", [])))
-                blue = sum(map(float, weights.get("WBPP weight 3", [])))
+            if weight_totals is not None:
+                red = weight_totals["WBPP weight 1"]
+                green = weight_totals["WBPP weight 2"]
+                blue = weight_totals["WBPP weight 3"]
                 light["effective_total"] = print_time((red + green + blue) * light["exposure_time"] / 3)
                 light["effective_red"] = print_time(red * light["exposure_time"])
                 light["effective_green"] = print_time(green * light["exposure_time"])
