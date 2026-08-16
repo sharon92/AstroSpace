@@ -3,39 +3,62 @@
 {% block content %}
 <script src="//unpkg.com/alpinejs" defer></script>
 
-<div class="max-w-5xl mx-auto px-4">
-    <form method="post" action="{{ url_for('blog.save_image') }}" id="postForm" class="space-y-6"
+<div class="post-editor-shell">
+    <form method="post" action="{{ url_for('blog.save_image') }}" id="postForm" class="post-editor-form"
         enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <h1 class="text-2xl font-bold mb-6 dark:text-white">{{ 'Edit' if is_edit else 'New' }} Post</h1>
-        <!-- Title -->
-        <div>
-            <label class="label">Title (use searchable Object Name like M100, etc.)</label>
-            <input name="title" type="text" value="{{ image.title if is_edit else '' }}" required
-                class="input_container" />
-        </div>
+        <header class="post-editor-header">
+            <div>
+                <p class="editor-kicker">AstroSpace library</p>
+                <h1>{{ 'Edit' if is_edit else 'Create' }} post</h1>
+                <p>Keep the story, acquisition data, and gear for this image in one place.</p>
+            </div>
+            {% if is_edit %}
+            <span class="editor-status">Saved image</span>
+            {% endif %}
+        </header>
 
         {% if is_edit %}
         <input type="hidden" name="image_id" value="{{ image.id }}">
         {% endif %}
 
-        <!-- Short Description -->
-        <div>
-            <label class="label">Short Description (Will be displayed next to the title...)</label>
-            <input name="short_description" type="text" value="{{ image.short_description if is_edit else '' }}"
-                required class="input_container" />
-        </div>
+        <section class="editor-section">
+            <div class="editor-section-heading">
+                <div>
+                    <p class="editor-kicker">Post details</p>
+                    <h2>Tell the story</h2>
+                </div>
+                <p>Use a recognisable target name, then add a concise summary and the details worth sharing.</p>
+            </div>
+            <div class="editor-field-grid">
+                <div class="editor-field editor-field--wide">
+                    <label for="postTitle">Title</label>
+                    <input id="postTitle" name="title" type="text" value="{{ image.title if is_edit else '' }}" required
+                        class="input_container" placeholder="e.g. NGC 7000" />
+                </div>
+                <div class="editor-field editor-field--wide">
+                    <label for="postSummary">Short description</label>
+                    <input id="postSummary" name="short_description" type="text" value="{{ image.short_description if is_edit else '' }}"
+                        required class="input_container" placeholder="A one-line overview displayed beside the title" />
+                </div>
+                <div class="editor-field editor-field--full">
+                    <label for="postDescription">Description</label>
+                    <textarea id="postDescription" name="description" required class="input_container"
+                        placeholder="What made this capture special?">{{ image.description if is_edit else '' }}</textarea>
+                </div>
+            </div>
+        </section>
 
-        <!-- Description -->
-        <div>
-            <label class="label">Description (longer paragraph if required...)</label>
-            <textarea name="description" required style="min-height:200px;"
-                class="input_container">{{ image.description if is_edit else '' }}</textarea>
-        </div>
-
-        <div class="space-y-4">
-            <div class="flex flex-wrap gap-4">
+        <section class="editor-section editor-section--assets space-y-4">
+            <div class="editor-section-heading">
+                <div>
+                    <p class="editor-kicker">Files & analysis</p>
+                    <h2>Source material</h2>
+                </div>
+                <p>Add optional source files only when you want to replace or extend the existing record.</p>
+            </div>
+            <div class="editor-assets-row">
                 <section class="flex min-w-[260px] flex-1 flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
                     <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Upload Image</label>
                     {% if is_edit %}
@@ -107,6 +130,28 @@
                         file:bg-blue-50 file:text-blue-700
                         hover:file:bg-blue-100" />
                     <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Optional alternate render used for the starless toggle on the image detail page.</p>
+                </section>
+
+                <section class="flex min-w-[260px] flex-1 flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+                    <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Upload Annotated Image</label>
+                    <input type="hidden" name="prev_annotated_img" value="{{ image.annotated_image_path if is_edit and image.annotated_image_path else '' }}">
+                    {% if is_edit and image.annotated_image_path %}
+                    <div class="mt-2">
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Current annotated image</p>
+                        <input type="text"
+                            value="{{ image.annotated_image_path }}"
+                            class="input_container mt-2 w-full truncate"
+                            readonly />
+                    </div>
+                    {% endif %}
+                    <input name="annotated_image_path" type="file" accept=".png,.jpg,.jpeg"
+                        class="mt-4 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100" />
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Optional image shown by the annotation control. Its annotations are used as supplied, so no automatic object overlay is generated.</p>
                 </section>
 
                 <section class="flex min-w-[320px] flex-[1_1_420px] flex-col rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
@@ -181,7 +226,7 @@
             <h3 class="mt-4 font-semibold text-gray-700 dark:text-white">Constant Keywords</h3>
             <div class="mt-2 border rounded max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
                 <table id="constantsTable" class="min-w-full text-sm border-collapse">
-                    <thead class="sticky top-0 bg-gray-100 text-black">
+                    <thead class="sticky top-0 bg-gray-100 text-black dark:bg-slate-800 dark:text-slate-100">
                         <tr>
                             <th class="border px-2 py-1 text-left">Keyword</th>
                             <th class="border px-2 py-1 text-left">Value</th>
@@ -195,15 +240,22 @@
             <h3 class="mt-4 font-semibold  text-gray-700 dark:text-gray-300">Variable Keywords</h3>
             <div class="mt-2 border rounded max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
                 <table id="variablesTable" class="min-w-full text-sm border-collapse">
-                    <thead class="sticky top-0 bg-gray-100"></thead>
+                    <thead class="sticky top-0 bg-gray-100 dark:bg-slate-800 dark:text-slate-100"></thead>
                     <tbody></tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
         <!-- Location Row -->
-        <div class="mb-6">
-            <div class="gap-4 flex flex-wrap ...">
+        <section class="editor-section">
+            <div class="editor-section-heading">
+                <div>
+                    <p class="editor-kicker">Session context</p>
+                    <h2>Where & how</h2>
+                </div>
+                <p>Location and guide logs keep the technical context with the image.</p>
+            </div>
+            <div class="editor-location-grid">
                 <div class="w-64 flex-auto ...">
                     <label class="label">Location</label>
                     <input name="location" id="locationInput" class="input_container"
@@ -228,10 +280,15 @@
                         value="{{ image.location_elevation if is_edit else '' }}" />
                 </div>
             </div>
-        </div>
 
         <!-- Guide Log -->
-        <div x-data="{ logs: '{{ image.guide_log if is_edit and image.guide_log else '' }}' }" class="space-y-2">
+        <div x-data="{ logs: '{{ image.guide_log if is_edit and image.guide_log else '' }}' }" class="editor-subsection editor-guide-logs">
+            <div class="editor-subsection-heading">
+                <div>
+                    <h3>Guide logs</h3>
+                    <p>Keep the optional PHD2 files with this session, or rebuild the existing graphs.</p>
+                </div>
+            </div>
             {% if is_edit %}
             <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300">Current Guide Logs</label>
 
@@ -258,45 +315,68 @@
         file:bg-blue-50 file:text-blue-700
         hover:file:bg-blue-100" />
         </div>
+        </section>
 
-        <h5 class="label">Created On</h5>
-        <div class="gap-4 flex">
-            <input type="date" class="input_container" name="created_at"
-                value="{% if is_edit %}{{ image.created_at.strftime('%Y-%m-%d') }}{% else %}{{ now().date() }}{% endif %}">
-        </div>
+        <section class="editor-section">
+            <div class="editor-section-heading">
+                <div>
+                    <p class="editor-kicker">Acquisition</p>
+                    <h2>Capture details</h2>
+                </div>
+                <p>Record the observing dates and the light-frame settings behind the final image.</p>
+            </div>
+            <div class="editor-date-grid">
+                <div class="editor-field">
+                    <label for="createdAt">Created on</label>
+                    <input id="createdAt" type="date" class="input_container" name="created_at"
+                        value="{% if is_edit %}{{ image.created_at.strftime('%Y-%m-%d') }}{% else %}{{ now().date() }}{% endif %}">
+                </div>
+                <div class="editor-field">
+                    <label for="datePicker">Capture dates</label>
+                    <div class="editor-inline-action">
+                        <input type="date" id="datePicker" class="input_container">
+                        <button type="button" class="editor-add-button" id="addDateBtn">Add date</button>
+                    </div>
+                    <ul id="dateList" class="editor-date-list"></ul>
+                    <input type="hidden" name="capture_dates" id="captureDates">
+                </div>
+            </div>
+            <div class="editor-subsection">
+                <div class="editor-subsection-heading">
+                    <div>
+                        <h3>Image lights</h3>
+                        <p>One row per filter and exposure setup.</p>
+                    </div>
+                    <button type="button" class="editor-add-button" id="addLightBtn">Add light</button>
+                </div>
+                <div class="editor-table-scroll">
+                    <table id="lightsTable" class="editor-lights-table">
+                        <thead id="lightsHeader">
+                            <tr>
+                                <th>Filter</th>
+                                <th>Frames</th>
+                                <th>Exposure</th>
+                                <th>Gain</th>
+                                <th>Offset</th>
+                                <th>Temp (°C)</th>
+                                <th><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lightsContainer" {% if not is_edit %} required {% endif %}></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-        <h5 class="label">Capture Dates</h5>
-        <div class="gap-4 flex">
-            <input type="date" id="datePicker" class="input_container">
-            <button type="button"
-                class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
-                id="addDateBtn">Add</button>
-        </div>
-
-        <ul id="dateList"></ul>
-        <input type="hidden" name="capture_dates" id="captureDates">
-
-        <h5 class="label">Image Lights</h5>
-        <div class="mb-3 overflow-x-auto">
-            <table id="lightsTable" class="min-w-[980px] w-full table-auto border-separate border-spacing-y-2">
-                <thead id="lightsHeader">
-                    <tr class="text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        <th class="w-56 pr-4 text-left font-semibold">Filter</th>
-                        <th class="w-32 pr-4 text-left font-semibold">Frames</th>
-                        <th class="w-36 pr-4 text-left font-semibold">Exposure (s)</th>
-                        <th class="w-32 pr-4 text-left font-semibold">Gain</th>
-                        <th class="w-32 pr-4 text-left font-semibold">Offset</th>
-                        <th class="w-32 pr-4 text-left font-semibold">Temp (C)</th>
-                        <th class="w-24 text-left font-semibold"></th>
-                    </tr>
-                </thead>
-                <tbody id="lightsContainer" {% if not is_edit %} required {% endif %}></tbody>
-            </table>
-        </div>
-        <button type="button"
-            class="inline-block px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
-            id="addLightBtn">Add Light</button>
-
+        <section class="editor-section">
+            <div class="editor-section-heading">
+                <div>
+                    <p class="editor-kicker">Optical train</p>
+                    <h2>Equipment</h2>
+                </div>
+                <p>Select the components used for this image. Optional equipment can stay set to None.</p>
+            </div>
+            <div class="editor-equipment-layout">
         <div class="gap-4 flex ">
             <div class="w-64 flex-auto ">
                 <label class="label">Camera</label>
@@ -322,7 +402,7 @@
             <div class="w-64 flex-auto ">
                 <label class="label">Rotator</label>
                 <select name="rotator_id" class="input_container">
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('rotator') else '' }}>None</option>
                     {% for r in rotator %}
                     <option value="{{ r.id }}" {{'selected' if r.id == equipment.get('rotator') else '' }}>
                         {{ r.name }}
@@ -351,7 +431,7 @@
                     <option value="{{ r.id }}" {{'selected' if r.id == equipment.get('reducer') else '' }}>{{ r.name }}
                     </option>
                     {% endfor %}
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('reducer') else '' }}>None</option>
                 </select>
             </div>
 
@@ -362,7 +442,7 @@
                     <option value="{{ g.id }}" {{'selected' if g.id == equipment.get('guider') else '' }}>{{ g.name }}
                     </option>
                     {% endfor %}
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('guider') else '' }}>None</option>
                 </select>
             </div>
         </div>
@@ -396,7 +476,7 @@
                         {{ p.name }}
                     </option>
                     {% endfor %}
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('flat_panel') else '' }}>None</option>
                 </select>
             </div>
         </div>
@@ -410,7 +490,7 @@
                         {{ f.name }}
                     </option>
                     {% endfor %}
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('filter_wheel') else '' }}>None</option>
                 </select>
             </div>
 
@@ -421,7 +501,7 @@
                     <option value="{{ e.id }}" {{'selected' if e.id == equipment.get('eaf') else '' }}>{{ e.name }}
                     </option>
                     {% endfor %}
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('eaf') else '' }}>None</option>
                 </select>
             </div>
 
@@ -433,34 +513,49 @@
                         {{ d.name }}
                     </option>
                     {% endfor %}
-                    {{option_none | safe}}
+                    <option value="0" {{ 'selected' if not equipment.get('dew_heater') else '' }}>None</option>
                 </select>
             </div>
         </div>
+            </div>
+        </section>
 
-        <label class="label">Software</label>
-        <div class="flex ...">
-            <select name="software_ids" multiple class="input_container">
+        <section class="editor-section editor-section--software">
+            <div class="editor-section-heading">
+                <div>
+                    <p class="editor-kicker">Workflow</p>
+                    <h2>Software used</h2>
+                </div>
+                <p>Tick every application that played a part in this capture or processing workflow.</p>
+            </div>
+            <fieldset class="software-checkbox-grid">
+                <legend class="sr-only">Software used</legend>
                 {% for s in softwares %}
-                <option value="{{ s.id }}" {{'selected' if s.id in software_list else '' }}>{{ s.name }}</option>
+                <label class="software-choice" for="software-{{ s.id }}">
+                    <input id="software-{{ s.id }}" name="software_ids" type="checkbox" value="{{ s.id }}"
+                        {{'checked' if s.id in software_list else '' }}>
+                    <span>{{ s.name }}</span>
+                </label>
                 {% endfor %}
-            </select>
-        </div>
+            </fieldset>
+        </section>
 
-
-        <button class="inline-block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-800"
-            type="submit">{{ "Edit" if is_edit else "Create" }}</button>
+        <footer class="post-editor-actions">
+            <p>Changes are applied to this post when you save.</p>
+            <button class="editor-save-button" type="submit">{{ "Save changes" if is_edit else "Create post" }}</button>
+        </footer>
     </form>
 
     <script type="module">
-        import { bindLocationInput, metaStore,
-         bindLightFramesAnalyse } from "{{ url_for('static', filename='js/binds.js') }}";
+        import { bindLocationInput, metaStore, restoreMetadata,
+         bindLightFramesAnalyse } from "{{ static_asset_url('js/binds.js') }}";
         import * as fitsUtils from "{{ url_for('static', filename='js/fitsUtils.js') }}";
 
         const input_container_style = `w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
         let dates = {{ capture_dates| safe }};
         const initialRelatedMedia = {{ related_media_json | safe }};
+        const savedMetadata = {{ metadata|tojson }};
 
         // If dates is empty, initialize with today's date
         if (!dates || dates.length === 0) {
@@ -617,14 +712,6 @@
             select.name = `filter_${idx}`;
             select.className = input_container_style;
 
-            if (light.cam_filter) {
-                const matchingOption = Array.from(select.options).find(
-                    (option) => option.value === light.cam_filter
-                );
-                if (matchingOption) {
-                    matchingOption.selected = true;
-                }
-            }
 
             row.innerHTML = `
                 <td class="pr-4 align-top">${select.outerHTML}</td>
@@ -636,6 +723,10 @@
                 <td class="align-top"><button type="button" class="remove-light mt-1 inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded">Remove</button></td>
             `;
             container.appendChild(row);
+            if (light.cam_filter) {
+                row.querySelector("select").value = light.cam_filter;
+            }
+
             idx++;
         }
 
@@ -658,6 +749,7 @@
 
             bindLocationInput();
             bindLightFramesAnalyse();
+            restoreMetadata(savedMetadata);
             renderRelatedMediaRows();
 
             const redo = document.getElementById("redo_plate_solve");

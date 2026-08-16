@@ -1,8 +1,7 @@
 ﻿{% extends "base.html" %}
 {% block content %}
 
-<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
-<script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
+<script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
 
 <script>
@@ -23,55 +22,48 @@
   }
 </script>
 
-<div class="relative flex flex-col items-center justify-center bg-repeat md:bg-cover dark:text-white"
-  style="background-image: url('{{ url_for('blog.upload', filename=background_image) }}');">
-
-  <div class="absolute w-full h-full backdrop-blur-md"></div>
-
-  {% if previous_post %}
-  <a
-    id="previous-post-link"
-    href="{{ url_for('blog.image_detail', image_id=previous_post.id, image_name=previous_post.slug) }}"
-    class="fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 p-3 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/65 md:flex"
-    aria-label="Previous post"
-    title="Previous post">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path fill-rule="evenodd" d="M12.78 15.53a.75.75 0 0 1-1.06 0L6.72 10.53a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 1.06L8.31 10l4.47 4.47a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-    </svg>
-  </a>
-  {% endif %}
-
-  {% if next_post %}
-  <a
-    id="next-post-link"
-    href="{{ url_for('blog.image_detail', image_id=next_post.id, image_name=next_post.slug) }}"
-    class="fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 p-3 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/65 md:flex"
-    aria-label="Next post"
-    title="Next post">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path fill-rule="evenodd" d="M7.22 4.47a.75.75 0 0 1 1.06 0l5 5a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 1 1-1.06-1.06L11.69 10 7.22 5.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-    </svg>
-  </a>
-  {% endif %}
-
-  <div class="relative w-0 top-0 h-4 border-1 border-gray-200 dark:border-gray-400">
-  </div>
+<div class="image-detail-page dark:text-white">
+  <div class="image-detail-atmosphere" aria-hidden="true"></div>
 
   {% for il in images %}
-  <div id="uid-{{il.image.id}}" class="relative flex flex-col items-center justify-center w-full space-y-0 p-2">
-    <!-- Title under the date -->
-    <h2 class="text-xl text-white text-center">
+  <header id="uid-{{il.image.id}}" class="image-detail-heading">
+    <a href="{{ url_for('blog.collection') }}" class="image-detail-backlink">← Collection</a>
+    <h1>
       {{ il.image.title }}
       {% if il.image.short_description %} - {{ il.image.short_description }}{% endif %}
-    </h2>
-
-    <!-- Date -->
-    <span class="text-gray-200 font-light text-md">
+    </h1>
+    <p>
       {{ il.image.created_at.strftime('%b %Y')|default('No date available') }}
-    </span>
-  </div>
+    </p>
+    <nav class="image-detail-post-nav" aria-label="Image navigation">
+      {% if previous_post %}
+      <a
+        id="previous-post-link"
+        href="{{ url_for('blog.image_detail', image_id=previous_post.id, image_name=previous_post.slug) }}"
+        class="image-detail-post-nav-link"
+        aria-label="Previous post"
+        title="Previous post">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M12.78 15.53a.75.75 0 0 1-1.06 0L6.72 10.53a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 1.06L8.31 10l4.47 4.47a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+        </svg>
+      </a>
+      {% endif %}
+      {% if next_post %}
+      <a
+        id="next-post-link"
+        href="{{ url_for('blog.image_detail', image_id=next_post.id, image_name=next_post.slug) }}"
+        class="image-detail-post-nav-link"
+        aria-label="Next post"
+        title="Next post">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M7.22 4.47a.75.75 0 0 1 1.06 0l5 5a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 1 1-1.06-1.06L11.69 10 7.22 5.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+        </svg>
+      </a>
+      {% endif %}
+    </nav>
+  </header>
 
-  <div class="relative w-full md:max-w-4/5 lg:max-w-7/12 px-1 mx-auto">
+  <div class="image-detail-frame">
     <!-- Main Card Container -->
     <div x-data="{ mainTab: 'image', explorePane: 'hr', showObjects: false }"
       x-init="
@@ -79,6 +71,21 @@
         const consentManager = window.AstroSpaceConsent;
         const validMainTabs = ['image', 'details', 'explore'];
         const validExplorePanes = ['hr'{% if il.meta_json and 'variable' in il.meta_json %}, 'analyse'{% endif %}{% if il.guiding_plot %}, 'guiding'{% endif %}{% if il.calibration_plot %}, 'calibration'{% endif %}];
+        const requestExploreLoad = () => window.dispatchEvent(
+          new CustomEvent('astrospace:load-explore', { detail: { imageId: '{{ il.image.id }}' } })
+        );
+        window.addEventListener('astrospace:explore-loader-ready', () => {
+          if (mainTab === 'explore') {
+            requestExploreLoad();
+          }
+        });
+
+        window.addEventListener('astrospace:explore-rendered', event => {
+          if (event.detail?.imageId === '{{ il.image.id }}' && mainTab === 'explore') {
+            resizeExplorePane(explorePane);
+          }
+        });
+
         const resizeExplorePane = value => {
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -115,6 +122,7 @@
 
         if (mainTab === 'explore') {
           resizeExplorePane(explorePane);
+          requestExploreLoad();
         }
 
         $watch('mainTab', value => {
@@ -124,6 +132,7 @@
 
           if (value === 'explore') {
             resizeExplorePane(explorePane);
+            requestExploreLoad();
           }
 
           consentManager?.setPreference(storageKey, { mainTab: value, explorePane });
@@ -138,37 +147,23 @@
           consentManager?.setPreference(storageKey, { mainTab, explorePane: value });
         });
       "
-      class="rounded-xl md:rounded-2xl shadow-xl bg-white/80 dark:bg-gray-800/80">
-
-      <!-- Main Tabs -->
-      <div x-cloak
-        class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 justify-center items-center whitespace-nowrap">
-        {% set main_tabs = [
-        ('image', 'Image'),
-        ('details', 'Details'),
-        ('explore', 'Explore')
-        ] %}
-
-        {% for tab_id, tab_label in main_tabs %}
-        <button @click="mainTab = '{{ tab_id }}'"
-          :class="mainTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
-          class="px-4 py-2 text-sm font-medium">
-          {{ tab_label }}
-        </button>
-        {% endfor %}
-      </div>
+      class="image-workbench">
 
       <!-- Image Tab -->
       {% set primary_image_src = url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) %}
       {% set starless_image_src = url_for('blog.upload', filename=il.image.starless_image_path|replace('\\', '/')) if il.image.starless_image_path else '' %}
-      <div x-show="mainTab === 'image'" class="space-y-2 md:p-4">
+      {% set annotated_image_src = url_for('blog.upload', filename=il.image.annotated_image_path|replace('\\', '/')) if il.image.annotated_image_path else '' %}
+      <div class="image-image-panel">
+        <div class="image-stage-layout">
+          <div class="image-stage">
+            <div x-show="mainTab === 'image'" class="image-stage-viewer">
         <div id="zoom-container-{{il.image.id}}"
-          class="relative w-full max-w-full overflow-hidden md:rounded-[10px] px-1 flex items-center justify-center group touch-none">
+          class="image-stage-canvas relative w-full max-w-full overflow-hidden md:rounded-[10px] px-1 flex items-center justify-center group touch-none">
 
           <div class="relative transition-transform duration-100 ease-in-out origin-center w-full h-full"
             id="zoom-wrapper-{{il.image.id}}">
             <img
-              class="object-contain block w-full h-auto origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
+              class="image-stage-media object-contain block w-full h-auto origin-center transition-transform duration-100 ease-in-out cursor-grab select-none"
               id="zoomable-image-{{il.image.id}}"
               src="{{ primary_image_src }}"
               alt="{{ il.image.title }}">
@@ -187,8 +182,9 @@
               <svg id="comp-wrapper-{{ il.image.id }}"
                 class="absolute top-0 left-0 hidden pointer-events-auto w-full h-full z-5000"
                 viewBox="0 0 {{ moon_width }} {{ moon_width }}">
-                <image href="{{ url_for('static', filename='assets/images/moon.png') }}"
-                  class="w-[{{ moon_width }}px] h-[{{ moon_width }}px]" id="comp-img-{{ il.image.id }}"
+                <image x="0" y="0" width="{{ moon_width }}" height="{{ moon_width }}"
+                  href="{{ url_for('static', filename='assets/images/moon.png') }}"
+                  id="comp-img-{{ il.image.id }}"
                   alt="Moon overlay" />
               </svg>
             </div>
@@ -196,6 +192,7 @@
             </div>
           </div>
 
+          <p id="image-stage-title-{{il.image.id}}" class="image-stage-title" aria-live="polite">{{ il.image.title }}</p>
           {% if il.related_media %}
           <button id="media-prev-{{il.image.id}}" type="button"
             class="inline-media-arrow absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/45 p-2 text-white shadow-lg hover:bg-black/65"
@@ -280,8 +277,9 @@
                   <svg id="fullscreen-comp-wrapper-{{ il.image.id }}"
                     class="absolute top-0 left-0 hidden pointer-events-auto w-full h-full"
                     viewBox="0 0 {{ moon_width }} {{ moon_width }}">
-                    <image href="{{ url_for('static', filename='assets/images/moon.png') }}"
-                      class="w-[{{ moon_width }}px] h-[{{ moon_width }}px]" id="fullscreen-comp-img-{{ il.image.id }}"
+                    <image x="0" y="0" width="{{ moon_width }}" height="{{ moon_width }}"
+                      href="{{ url_for('static', filename='assets/images/moon.png') }}"
+                      id="fullscreen-comp-img-{{ il.image.id }}"
                       alt="Moon overlay fullscreen" />
                   </svg>
                 </div>
@@ -318,12 +316,12 @@
                   <div>
                     <input id="fullscreen-graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
                     <label for="fullscreen-graticule-toggle-{{il.image.id}}" title="Overlay Coordinate Grid" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
-                      bg-gray-300 text-gray-900 border-slate-300 
-                      hover:bg-gray-400 hover:border-slate-500 
+                      bg-gray-300 text-gray-900 border-slate-300
+                      hover:bg-gray-400 hover:border-slate-500
                       hover:dark:bg-slate-600 hover:dark:border-slate-400
                       peer-checked:bg-green-800 peer-checked:text-white
                       peer-checked:hover:bg-green-700
-                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
+                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
                       dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 100 100"
                         preserveAspectRatio="xMidYMid meet">
@@ -347,7 +345,7 @@
                       bg-gray-300 text-gray-900 border-slate-300
                       hover:bg-gray-400 hover:border-slate-500
                       hover:dark:bg-slate-600 hover:dark:border-slate-400
-                      peer-checked:hover:bg-green-700 
+                      peer-checked:hover:bg-green-700
                       peer-checked:bg-green-800 peer-checked:text-white
                       dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
                       dark:peer-checked:bg-green-500 dark:peer-checked:text-black
@@ -362,12 +360,12 @@
 
                   <div>
                     <input id="fullscreen-overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
-                    <label for="fullscreen-overlay-toggle-{{il.image.id}}" title="Label celestial objects in the image" class="inline-block px-3 p-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
-                      bg-gray-300 text-gray-900 border-slate-300 
+                    <label for="fullscreen-overlay-toggle-{{il.image.id}}" title="{{ 'Show uploaded annotated image' if il.image.annotated_image_path else 'Label celestial objects in the image' }}" class="inline-block px-3 p-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
+                      bg-gray-300 text-gray-900 border-slate-300
                       hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
-                      peer-checked:hover:bg-green-700 
+                      peer-checked:hover:bg-green-700
                       peer-checked:bg-green-800 peer-checked:text-white
-                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
+                      dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
                       dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
                       <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="_x32_" class="w-5 h-5 fill-current"
                         version="1.1" viewBox="0 0 512 512">
@@ -386,286 +384,9 @@
           </div>
         </div>
 
-        <div class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300">
-            <a href="{{ url_for('profile.public', username=il.image.author) }}"
-              x-data="{ expanded: false }"
-              @mouseenter="if (window.innerWidth < 768) expanded = true"
-              @mouseleave="if (window.innerWidth < 768) expanded = false"
-              @focusin="expanded = true"
-              @click.outside="expanded = false"
-              @click="if (window.innerWidth < 768 && !expanded) { $event.preventDefault(); expanded = true }"
-              :class="{ 'is-expanded': expanded }"
-              :aria-expanded="expanded ? 'true' : 'false'"
-              class="author-pill shrink-0 flex items-center rounded-full bg-white/70 px-3 py-1.5 text-gray-800 shadow-sm backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/60 dark:text-gray-100 dark:hover:bg-gray-900/80">
-              {% if il.image.user_image %}
-              <img
-                src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
-                class="h-8 w-8 rounded-full object-cover border border-white/40"
-                alt="author image">
-              {% else %}
-              <img
-                src="{{ url_for('static', filename='default_profile.png') }}"
-                class="h-8 w-8 rounded-full object-cover border border-white/40"
-                alt="default profile">
-              {% endif %}
-              <span class="author-pill-text flex min-w-0 flex-col leading-tight">
-                <span class="truncate font-medium">@{{ il.image.author }}</span>
-                <span class="truncate text-xs text-gray-500 dark:text-gray-400">{{ il.image.location }}</span>
-              </span>
-            </a>
-
-            <div id="inline-tools-{{il.image.id}}" class="inline-tools-bubble flex flex-wrap items-center gap-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
-            <div>
-              <input id="graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
-
-              <label for="graticule-toggle-{{il.image.id}}" title="Graticule" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
-         bg-gray-300 text-gray-900 border-slate-300 
-         hover:bg-gray-400 hover:border-slate-500 
-         hover:dark:bg-slate-600 hover:dark:border-slate-400
-         peer-checked:bg-green-800 peer-checked:text-white
-         peer-checked:hover:bg-green-700
-         dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
-         dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 100 100"
-                  preserveAspectRatio="xMidYMid meet">
-                  <g fill="none" stroke="currentColor" stroke-width="4">
-                    <!-- Outer circle -->
-                    <circle cx="50" cy="50" r="45" />
-
-                    <!-- Latitude lines (declination) -->
-                    <ellipse cx="50" cy="50" rx="45" ry="15" />
-                    <ellipse cx="50" cy="50" rx="45" ry="30" />
-
-                    <!-- Longitude lines (RA) -->
-                    <path d="M5,50 a45,45 0 0,1 90,0" />
-                    <path d="M95,50 a45,45 0 0,1 -90,0" />
-
-                    <!-- Meridians -->
-                    <line x1="50" y1="5" x2="50" y2="95" />
-                    <path d="M35,5 A50,100 0 0,0 35,95" />
-                    <path d="M65,5 A50,100 0 0,1 65,95" /> <!-- Flipped this one -->
-                  </g>
-                </svg>
-
-              </label>
             </div>
 
-            <div>
-              <input id="compare-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
-
-              <label for="compare-toggle-{{il.image.id}}" title="Moon Size Comparison" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
-           bg-gray-300 text-gray-900 border-slate-300
-           hover:bg-gray-400 hover:border-slate-500
-           hover:dark:bg-slate-600 hover:dark:border-slate-400
-            peer-checked:hover:bg-green-700 
-           peer-checked:bg-green-800 peer-checked:text-white
-           dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
-           dark:peer-checked:bg-green-500 dark:peer-checked:text-black
-           shadow">
-
-                <svg class="w-5 h-5 fill-current" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true" role="img">
-                  <image href="{{ url_for('static', filename='assets/images/moon.png') }}" width="128" height="128"
-                    class="object-contain" alt="Moon overlay" />
-                </svg>
-              </label>
-            </div>
-
-            <div>
-              <input id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
-
-              <label for="overlay-toggle-{{il.image.id}}" title="Object Annotation" class="inline-block px-3 p-1.5 rounded-full cursor-pointer  shadow-sm text-sm font-medium
-         bg-gray-300 text-gray-900 border-slate-300 
-         hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
-         peer-checked:hover:bg-green-700 
-         peer-checked:bg-green-800 peer-checked:text-white
-         dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 
-         dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
-                <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="_x32_" class="w-5 h-5 fill-current"
-                  version="1.1" viewBox="0 0 512 512">
-                  <path
-                    d="M480.931 191.431c-1.37-3.032-3.171-5.863-5.495-8.326a24.85 24.85 0 0 0-7.877-5.643L115.761 2.619l-.258-.101C111.459.781 107.158 0 102.903 0 96.322.01 89.87 1.838 83.74 4.881c-9.199 4.595-17.839 11.928-25.651 21.248-7.83 9.338-14.796 20.724-20.256 33.638-7.132 16.846-10.67 33.711-10.68 48.784.01 10.349 1.655 19.926 5.359 28.114 1.866 4.108 4.255 7.867 7.298 11.093 3.014 3.217 6.69 5.864 10.863 7.629l.266.11 201.799 71.539v57.846L130.3 470.789c-2.821 4.283-1.627 10.055 2.656 12.876 4.283 2.831 10.055 1.626 12.876-2.647l106.906-162.324V502.69a9.302 9.302 0 0 0 9.309 9.31c5.128 0 9.292-4.162 9.292-9.31V317.564l107.65 163.455c2.84 4.274 8.594 5.478 12.894 2.647 4.292-2.821 5.469-8.593 2.638-12.876L271.339 283.761v-50.126l149.881 53.14v-.019a25.038 25.038 0 0 0 9.191 1.756c5.045-.028 9.852-1.425 14.346-3.631 6.736-3.373 12.867-8.621 18.39-15.21 5.505-6.59 10.376-14.567 14.218-23.582 4.981-11.792 7.472-23.611 7.482-34.31-.01-7.361-1.168-14.254-3.916-20.348zM65.295 139.706c-1.875 0-3.658-.238-5.367-.753l-2.106-.736c-1.654-.735-3.097-1.746-4.484-3.217-2.123-2.242-4.072-5.643-5.441-10.146-1.351-4.503-2.151-10.054-2.151-16.304 0-12.132 2.96-26.8 9.218-41.532 6.36-15.045 15.073-27.581 24.006-36.036 4.43-4.218 8.915-7.408 13.05-9.448 4.136-2.058 7.858-2.95 10.882-2.95 1.939.01 3.612.359 5.22 1.002l2.049 1.029a19.243 19.243 0 0 1 4.283 3.364c2.758 2.876 5.037 6.866 6.599 11.855 1.572 4.964 2.408 10.864 2.399 17.389.008 11.791-2.748 25.495-8.566 39.189-6.139 14.484-14.641 26.524-23.638 34.768-4.485 4.127-9.089 7.288-13.519 9.402-4.429 2.104-8.638 3.124-12.434 3.124zm92.862 34.071-76.76-27.214c.285-.129.598-.258.9-.387 8.336-3.979 16.378-10.495 23.63-18.95 7.279-8.437 13.722-18.841 18.73-30.642 6.332-14.944 9.42-29.962 9.42-43.361 0-8.208-1.168-15.827-3.575-22.498l72.918 36.229c.653 1.433 1.268 2.922 1.793 4.55 1.58 4.953 2.407 10.89 2.407 17.397.01 11.783-2.748 25.495-8.565 39.207-6.14 14.466-14.65 26.506-23.639 34.75-4.484 4.127-9.089 7.288-13.519 9.402a37.1 37.1 0 0 1-3.74 1.517zm238.082 84.406L172.108 178.73c6.323-3.952 12.398-9.301 17.986-15.816 7.28-8.447 13.722-18.851 18.73-30.661 6.323-14.953 9.42-29.933 9.42-43.352 0-5.404-.515-10.541-1.535-15.348l212.892 105.812c1.369 1.738 2.518 3.944 3.373 6.682 1.066 3.382 1.654 7.454 1.654 11.975.019 8.189-1.911 17.784-5.992 27.406-4.301 10.156-10.284 18.584-16.506 24.309-3.124 2.868-6.296 5.037-9.292 6.452-2.352 1.121-4.576 1.755-6.599 1.994zm63.995-19.347c-4.164 9.862-9.898 18.078-15.624 23.446-2.84 2.72-5.652 4.696-8.134 5.946-2.5 1.232-4.567 1.672-6.066 1.672-.984 0-1.737-.166-2.454-.469l-.257-.119-16.25-5.753c4.724-2.922 9.209-6.884 13.345-11.672 5.284-6.158 9.98-13.721 13.611-22.306 4.596-10.854 6.856-21.744 6.856-31.56 0-4.052-.432-7.876-1.213-11.488l15.486 7.692.257.12c.744.303 1.398.763 2.123 1.535 1.057 1.084 2.17 2.968 2.997 5.68.845 2.721 1.342 6.213 1.342 10.22.001 7.775-1.911 17.369-6.019 27.056z"
-                    class="st0" />
-                  <path
-                    d="M97.811 48.26c1.727-.909 3.225-1.286 4.494-1.286.459 0 .91.046 1.342.148a5.32 5.32 0 0 0 6.359-3.989 5.317 5.317 0 0 0-4.016-6.36 15.962 15.962 0 0 0-3.685-.413c-3.336 0-6.553.947-9.485 2.509-4.402 2.372-8.327 6.048-11.902 10.68-3.538 4.594-6.7 10.183-9.346 16.506-1.14 2.702.137 5.799 2.849 6.956a5.298 5.298 0 0 0 6.939-2.858c3.134-7.454 7.022-13.529 10.9-17.517 1.911-2.005 3.832-3.466 5.551-4.376z"
-                    class="st0" />
-                </svg>
-              </label>
-            </div>
-
-            {% if il.image.starless_image_path %}
-            <div>
-              <input id="starless-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
-
-              <label for="starless-toggle-{{il.image.id}}" title="Remove Stars" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
-                bg-gray-300 text-gray-900 border-slate-300
-                hover:bg-gray-400 hover:border-slate-500
-                hover:dark:bg-slate-600 hover:dark:border-slate-400
-                peer-checked:hover:bg-green-700
-                peer-checked:bg-green-800 peer-checked:text-white
-                dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
-                dark:peer-checked:bg-green-500 dark:peer-checked:text-black
-                shadow">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 3l1.9 4.1L18 9l-4.1 1.9L12 15l-1.9-4.1L6 9l4.1-1.9L12 3z" />
-                  <path d="M19 14l.95 2.05L22 17l-2.05.95L19 20l-.95-2.05L16 17l2.05-.95L19 14z" />
-                  <path d="M5 15l.95 2.05L8 18l-2.05.95L5 21l-.95-2.05L2 18l2.05-.95L5 15z" />
-                </svg>
-              </label>
-            </div>
-            {% endif %}
-          </div>
-
-          <p id="inline-media-caption-{{il.image.id}}" class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"></p>
-
-          <div x-data="{ open: false }" class="relative ml-auto shrink-0">
-            <div class="inline-flex items-center overflow-hidden rounded-full bg-gray-300 text-gray-900 shadow dark:bg-slate-800 dark:text-gray-100">
-              <button id="image-like-btn-{{il.image.id}}" type="button"
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium transition hover:bg-gray-400 hover:dark:bg-slate-600"
-                aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}"
-                title="Star this image">
-                <span id="image-like-icon-{{il.image.id}}" aria-hidden="true" class="text-base leading-none text-gray-700 dark:text-gray-200{% if il.engagement.liked %} text-yellow-500 dark:text-yellow-500{% endif %}">★</span>
-                <span id="image-like-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.like_count }}</span>
-              </button>
-
-              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
-
-              <span class="flex items-center gap-2 px-3 py-2 text-sm font-medium" title="Unique views">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                <span id="image-view-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.view_count }}</span>
-              </span>
-
-              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
-
-              <button id="image-comments-toggle-{{il.image.id}}" type="button"
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium transition hover:bg-gray-400 hover:dark:bg-slate-600"
-                title="Leave a comment">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M7 10h10M7 14h6" />
-                  <path d="M5 19l-1 3 3.5-1.5H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v10a3 3 0 0 0 2 2z" />
-                </svg>
-                <span id="image-comment-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.comment_count }}</span>
-              </button>
-
-              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
-
-              <button @click="open = !open" :aria-expanded="open ? 'true' : 'false'" type="button" title="Share this image"
-                class="flex items-center gap-2 px-3 py-2 transition hover:bg-gray-400 hover:dark:bg-slate-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 22 22" aria-hidden="true">
-                  <path
-                    d="M12.5 6.25a.75.75 0 0 0 0-1.5v1.5Zm7.75 6.25a.75.75 0 0 0-1.5 0h1.5Zm-.75-6.25a.75.75 0 0 0 0-1.5v1.5Zm-4.088-1.5a.75.75 0 0 0 0 1.5v-1.5Zm4.838.75a.75.75 0 0 0-1.5 0h1.5Zm-1.5 4.141a.75.75 0 0 0 1.5 0h-1.5Zm1.28-3.61a.75.75 0 0 0-1.06-1.061l1.06 1.06Zm-8.06 5.939a.75.75 0 1 0 1.06 1.06l-1.06-1.06Zm.53-7.22h-3v1.5h3v-1.5Zm-3 0A4.75 4.75 0 0 0 4.75 9.5h1.5A3.25 3.25 0 0 1 9.5 6.25v-1.5ZM4.75 9.5v6h1.5v-6h-1.5Zm0 6a4.75 4.75 0 0 0 4.75 4.75v-1.5a3.25 3.25 0 0 1-3.25-3.25h-1.5Zm4.75 4.75h6v-1.5h-6v1.5Zm6 0a4.75 4.75 0 0 0 4.75-4.75h-1.5a3.25 3.25 0 0 1-3.25 3.25v1.5Zm4.75-4.75v-3h-1.5v3h1.5ZM19.5 4.75h-4.088v1.5H19.5v-1.5Zm-.75.75v4.141h1.5V5.5h-1.5Zm.22-.53-7 7 1.06 1.06 7-7-1.06-1.06Z" />
-                </svg>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M5.5 7l4.5 5 4.5-5h-9z" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Dropdown menu -->
-            <div x-show="open" @click.outside="open = false"
-              class="absolute right-0 z-300 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800"
-              style="display: none;">
-              <div class="py-1 text-sm text-gray-700 dark:text-gray-100">
-                <button id="copy-link-{{il.image.id}}"
-                  class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ">Share
-                  link</button>
-                <button id="copy-link-details-{{il.image.id}}"
-                  class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
-                  details </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-2 text-gray-700 dark:text-gray-200">
-          <p>{{ il.image.description | safe }}</p>
-
-          <button id="comment-thread-toggle-{{il.image.id}}" type="button" class="comment-thread-toggle" aria-expanded="false">
-            Show comments ({{ il.engagement.comment_count }})
-          </button>
-
-          <div id="comment-thread-{{il.image.id}}" class="comment-thread" hidden>
-            <div id="comments-list-{{il.image.id}}" class="comment-list">
-              {% if il.engagement.comments %}
-              {% for comment in il.engagement.comments %}
-              <article class="comment-card">
-                <div class="comment-card-header">
-                  <span class="comment-card-name">{{ comment.commented_by or 'Anonymous' }}</span>
-                  <time class="comment-card-time">{{ comment.commented_at.strftime('%d %b %Y %H:%M') }}</time>
-                </div>
-                <p class="comment-card-body">{{ comment.comment }}</p>
-              </article>
-              {% endfor %}
-              {% else %}
-              <p id="comments-empty-{{il.image.id}}" class="comment-empty">No comments yet. Be the first to leave one.</p>
-              {% endif %}
-            </div>
-          </div>
-
-          <div id="image-comment-modal-{{il.image.id}}" class="comment-modal-backdrop hidden" aria-hidden="true">
-            <div class="comment-modal-card" role="dialog" aria-modal="true" aria-labelledby="image-comment-title-{{il.image.id}}">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p id="image-comment-title-{{il.image.id}}" class="text-lg font-semibold text-gray-900 dark:text-white">Leave a comment</p>
-                  <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">No account is required. We rate-limit anonymous comments to reduce abuse.</p>
-                </div>
-                <button id="image-comment-close-{{il.image.id}}" type="button"
-                  class="rounded-full border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
-                  Close
-                </button>
-              </div>
-
-              <form id="image-comment-form-{{il.image.id}}" class="mt-4 space-y-4">
-                <div class="space-y-2">
-                  <label for="image-comment-name-{{il.image.id}}" class="block text-sm font-semibold text-gray-700 dark:text-gray-200">Display name</label>
-                  <input id="image-comment-name-{{il.image.id}}" name="display_name" type="text" maxlength="40"
-                    class="comment-modal-input"
-                    value="{{ remembered_commenter_name }}"
-                    placeholder="How should your name appear?">
-                </div>
-
-                <div class="space-y-2">
-                  <label for="image-comment-text-{{il.image.id}}" class="block text-sm font-semibold text-gray-700 dark:text-gray-200">Comment</label>
-                  <textarea id="image-comment-text-{{il.image.id}}" name="comment" maxlength="1500"
-                    class="comment-modal-textarea"
-                    placeholder="Share what you noticed, liked, or learned from this post."></textarea>
-                </div>
-
-                <label class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                  <input id="image-comment-remember-{{il.image.id}}" name="remember_name" type="checkbox"
-                    class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
-                    {% if not preference_cookies_enabled %}disabled{% endif %}
-                    {% if remembered_commenter_name %}checked{% endif %}>
-                  <span>
-                    Remember this display name on this browser for future comments.
-                    {% if not preference_cookies_enabled %}
-                    Enable preference cookies in Cookie Settings to save it.
-                    {% endif %}
-                  </span>
-                </label>
-
-                <p id="image-comment-status-{{il.image.id}}" class="comment-modal-status"></p>
-
-                <div class="flex flex-wrap items-center justify-end gap-2">
-                  <button id="image-comment-cancel-{{il.image.id}}" type="button"
-                    class="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
-                    Cancel
-                  </button>
-                  <button id="image-comment-submit-{{il.image.id}}" type="submit"
-                    class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
-                    Post Comment
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div x-show="mainTab === 'details'" x-cloak class="p-6 dark:text-white">
+            <div x-show="mainTab === 'details'" x-cloak class="image-stage-panel p-6 dark:text-white">
         {% set rows = {
           'Lights': 'light_count',
           'Single Exposure': 'exposure_time',
@@ -833,7 +554,7 @@
         </div>
       </div>
 
-      <div x-show="mainTab === 'explore'" x-cloak class="space-y-4 md:p-4 dark:text-white">
+            <div x-show="mainTab === 'explore'" x-cloak class="image-stage-panel space-y-4 md:p-4 dark:text-white">
         {% set explore_tabs = [('hr', 'Hertzsprung Russel Diagram')] %}
         {% if il.meta_json and 'variable' in il.meta_json %}
         {% set explore_tabs = explore_tabs + [('analyse', 'Analyse')] %}
@@ -938,6 +659,302 @@
           </div>
         </div>
         {% endif %}
+      </div>
+
+          </div>
+          <aside class="image-inspector">
+        <div x-cloak class="image-workbench-tabs flex overflow-x-auto whitespace-nowrap" aria-label="Image sections">
+          {% set main_tabs = [
+          ('image', 'Image'),
+          ('details', 'Details'),
+          ('explore', 'Explore')
+          ] %}
+
+          {% for tab_id, tab_label in main_tabs %}
+          <button @click="mainTab = '{{ tab_id }}'"
+            :class="mainTab === '{{ tab_id }}' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'"
+            class="px-4 py-2 text-sm font-medium">
+            {{ tab_label }}
+          </button>
+          {% endfor %}
+        </div>
+        <div class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300">
+            <a href="{{ url_for('profile.public', username=il.image.author) }}"
+              x-data="{ expanded: false }"
+              @mouseenter="if (window.innerWidth < 768) expanded = true"
+              @mouseleave="if (window.innerWidth < 768) expanded = false"
+              @focusin="expanded = true"
+              @click.outside="expanded = false"
+              @click="if (window.innerWidth < 768 && !expanded) { $event.preventDefault(); expanded = true }"
+              :class="{ 'is-expanded': expanded }"
+              :aria-expanded="expanded ? 'true' : 'false'"
+              class="author-pill shrink-0 flex items-center rounded-full bg-white/70 px-3 py-1.5 text-gray-800 shadow-sm backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/60 dark:text-gray-100 dark:hover:bg-gray-900/80">
+              {% if il.image.user_image %}
+              <img
+                src="{{ url_for('blog.upload', filename=il.image.user_image) }}"
+                class="h-8 w-8 rounded-full object-cover border border-white/40"
+                alt="author image">
+              {% else %}
+              <img
+                src="{{ url_for('static', filename='default_profile.png') }}"
+                class="h-8 w-8 rounded-full object-cover border border-white/40"
+                alt="default profile">
+              {% endif %}
+              <span class="author-pill-text flex min-w-0 flex-col leading-tight">
+                <span class="truncate font-medium">@{{ il.image.author }}</span>
+                <span class="truncate text-xs text-gray-500 dark:text-gray-400">{{ il.image.location }}</span>
+              </span>
+            </a>
+
+            <div id="inline-tools-{{il.image.id}}" class="inline-tools-bubble flex flex-wrap items-center gap-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-sm">
+            <div>
+              <input id="graticule-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+              <label for="graticule-toggle-{{il.image.id}}" title="Graticule" class="inline-block px-3 py-1.5 rounded-full cursor-pointer shadow-sm text-sm font-medium
+         bg-gray-300 text-gray-900 border-slate-300
+         hover:bg-gray-400 hover:border-slate-500
+         hover:dark:bg-slate-600 hover:dark:border-slate-400
+         peer-checked:bg-green-800 peer-checked:text-white
+         peer-checked:hover:bg-green-700
+         dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
+         dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 100 100"
+                  preserveAspectRatio="xMidYMid meet">
+                  <g fill="none" stroke="currentColor" stroke-width="4">
+                    <!-- Outer circle -->
+                    <circle cx="50" cy="50" r="45" />
+
+                    <!-- Latitude lines (declination) -->
+                    <ellipse cx="50" cy="50" rx="45" ry="15" />
+                    <ellipse cx="50" cy="50" rx="45" ry="30" />
+
+                    <!-- Longitude lines (RA) -->
+                    <path d="M5,50 a45,45 0 0,1 90,0" />
+                    <path d="M95,50 a45,45 0 0,1 -90,0" />
+
+                    <!-- Meridians -->
+                    <line x1="50" y1="5" x2="50" y2="95" />
+                    <path d="M35,5 A50,100 0 0,0 35,95" />
+                    <path d="M65,5 A50,100 0 0,1 65,95" /> <!-- Flipped this one -->
+                  </g>
+                </svg>
+
+              </label>
+            </div>
+
+            <div>
+              <input id="compare-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+              <label for="compare-toggle-{{il.image.id}}" title="Moon Size Comparison" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
+           bg-gray-300 text-gray-900 border-slate-300
+           hover:bg-gray-400 hover:border-slate-500
+           hover:dark:bg-slate-600 hover:dark:border-slate-400
+            peer-checked:hover:bg-green-700
+           peer-checked:bg-green-800 peer-checked:text-white
+           dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
+           dark:peer-checked:bg-green-500 dark:peer-checked:text-black
+           shadow">
+
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true" role="img">
+                  <image href="{{ url_for('static', filename='assets/images/moon.png') }}" width="128" height="128"
+                    class="object-contain" alt="Moon overlay" />
+                </svg>
+              </label>
+            </div>
+
+            <div>
+              <input id="overlay-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+              <label for="overlay-toggle-{{il.image.id}}" title="{{ 'Show uploaded annotated image' if il.image.annotated_image_path else 'Object Annotation' }}" class="inline-block px-3 p-1.5 rounded-full cursor-pointer  shadow-sm text-sm font-medium
+         bg-gray-300 text-gray-900 border-slate-300
+         hover:bg-gray-400 hover:border-slate-500 hover:dark:bg-slate-600 hover:dark:border-slate-400
+         peer-checked:hover:bg-green-700
+         peer-checked:bg-green-800 peer-checked:text-white
+         dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
+         dark:peer-checked:bg-green-500 dark:peer-checked:text-black">
+                <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="_x32_" class="w-5 h-5 fill-current"
+                  version="1.1" viewBox="0 0 512 512">
+                  <path
+                    d="M480.931 191.431c-1.37-3.032-3.171-5.863-5.495-8.326a24.85 24.85 0 0 0-7.877-5.643L115.761 2.619l-.258-.101C111.459.781 107.158 0 102.903 0 96.322.01 89.87 1.838 83.74 4.881c-9.199 4.595-17.839 11.928-25.651 21.248-7.83 9.338-14.796 20.724-20.256 33.638-7.132 16.846-10.67 33.711-10.68 48.784.01 10.349 1.655 19.926 5.359 28.114 1.866 4.108 4.255 7.867 7.298 11.093 3.014 3.217 6.69 5.864 10.863 7.629l.266.11 201.799 71.539v57.846L130.3 470.789c-2.821 4.283-1.627 10.055 2.656 12.876 4.283 2.831 10.055 1.626 12.876-2.647l106.906-162.324V502.69a9.302 9.302 0 0 0 9.309 9.31c5.128 0 9.292-4.162 9.292-9.31V317.564l107.65 163.455c2.84 4.274 8.594 5.478 12.894 2.647 4.292-2.821 5.469-8.593 2.638-12.876L271.339 283.761v-50.126l149.881 53.14v-.019a25.038 25.038 0 0 0 9.191 1.756c5.045-.028 9.852-1.425 14.346-3.631 6.736-3.373 12.867-8.621 18.39-15.21 5.505-6.59 10.376-14.567 14.218-23.582 4.981-11.792 7.472-23.611 7.482-34.31-.01-7.361-1.168-14.254-3.916-20.348zM65.295 139.706c-1.875 0-3.658-.238-5.367-.753l-2.106-.736c-1.654-.735-3.097-1.746-4.484-3.217-2.123-2.242-4.072-5.643-5.441-10.146-1.351-4.503-2.151-10.054-2.151-16.304 0-12.132 2.96-26.8 9.218-41.532 6.36-15.045 15.073-27.581 24.006-36.036 4.43-4.218 8.915-7.408 13.05-9.448 4.136-2.058 7.858-2.95 10.882-2.95 1.939.01 3.612.359 5.22 1.002l2.049 1.029a19.243 19.243 0 0 1 4.283 3.364c2.758 2.876 5.037 6.866 6.599 11.855 1.572 4.964 2.408 10.864 2.399 17.389.008 11.791-2.748 25.495-8.566 39.189-6.139 14.484-14.641 26.524-23.638 34.768-4.485 4.127-9.089 7.288-13.519 9.402-4.429 2.104-8.638 3.124-12.434 3.124zm92.862 34.071-76.76-27.214c.285-.129.598-.258.9-.387 8.336-3.979 16.378-10.495 23.63-18.95 7.279-8.437 13.722-18.841 18.73-30.642 6.332-14.944 9.42-29.962 9.42-43.361 0-8.208-1.168-15.827-3.575-22.498l72.918 36.229c.653 1.433 1.268 2.922 1.793 4.55 1.58 4.953 2.407 10.89 2.407 17.397.01 11.783-2.748 25.495-8.565 39.207-6.14 14.466-14.65 26.506-23.639 34.75-4.484 4.127-9.089 7.288-13.519 9.402a37.1 37.1 0 0 1-3.74 1.517zm238.082 84.406L172.108 178.73c6.323-3.952 12.398-9.301 17.986-15.816 7.28-8.447 13.722-18.851 18.73-30.661 6.323-14.953 9.42-29.933 9.42-43.352 0-5.404-.515-10.541-1.535-15.348l212.892 105.812c1.369 1.738 2.518 3.944 3.373 6.682 1.066 3.382 1.654 7.454 1.654 11.975.019 8.189-1.911 17.784-5.992 27.406-4.301 10.156-10.284 18.584-16.506 24.309-3.124 2.868-6.296 5.037-9.292 6.452-2.352 1.121-4.576 1.755-6.599 1.994zm63.995-19.347c-4.164 9.862-9.898 18.078-15.624 23.446-2.84 2.72-5.652 4.696-8.134 5.946-2.5 1.232-4.567 1.672-6.066 1.672-.984 0-1.737-.166-2.454-.469l-.257-.119-16.25-5.753c4.724-2.922 9.209-6.884 13.345-11.672 5.284-6.158 9.98-13.721 13.611-22.306 4.596-10.854 6.856-21.744 6.856-31.56 0-4.052-.432-7.876-1.213-11.488l15.486 7.692.257.12c.744.303 1.398.763 2.123 1.535 1.057 1.084 2.17 2.968 2.997 5.68.845 2.721 1.342 6.213 1.342 10.22.001 7.775-1.911 17.369-6.019 27.056z"
+                    class="st0" />
+                  <path
+                    d="M97.811 48.26c1.727-.909 3.225-1.286 4.494-1.286.459 0 .91.046 1.342.148a5.32 5.32 0 0 0 6.359-3.989 5.317 5.317 0 0 0-4.016-6.36 15.962 15.962 0 0 0-3.685-.413c-3.336 0-6.553.947-9.485 2.509-4.402 2.372-8.327 6.048-11.902 10.68-3.538 4.594-6.7 10.183-9.346 16.506-1.14 2.702.137 5.799 2.849 6.956a5.298 5.298 0 0 0 6.939-2.858c3.134-7.454 7.022-13.529 10.9-17.517 1.911-2.005 3.832-3.466 5.551-4.376z"
+                    class="st0" />
+                </svg>
+              </label>
+            </div>
+
+            {% if il.image.starless_image_path %}
+            <div>
+              <input id="starless-toggle-{{il.image.id}}" type="checkbox" class="peer hidden" />
+
+              <label for="starless-toggle-{{il.image.id}}" title="Remove Stars" class="inline-block px-3 py-1.5 rounded-full cursor-pointer text-sm font-medium
+                bg-gray-300 text-gray-900 border-slate-300
+                hover:bg-gray-400 hover:border-slate-500
+                hover:dark:bg-slate-600 hover:dark:border-slate-400
+                peer-checked:hover:bg-green-700
+                peer-checked:bg-green-800 peer-checked:text-white
+                dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600
+                dark:peer-checked:bg-green-500 dark:peer-checked:text-black
+                shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3l1.9 4.1L18 9l-4.1 1.9L12 15l-1.9-4.1L6 9l4.1-1.9L12 3z" />
+                  <path d="M19 14l.95 2.05L22 17l-2.05.95L19 20l-.95-2.05L16 17l2.05-.95L19 14z" />
+                  <path d="M5 15l.95 2.05L8 18l-2.05.95L5 21l-.95-2.05L2 18l2.05-.95L5 15z" />
+                </svg>
+              </label>
+            </div>
+            {% endif %}
+          </div>
+
+          <div x-data="{ open: false }" class="relative ml-auto shrink-0">
+            <div class="inline-flex items-center overflow-hidden rounded-full bg-gray-300 text-gray-900 shadow dark:bg-slate-800 dark:text-gray-100">
+              <button id="image-like-btn-{{il.image.id}}" type="button"
+                class="flex items-center gap-2 px-3 py-2 text-sm font-medium transition hover:bg-gray-400 hover:dark:bg-slate-600"
+                aria-pressed="{{ 'true' if il.engagement.liked else 'false' }}"
+                title="Star this image">
+                <span id="image-like-icon-{{il.image.id}}" aria-hidden="true" class="text-base leading-none text-gray-700 dark:text-gray-200{% if il.engagement.liked %} text-yellow-500 dark:text-yellow-500{% endif %}">★</span>
+                <span id="image-like-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.like_count }}</span>
+              </button>
+
+              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
+
+              <span class="flex items-center gap-2 px-3 py-2 text-sm font-medium" title="Unique views">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span id="image-view-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.view_count }}</span>
+              </span>
+
+              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
+
+              <button id="image-comments-toggle-{{il.image.id}}" type="button"
+                class="flex items-center gap-2 px-3 py-2 text-sm font-medium transition hover:bg-gray-400 hover:dark:bg-slate-600"
+                title="Leave a comment">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M7 10h10M7 14h6" />
+                  <path d="M5 19l-1 3 3.5-1.5H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v10a3 3 0 0 0 2 2z" />
+                </svg>
+                <span id="image-comment-count-{{il.image.id}}" class="text-sm font-bold text-blue-600 dark:text-blue-300">{{ il.engagement.comment_count }}</span>
+              </button>
+
+              <span aria-hidden="true" class="h-6 w-px bg-gray-400 dark:bg-gray-500"></span>
+
+              <button @click="open = !open" :aria-expanded="open ? 'true' : 'false'" type="button" title="Share this image"
+                class="flex items-center gap-2 px-3 py-2 transition hover:bg-gray-400 hover:dark:bg-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 22 22" aria-hidden="true">
+                  <path
+                    d="M12.5 6.25a.75.75 0 0 0 0-1.5v1.5Zm7.75 6.25a.75.75 0 0 0-1.5 0h1.5Zm-.75-6.25a.75.75 0 0 0 0-1.5v1.5Zm-4.088-1.5a.75.75 0 0 0 0 1.5v-1.5Zm4.838.75a.75.75 0 0 0-1.5 0h1.5Zm-1.5 4.141a.75.75 0 0 0 1.5 0h-1.5Zm1.28-3.61a.75.75 0 0 0-1.06-1.061l1.06 1.06Zm-8.06 5.939a.75.75 0 1 0 1.06 1.06l-1.06-1.06Zm.53-7.22h-3v1.5h3v-1.5Zm-3 0A4.75 4.75 0 0 0 4.75 9.5h1.5A3.25 3.25 0 0 1 9.5 6.25v-1.5ZM4.75 9.5v6h1.5v-6h-1.5Zm0 6a4.75 4.75 0 0 0 4.75 4.75v-1.5a3.25 3.25 0 0 1-3.25-3.25h-1.5Zm4.75 4.75h6v-1.5h-6v1.5Zm6 0a4.75 4.75 0 0 0 4.75-4.75h-1.5a3.25 3.25 0 0 1-3.25 3.25v1.5Zm4.75-4.75v-3h-1.5v3h1.5ZM19.5 4.75h-4.088v1.5H19.5v-1.5Zm-.75.75v4.141h1.5V5.5h-1.5Zm.22-.53-7 7 1.06 1.06 7-7-1.06-1.06Z" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M5.5 7l4.5 5 4.5-5h-9z" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Dropdown menu -->
+            <div x-show="open" @click.outside="open = false"
+              class="absolute right-0 z-300 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800"
+              style="display: none;">
+              <div class="py-1 text-sm text-gray-700 dark:text-gray-100">
+                <button id="copy-link-{{il.image.id}}"
+                  class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ">Share
+                  link</button>
+                <button id="copy-link-details-{{il.image.id}}"
+                  class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">Share link with
+                  details </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-2 text-gray-700 dark:text-gray-200">
+          <p>{{ il.image.description | safe }}</p>
+
+          <button id="comment-thread-toggle-{{il.image.id}}" type="button" class="comment-thread-toggle" aria-expanded="false">
+            Show comments ({{ il.engagement.comment_count }})
+          </button>
+
+          <div id="comment-thread-{{il.image.id}}" class="comment-thread" hidden>
+            <div id="comments-list-{{il.image.id}}" class="comment-list">
+              {% if il.engagement.comments %}
+              {% for comment in il.engagement.comments %}
+              <article class="comment-card">
+                <div class="comment-card-header">
+                  <span class="comment-card-name">{{ comment.commented_by or 'Anonymous' }}</span>
+                  <time class="comment-card-time">{{ comment.commented_at.strftime('%d %b %Y %H:%M') }}</time>
+                </div>
+                <p class="comment-card-body">{{ comment.comment }}</p>
+              </article>
+              {% endfor %}
+              {% else %}
+              <p id="comments-empty-{{il.image.id}}" class="comment-empty">No comments yet. Be the first to leave one.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div id="image-comment-modal-{{il.image.id}}" class="comment-modal-backdrop hidden" aria-hidden="true">
+            <div class="comment-modal-card" role="dialog" aria-modal="true" aria-labelledby="image-comment-title-{{il.image.id}}">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p id="image-comment-title-{{il.image.id}}" class="text-lg font-semibold text-gray-900 dark:text-white">Leave a comment</p>
+                  <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">No account is required. We rate-limit anonymous comments to reduce abuse.</p>
+                </div>
+                <button id="image-comment-close-{{il.image.id}}" type="button"
+                  class="rounded-full border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                  Close
+                </button>
+              </div>
+
+              <form id="image-comment-form-{{il.image.id}}" class="mt-4 space-y-4">
+                <div class="space-y-2">
+                  <label for="image-comment-name-{{il.image.id}}" class="block text-sm font-semibold text-gray-700 dark:text-gray-200">Display name</label>
+                  <input id="image-comment-name-{{il.image.id}}" name="display_name" type="text" maxlength="40"
+                    class="comment-modal-input"
+                    value="{{ remembered_commenter_name }}"
+                    placeholder="How should your name appear?">
+                </div>
+
+                <div class="space-y-2">
+                  <label for="image-comment-text-{{il.image.id}}" class="block text-sm font-semibold text-gray-700 dark:text-gray-200">Comment</label>
+                  <textarea id="image-comment-text-{{il.image.id}}" name="comment" maxlength="1500"
+                    class="comment-modal-textarea"
+                    placeholder="Share what you noticed, liked, or learned from this post."></textarea>
+                </div>
+
+                <label class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
+                  <input id="image-comment-remember-{{il.image.id}}" name="remember_name" type="checkbox"
+                    class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+                    {% if not preference_cookies_enabled %}disabled{% endif %}
+                    {% if remembered_commenter_name %}checked{% endif %}>
+                  <span>
+                    Remember this display name on this browser for future comments.
+                    {% if not preference_cookies_enabled %}
+                    Enable preference cookies in Cookie Settings to save it.
+                    {% endif %}
+                  </span>
+                </label>
+
+                <p id="image-comment-status-{{il.image.id}}" class="comment-modal-status"></p>
+
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <button id="image-comment-cancel-{{il.image.id}}" type="button"
+                    class="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800">
+                    Cancel
+                  </button>
+                  <button id="image-comment-submit-{{il.image.id}}" type="submit"
+                    class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    Post Comment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+          </aside>
+        </div>
       </div>
 
     </div>
@@ -1053,13 +1070,67 @@
             });
         }
 
-        // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML); 
+        // document.getElementById("copy-html-details-{{il.image.id}}").addEventListener("click", copyCurrentURLwithDetailsHTML);
 
-        const overlayData = {{ il.svg_image | tojson | safe  }};
+        let overlayData = null;
+        let explorePayload = null;
+        let explorePayloadPromise = null;
+        const exploreDataUrl = {{ url_for('blog.image_explore_data', image_id=il.image.id) | tojson | safe }};
+
+        function loadScript(src) {
+          if (document.querySelector(`script[src="${src}"]`)) {
+            return Promise.resolve();
+          }
+
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.async = true;
+            script.addEventListener("load", resolve, { once: true });
+            script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+            document.head.appendChild(script);
+          });
+        }
+
+        async function ensureExplorePayload() {
+          if (explorePayload) {
+            return explorePayload;
+          }
+
+          if (!explorePayloadPromise) {
+            explorePayloadPromise = fetch(exploreDataUrl, { headers: { Accept: "application/json" } })
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error(`Explore data request failed (${response.status})`);
+                }
+                return response.json();
+              })
+              .then(payload => {
+                overlayData = payload.overlay;
+                explorePayload = payload;
+                return payload;
+              })
+              .catch(error => {
+                explorePayloadPromise = null;
+                throw error;
+              });
+          }
+
+          return explorePayloadPromise;
+        }
+
+        async function ensurePlotly() {
+          if (!window.Plotly) {
+            await loadScript("https://cdn.plot.ly/plotly-3.0.1.min.js");
+          }
+        }
+
         const uploadBase = {{ url_for('blog.upload', filename='') | tojson | safe }};
         const primaryImageSrc = {{ primary_image_src | tojson | safe }};
         const primaryCaption = {{ il.image.title | tojson | safe }};
+        const annotatedImageSrc = {{ annotated_image_src | tojson | safe }};
         const starlessImageSrc = {{ starless_image_src | tojson | safe }};
+        const moonDiameter = {{ moon_width | int }};
         const relatedMedia = {{ il.related_media | tojson | safe }};
 
         function renderObjectOverlay(target, enabled) {
@@ -1151,7 +1222,7 @@
         }
 
         function renderGraticuleOverlay(target, enabled) {
-          if (!enabled) {
+          if (!enabled || !overlayData?.grid_lines) {
             target.innerHTML = "";
             return;
           }
@@ -1177,15 +1248,19 @@
         }
 
         function syncCompareOverlay(compareWrapper, enabled) {
-          if (!enabled) {
+          if (!enabled || !overlayData?.width || !overlayData?.height) {
             compareWrapper.classList.add("hidden");
             return;
           }
 
           compareWrapper.classList.remove("hidden");
+          compareWrapper.setAttribute("viewBox", "0 0 " + overlayData.width + " " + overlayData.height);
+          const compareImage = compareWrapper.querySelector("image");
+          compareImage?.setAttribute("width", String(moonDiameter));
+          compareImage?.setAttribute("height", String(moonDiameter));
 
           if (!compareWrapper._panzoomInstance) {
-            compareWrapper.setAttribute("viewBox", `0 0 ${overlayData.width} ${overlayData.height}`);
+
             compareWrapper._panzoomInstance = Panzoom(compareWrapper, {
               cursor: "grab",
               disableZoom: true
@@ -1211,6 +1286,7 @@
 
           const state = {
             astroEnabled: true,
+            activeSource: primaryImageSrc,
             activeKind: "image",
           };
 
@@ -1227,9 +1303,24 @@
 
           const renderAll = () => {
             const astroEnabled = state.astroEnabled;
-            renderObjectOverlay(elements.overlay, astroEnabled && elements.overlayToggle.checked);
-            renderGraticuleOverlay(elements.graticule, astroEnabled && elements.graticuleToggle.checked);
-            syncCompareOverlay(elements.compareWrapper, astroEnabled && elements.compareToggle.checked);
+            const showAnnotatedImage = astroEnabled && Boolean(annotatedImageSrc) && elements.overlayToggle.checked;
+            const showObjects = astroEnabled && elements.overlayToggle.checked && !annotatedImageSrc;
+            const showGraticule = astroEnabled && elements.graticuleToggle.checked;
+            const showCompare = astroEnabled && elements.compareToggle.checked;
+
+            if (state.activeKind === "image") {
+              elements.image.src = showAnnotatedImage ? annotatedImageSrc : state.activeSource;
+            }
+
+            if (overlayData) {
+              renderObjectOverlay(elements.overlay, showObjects);
+              renderGraticuleOverlay(elements.graticule, showGraticule);
+              syncCompareOverlay(elements.compareWrapper, showCompare);
+            } else {
+              elements.overlay.innerHTML = "";
+              elements.graticule.innerHTML = "";
+              elements.compareWrapper.classList.add("hidden");
+            }
 
             elements.overlay.classList.toggle("hidden", !astroEnabled);
             elements.graticule.classList.toggle("hidden", !astroEnabled);
@@ -1238,16 +1329,33 @@
             }
           };
 
+          const requestRenderAll = () => {
+            const wantsOverlayData = state.astroEnabled && (
+              elements.overlayToggle.checked ||
+              elements.graticuleToggle.checked ||
+              elements.compareToggle.checked
+            );
+
+            if (wantsOverlayData && !overlayData) {
+              ensureExplorePayload()
+                .then(renderAll)
+                .catch(error => console.error("Could not load image overlays", error));
+              return;
+            }
+
+            renderAll();
+          };
+
           elements.resetButton.addEventListener("click", () => {
             panzoom.reset();
             elements.compareWrapper._panzoomInstance?.reset?.();
           });
 
-          elements.overlayToggle.addEventListener("change", renderAll);
-          elements.graticuleToggle.addEventListener("change", renderAll);
-          elements.compareToggle.addEventListener("change", renderAll);
+          elements.overlayToggle.addEventListener("change", requestRenderAll);
+          elements.graticuleToggle.addEventListener("change", requestRenderAll);
+          elements.compareToggle.addEventListener("change", requestRenderAll);
 
-          renderAll();
+          requestRenderAll();
 
           return {
             elements,
@@ -1258,6 +1366,7 @@
             setSlide(slide) {
               state.activeKind = slide.kind;
               state.astroEnabled = !!slide.astro;
+              state.activeSource = slide.src;
 
               elements.image.classList.toggle("hidden", slide.kind === "video");
               if (elements.video) {
@@ -1280,7 +1389,7 @@
                 }
               }
 
-              renderAll();
+              requestRenderAll();
               panzoom.reset();
               elements.compareWrapper._panzoomInstance?.reset?.();
             },
@@ -1288,12 +1397,13 @@
               elements.overlayToggle.checked = !!state.overlay;
               elements.graticuleToggle.checked = !!state.graticule;
               elements.compareToggle.checked = !!state.compare;
-              renderAll();
+              requestRenderAll();
             }
           };
         }
 
         const inlineCaption = document.getElementById(`inline-media-caption-${imageId}`);
+        const inlineTitle = document.getElementById(`image-stage-title-${imageId}`);
         const inlineToolTray = document.getElementById(`inline-tool-tray-${imageId}`);
         const inlineTools = document.getElementById(`inline-tools-${imageId}`);
         const starlessToggle = document.getElementById(`starless-toggle-${imageId}`);
@@ -1322,6 +1432,7 @@
         const commentSubmitButton = document.getElementById(`image-comment-submit-${imageId}`);
         let inlineToolHideTimer = null;
         let inlineChromeHideTimer = null;
+        let inlineTitleHideTimer = null;
         let inlineAstroControlsAvailable = true;
         let inlineChromeHovered = false;
         let inlineChromeActive = false;
@@ -1503,6 +1614,12 @@
           if (!fullscreenViewer) {
             // Initialize the fullscreen panzoom after the modal is visible so reset uses the rendered size.
             fullscreenViewer = createViewer("fullscreen-");
+            fullscreenViewer.elements.overlayToggle.addEventListener("change", () => {
+              if (fullscreenViewer.elements.overlayToggle.checked && starlessToggle) {
+                starlessToggle.checked = false;
+              }
+              renderActiveSlide();
+            });
           }
 
           return fullscreenViewer;
@@ -1540,6 +1657,25 @@
 
           setInlineToolTrayVisible(true);
           scheduleInlineToolTrayHide();
+        }
+
+        function clearInlineTitleHideTimer() {
+          if (inlineTitleHideTimer !== null) {
+            window.clearTimeout(inlineTitleHideTimer);
+            inlineTitleHideTimer = null;
+          }
+        }
+
+        function revealInlineTitle() {
+          if (!inlineTitle) {
+            return;
+          }
+
+          inlineTitle.classList.add("is-visible");
+          clearInlineTitleHideTimer();
+          inlineTitleHideTimer = window.setTimeout(() => {
+            inlineTitle.classList.remove("is-visible");
+          }, 5000);
         }
 
         function renderInlineChrome() {
@@ -1590,7 +1726,15 @@
           const slide = getActiveSlide();
           inlineViewer.setSlide(slide);
 
-          inlineCaption.textContent = slide.caption || "";
+          if (inlineCaption) {
+            inlineCaption.textContent = "";
+          }
+          if (inlineTitle) {
+            inlineTitle.textContent = activeSlideIndex === 0 ? primaryCaption : (slide.caption || "");
+            if (activeSlideIndex !== 0) {
+              revealInlineTitle();
+            }
+          }
 
           const astroEnabled = slide.astro;
           inlineAstroControlsAvailable = astroEnabled;
@@ -1656,7 +1800,18 @@
         fullscreenBackdrop.addEventListener("click", closeFullscreenViewer);
         mediaPrevButton?.addEventListener("click", () => changeSlide(-1));
         mediaNextButton?.addEventListener("click", () => changeSlide(1));
-        starlessToggle?.addEventListener("change", renderActiveSlide);
+        inlineViewer.elements.overlayToggle.addEventListener("change", () => {
+          if (inlineViewer.elements.overlayToggle.checked && starlessToggle) {
+            starlessToggle.checked = false;
+          }
+          renderActiveSlide();
+        });
+        starlessToggle?.addEventListener("change", () => {
+          if (starlessToggle.checked) {
+            inlineViewer.elements.overlayToggle.checked = false;
+          }
+          renderActiveSlide();
+        });
         const inlineContainer = inlineViewer.elements.container;
         inlineContainer?.addEventListener("mouseenter", pokeInlineToolTray);
         inlineContainer?.addEventListener("mousemove", pokeInlineToolTray);
@@ -1666,6 +1821,10 @@
         inlineContainer?.addEventListener("mousemove", pokeInlineChrome);
         inlineContainer?.addEventListener("pointerdown", pokeInlineChrome);
         inlineContainer?.addEventListener("focusin", pokeInlineChrome);
+        inlineContainer?.addEventListener("mouseenter", revealInlineTitle);
+        inlineContainer?.addEventListener("mousemove", revealInlineTitle);
+        inlineContainer?.addEventListener("pointerdown", revealInlineTitle);
+        inlineContainer?.addEventListener("focusin", revealInlineTitle);
         inlineContainer?.addEventListener("mouseleave", () => {
           clearInlineToolTrayHideTimer();
           setInlineToolTrayVisible(false);
@@ -1815,55 +1974,97 @@
           }
         });
 
+        let exploreRenderPromise = null;
+        let exploreRendered = false;
+
+        function renderVariableExplore(payload) {
+          const updateButton = document.getElementById("updatePlotBtn");
+          const metaVariable = payload.meta_variable || {};
+          const metaComments = payload.meta_comments || {};
+
+          if (!updateButton || !Object.keys(metaVariable).length) {
+            return;
+          }
+
+          populateAxisSelects(metaVariable);
+
+          const update = () => {
+            const xAxisSelect = document.getElementById("xAxisSelect");
+            const yAxisSelects = [
+              document.getElementById("yAxisSelect1"),
+              document.getElementById("yAxisSelect2"),
+              document.getElementById("yAxisSelect3"),
+            ];
+            const yAxisTypes = [
+              document.getElementById("yAxisType1"),
+              document.getElementById("yAxisType2"),
+              document.getElementById("yAxisType3"),
+            ];
+
+            if (!xAxisSelect || yAxisSelects.some(select => !select) || yAxisTypes.some(select => !select)) {
+              return;
+            }
+
+            const getSelectedValues = select => Array.from(select.selectedOptions).map(option => option.value);
+            drawVariablePlot(
+              metaVariable,
+              metaComments,
+              xAxisSelect.value,
+              yAxisSelects.map(getSelectedValues),
+              yAxisTypes.map(select => select.value)
+            );
+          };
+
+          updateButton.addEventListener("click", update);
+          update();
+        }
+
+        async function renderExplore() {
+          if (exploreRendered) {
+            return;
+          }
+
+          if (!exploreRenderPromise) {
+            exploreRenderPromise = Promise.all([ensureExplorePayload(), ensurePlotly()])
+              .then(([payload]) => {
+                if (payload.overlay) {
+                  drawHRDiagram(payload.overlay);
+                }
+
+                if (document.getElementById("guiding-root-{{il.image.id}}")) {
+                  renderGuidingPlot("guiding-root-{{il.image.id}}", payload.guiding);
+                }
+                if (document.getElementById("calibration-root-{{il.image.id}}")) {
+                  renderCalibrationPlot("calibration-root-{{il.image.id}}", payload.calibration);
+                }
+
+                renderVariableExplore(payload);
+                exploreRendered = true;
+                window.dispatchEvent(new CustomEvent("astrospace:explore-rendered", {
+                  detail: { imageId },
+                }));
+              })
+              .catch(error => {
+                exploreRenderPromise = null;
+                console.error("Could not load image analysis", error);
+              });
+          }
+
+          return exploreRenderPromise;
+        }
+
+        window.addEventListener("astrospace:load-explore", event => {
+          if (event.detail?.imageId === imageId) {
+            void renderExplore();
+          }
+        });
+
         document.addEventListener("DOMContentLoaded", () => {
-            setLikeState(likeButton?.getAttribute("aria-pressed") === "true", Number(likeCount?.textContent || 0));
-            setViewCount(Number(viewCount?.textContent || 0));
-            setCommentCount(Number(commentCount?.textContent || 0));
-            renderActiveSlide();
-            drawHRDiagram(overlayData);
-            renderGuidingPlot("guiding-root-{{il.image.id}}", {{ il.guiding_plot | tojson | safe }});
-            renderCalibrationPlot("calibration-root-{{il.image.id}}", {{ il.calibration_plot | tojson | safe }});
-
-            {% if il.meta_json %}
-            const metaVariable = {{ il.meta_json.variable | tojson | safe }};
-            const metaComments = {{ il.meta_json.comments | tojson | safe }};
-
-            populateAxisSelects(metaVariable);
-
-            const update = () => {
-                const xKey = document.getElementById("xAxisSelect").value;
-
-                const getSelectedValues = (id) =>
-                    Array.from(document.getElementById(id).selectedOptions)
-                        .map(o => o.value);
-
-                const yKeys = [
-                    getSelectedValues("yAxisSelect1"),
-                    getSelectedValues("yAxisSelect2"),
-                    getSelectedValues("yAxisSelect3"),
-                ]
-
-                const chartTypes = [
-                    document.getElementById("yAxisType1").value,
-                    document.getElementById("yAxisType2").value,
-                    document.getElementById("yAxisType3").value,
-                ];
-
-                drawVariablePlot(
-                    metaVariable,
-                    metaComments,
-                    xKey,
-                    yKeys,
-                    chartTypes
-                );
-            };
-
-            document
-                .getElementById("updatePlotBtn")
-                .addEventListener("click", update);
-
-            update(); // initial plot 
-            {% endif %}
+          setLikeState(likeButton?.getAttribute("aria-pressed") === "true", Number(likeCount?.textContent || 0));
+          setViewCount(Number(viewCount?.textContent || 0));
+          setCommentCount(Number(commentCount?.textContent || 0));
+          renderActiveSlide();
+          window.dispatchEvent(new Event("astrospace:explore-loader-ready"));
         });
       })();
       </script>

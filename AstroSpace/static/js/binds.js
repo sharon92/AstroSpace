@@ -28,6 +28,90 @@ export let metaStore = {
     wbpp_stats: {}
 };
 
+
+export function restoreMetadata(savedMetadata) {
+    if (!savedMetadata || typeof savedMetadata !== "object") return;
+
+    metaStore.constant = savedMetadata.constant || {};
+    metaStore.variable = savedMetadata.variable || {};
+    metaStore.comments = savedMetadata.comments || {};
+
+    const constTbody = document.querySelector("#constantsTable tbody");
+    if (constTbody) {
+        constTbody.innerHTML = "";
+        Object.entries(metaStore.constant).forEach(([key, value]) => {
+            const row = document.createElement("tr");
+            const keyCell = document.createElement("td");
+            keyCell.textContent = key;
+            keyCell.className = "border px-2 py-1 font-mono text-gray-700 dark:text-gray-300";
+            const valueCell = document.createElement("td");
+            valueCell.textContent = value;
+            valueCell.className = "border px-2 py-1 text-gray-700 dark:text-gray-300";
+            const commentCell = document.createElement("td");
+            commentCell.textContent = metaStore.comments[key] || "";
+            commentCell.className = "border px-2 py-1 text-gray-700 dark:text-gray-300";
+            row.append(keyCell, valueCell, commentCell);
+            constTbody.appendChild(row);
+        });
+    }
+
+    const variableTable = document.getElementById("variablesTable");
+    if (variableTable) {
+        const header = variableTable.querySelector("thead");
+        const body = variableTable.querySelector("tbody");
+        header.innerHTML = "";
+        body.innerHTML = "";
+
+        const files = Array.isArray(metaStore.variable._files)
+            ? metaStore.variable._files
+            : [];
+        const keywords = Object.keys(metaStore.variable).filter((key) => key !== "_files");
+
+        if (files.length || keywords.length) {
+            const headerRow = document.createElement("tr");
+            const fileHeader = document.createElement("th");
+            fileHeader.textContent = "File";
+            fileHeader.className = "border px-2 py-1 text-left text-black";
+            headerRow.appendChild(fileHeader);
+
+            keywords.forEach((key) => {
+                const columnHeader = document.createElement("th");
+                columnHeader.className = "border px-2 py-1 text-left";
+                const keyLabel = document.createElement("div");
+                keyLabel.textContent = key;
+                keyLabel.className = "font-mono text-black";
+                const comment = document.createElement("div");
+                comment.textContent = metaStore.comments[key] || "";
+                comment.className = "text-xs text-gray-500";
+                columnHeader.append(keyLabel, comment);
+                headerRow.appendChild(columnHeader);
+            });
+            header.appendChild(headerRow);
+
+            files.forEach((file, rowIndex) => {
+                const row = document.createElement("tr");
+                const fileCell = document.createElement("td");
+                fileCell.textContent = file;
+                fileCell.className = "border px-2 py-1 font-mono";
+                row.appendChild(fileCell);
+
+                keywords.forEach((key) => {
+                    const valueCell = document.createElement("td");
+                    valueCell.textContent = metaStore.variable[key]?.[rowIndex] ?? "";
+                    valueCell.className = "border px-2 py-1";
+                    row.appendChild(valueCell);
+                });
+                body.appendChild(row);
+            });
+        }
+    }
+
+    const storedMetadata = document.getElementById("meta_store_input");
+    if (storedMetadata) {
+        storedMetadata.value = JSON.stringify(metaStore);
+    }
+}
+
 export function bindLightFramesAnalyse() {
     const wbppInput = document.getElementById("wbppLogInput");
     const input = document.getElementById("lightFramesInput");
@@ -55,8 +139,9 @@ export function bindLightFramesAnalyse() {
 
                     const data = await res.json();
 
-                    if (data.error) {
+                    if (!res.ok || data.error) {
                         console.error("WBPP log error:", data.error);
+                        return;
                     }
 
                     // Merge or replace WBPP stats in metaStore

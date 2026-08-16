@@ -313,6 +313,37 @@ def image_detail(image_id, image_name):
     return response
 
 
+@bp.route("/image/<int:image_id>/explore-data")
+def image_explore_data(image_id):
+    """Return the large, optional image-analysis payload on demand."""
+    tables = get_image_tables(image_id)
+    if isinstance(tables, str):
+        return jsonify({"message": "Image not found."}), 404
+
+    (
+        _image,
+        _equipment_list,
+        _dates,
+        _lights,
+        _software_list,
+        guiding_plot,
+        calibration_plot,
+        svg_image,
+        meta_json,
+        _related_media,
+    ) = tables
+
+    return jsonify(
+        {
+            "overlay": svg_image,
+            "guiding": guiding_plot,
+            "calibration": calibration_plot,
+            "meta_variable": meta_json.get("variable", {}),
+            "meta_comments": meta_json.get("comments", {}),
+        }
+    )
+
+
 @bp.route("/image/<int:image_id>/like", methods=["POST"])
 def like_image_endpoint(image_id):
     image = get_image_by_id(image_id)
@@ -433,6 +464,7 @@ def build_related_media_rows(form, uploaded_files, upload_root, user_id):
 
 # New post form
 def render_image_form(title, **kwargs):
+    kwargs.setdefault("metadata", {})
     kwargs.update({t: fetch_options(t) for t in DB_TABLES if t not in ["guide_camera"]})
     kwargs.update({"softwares": fetch_options("software")})
     kwargs.update({"filters": fetch_options("cam_filter")})
@@ -463,6 +495,7 @@ def new_image():
         capture_dates=[],
         software_list=[],
         lights_json=json.dumps([]),
+        metadata={},
         related_media_json=json.dumps([]),
         is_edit=False,
     )
@@ -475,14 +508,16 @@ def edit_image(image_id):
     if len(tables) == 1:
         return tables
 
-    image, equipment_list, dates, lights, software_list, _, _, _, _, related_media = tables
+    image, _equipment_list, dates, lights, software_list, _, _, _, meta_json, related_media = tables
     require_owner(image["author"])
 
     capture_dates = [d["capture_date"].strftime("%Y-%m-%d") for d in dates]
 
-    equipment = {}
-    for eq in equipment_list:
-        equipment[eq["table"]] = eq["id"]
+    equipment = {
+        table: image[f"{table}_id"]
+        for table in DB_TABLES
+        if image.get(f"{table}_id") is not None
+    }
 
     related_media_payload = [
         {
@@ -500,6 +535,7 @@ def edit_image(image_id):
         equipment=equipment,
         capture_dates=capture_dates,
         software_list=software_list,
+        metadata=meta_json,
         lights_json=json.dumps(lights),
         related_media_json=json.dumps(related_media_payload),
         is_edit=True,
@@ -595,6 +631,7 @@ def save_image():
         file = request.files.get("image_path")
         fits_path = request.files.get("fits_file")
         starless_file = request.files.get("starless_image_path")
+        annotated_file = request.files.get("annotated_image_path")
         svg_image = None
         if file and file.filename:
             debug_log("Received preview image upload filename=%s", file.filename)
@@ -659,6 +696,23 @@ def save_image():
             stored_starless = save_user_upload(starless_file, current_app.config["UPLOAD_PATH"], user_id)
             starless_path_upload = stored_starless.public_path
             debug_log("Starless image persisted (public_path=%s)", starless_path_upload)
+        annotated_path_upload = form.get("prev_annotated_img") or ""
+        if annotated_file and annotated_file.filename:
+            debug_log("Received annotated image upload filename=%s", annotated_file.filename)
+            if not allowed_file(annotated_file.filename, ALLOWED_IMG_EXTENSIONS):
+                debug_log(
+                    "Rejected annotated image with unsupported extension: %s",
+                    annotated_file.filename,
+                    level=logging.WARNING,
+                )
+                return image_form_redirect("Annotated image must be a JPG or PNG file.")
+
+            stored_annotated = save_user_upload(
+                annotated_file, current_app.config["UPLOAD_PATH"], user_id
+            )
+            annotated_path_upload = stored_annotated.public_path
+            debug_log("Annotated image persisted (public_path=%s)", annotated_path_upload)
+
 
         try:
             related_media_rows = build_related_media_rows(
@@ -677,7 +731,10 @@ def save_image():
             return image_form_redirect(str(exc))
         debug_log("Prepared %s related media row(s) for image submission.", len(related_media_rows))
 
-        if svg_image is None:
+        if annotated_path_upload:
+            # The supplied image already contains the desired annotations.
+            svg_image = None
+        elif svg_image is None:
             svg_image = json.dumps(get_overlays(header_json))
         guide_logs = request.files.getlist("guide_logs")
         new_guide_logs = any(i.filename for i in guide_logs)
@@ -756,6 +813,7 @@ def save_image():
             "edited_at",
             "image_path",
             "starless_image_path",
+            "annotated_image_path",
             "image_thumbnail",
             "pixel_scale",
             "object_type",
@@ -784,6 +842,7 @@ def save_image():
             edited_at,
             img_path_upload,
             starless_path_upload,
+            annotated_path_upload,
             thumbnail_path,
             pixel_scale,
             object_type,

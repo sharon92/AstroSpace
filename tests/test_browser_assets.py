@@ -62,7 +62,16 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert template_source.count('title="Resize"') >= 2
     assert 'title="Graticule"' in template_source
     assert 'title="Moon Size Comparison"' in template_source
-    assert 'title="Object Annotation"' in template_source
+    assert "Show uploaded annotated image" in template_source
+    assert "Object Annotation" in template_source
+    assert "const annotatedImageSrc = {{ annotated_image_src | tojson | safe }};" in template_source
+    assert "elements.image.src = showAnnotatedImage ? annotatedImageSrc : state.activeSource;" in template_source
+    assert "const wantsOverlayData = state.astroEnabled && (" in template_source
+    assert "if (!enabled || !overlayData?.grid_lines)" in template_source
+    assert "if (!enabled || !overlayData?.width || !overlayData?.height)" in template_source
+    assert "const moonDiameter = {{ moon_width | int }};" in template_source
+    assert 'inlineViewer.elements.overlayToggle.addEventListener("change"' in template_source
+    assert 'starlessToggle?.addEventListener("change"' in template_source
     assert 'title="Remove Stars"' in template_source
     assert 'let fullscreenViewer = null;' in template_source
     assert 'function ensureFullscreenViewer()' in template_source

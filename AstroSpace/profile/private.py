@@ -173,7 +173,7 @@ def rebuild_all_plate_solves(db, upload_root):
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT id, image_path, header_json
+            SELECT id, image_path, header_json, annotated_image_path
             FROM images
             WHERE image_path IS NOT NULL AND NULLIF(BTRIM(image_path), '') IS NOT NULL
               AND header_json IS NOT NULL AND NULLIF(BTRIM(header_json), '') IS NOT NULL
@@ -204,6 +204,7 @@ def rebuild_all_plate_solves(db, upload_root):
                 absolute_image_path,
                 public_image_path,
                 row["header_json"],
+                include_overlays=not bool(row.get("annotated_image_path")),
             )
             with db.cursor() as cur:
                 cur.execute(
@@ -248,7 +249,7 @@ def purge_unbound_image_uploads(db, upload_root):
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT image_path, image_thumbnail, starless_image_path
+            SELECT image_path, image_thumbnail, starless_image_path, annotated_image_path
             FROM images
             """
         )
@@ -276,6 +277,7 @@ def purge_unbound_image_uploads(db, upload_root):
                 row.get("image_path"),
                 row.get("image_thumbnail"),
                 row.get("starless_image_path"),
+                row.get("annotated_image_path"),
             )
             for row in image_rows
         ]

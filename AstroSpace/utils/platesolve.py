@@ -395,7 +395,7 @@ def platesolve(image_path, user_id, fits_file=None):
     return header_json, thumbnail_path, pixel_scale
 
 
-def rebuild_plate_solve_artifacts(image_path, image_public_path, header_json):
+def rebuild_plate_solve_artifacts(image_path, image_public_path, header_json, include_overlays=True):
     debug_log(
         "Rebuilding plate-solve artifacts (image_path=%s, image_public_path=%s)",
         image_path,
@@ -419,7 +419,7 @@ def rebuild_plate_solve_artifacts(image_path, image_public_path, header_json):
 
     thumbnail_public_path = os.path.splitext(image_public_path.replace("\\", "/"))[0] + "_thumbnail.jpg"
     updated_header_json = wcs_header.tostring()
-    overlays_json = json.dumps(get_overlays(updated_header_json))
+    overlays_json = json.dumps(get_overlays(updated_header_json)) if include_overlays else None
     debug_log(
         "Rebuilt plate-solve artifacts (thumbnail=%s, pixel_scale=%s, display_transform=%s)",
         thumbnail_public_path,
@@ -484,6 +484,45 @@ favs = [
     "Y*O",
 ]
 
+
+def get_graticule_overlay(wcs_header):
+    """Build the image-space payload without remote catalog queries."""
+    debug_log("Generating graticule overlay from WCS header.")
+    wcs_header, display_transform = annotate_display_transform_metadata(wcs_header)
+    wcs = WCS(wcs_header, naxis=2)
+    try:
+        wcs = wcs.dropaxis(2)
+    except Exception:
+        pass
+
+    try:
+        nx, ny = wcs_header["IMAGEW"], wcs_header["IMAGEH"]
+    except KeyError:
+        nx, ny = wcs_header["NAXIS1"], wcs_header["NAXIS2"]
+
+    corners_pix = np.array([[0, 0], [nx, 0], [nx, ny], [0, ny]])
+    ra_vals, dec_vals = wcs.pixel_to_world_values(corners_pix[:, 0], corners_pix[:, 1])
+    grid_lines = make_grid_lines(
+        wcs,
+        ra_limits=[ra_vals.min(), ra_vals.max()],
+        dec_limits=[dec_vals.min(), dec_vals.max()],
+    )
+    payload = {
+        "width": nx,
+        "height": ny,
+        "overlays": {
+            "name": [],
+            "x": [],
+            "y": [],
+            "rx": [],
+            "ry": [],
+            "angle": [],
+            "otype": [],
+        },
+        "plots": {"hr": {}},
+        "grid_lines": grid_lines,
+    }
+    return apply_display_transform_to_overlay_payload(payload, display_transform)
 
 def get_overlays(wcs_header):
     debug_log("Generating overlays from WCS header.")

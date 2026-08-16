@@ -157,6 +157,7 @@ CREATE TABLE images (
     author TEXT, -- username or email of the uploader
     image_path TEXT,
     starless_image_path TEXT,
+    annotated_image_path TEXT,
     image_thumbnail TEXT,
     pixel_scale FLOAT DEFAULT 1.0 NOT NULL, -- in arcseconds per pixel
     object_type TEXT, -- e.g., galaxy, nebula, star cluster

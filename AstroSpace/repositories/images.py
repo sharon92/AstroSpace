@@ -6,7 +6,7 @@ from psycopg2 import sql
 from AstroSpace.constants import DB_TABLES, RELATED_MEDIA_VIDEO_EXTENSIONS
 from AstroSpace.db import get_conn
 from AstroSpace.utils.phd2logparser import deserialize_plot_payload
-from AstroSpace.utils.platesolve import get_overlays
+from AstroSpace.utils.platesolve import get_graticule_overlay, get_overlays
 from AstroSpace.utils.utils import print_time
 
 
@@ -450,7 +450,13 @@ def get_image_tables(image_id, keep_original=False, testing=False):
             if image["header_json"]:
                 svg_image = get_overlays(image["header_json"])
         else:
-            svg_image = json.loads(image["overlays_json"])
+            if image.get("overlays_json"):
+                svg_image = json.loads(image["overlays_json"])
+            elif image.get("header_json"):
+                # Older annotated uploads intentionally stored no object overlay,
+                # but their plate-solve header still supports the graticule and
+                # other image-space tools.
+                svg_image = get_graticule_overlay(image["header_json"])
 
     return (
         image,
