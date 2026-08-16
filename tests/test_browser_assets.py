@@ -197,6 +197,9 @@ def test_image_detail_template_uses_unified_details_and_explore_radio_switch():
     assert 'id="calibration-root-{{il.image.id}}"' in template_source
     assert 'aria-label="Guiding session"' in template_source
     assert 'aria-label="Calibration session"' in template_source
+    assert 'static_asset_url(\'js/plotHR.js\')' in template_source
+    assert 'static_asset_url(\'js/phd2Plotly.js\')' in template_source
+    assert 'static_asset_url(\'js/subFramePlot.js\')' in template_source
     assert 'name="guiding-pane-{{il.image.id}}"' not in template_source
     assert "peer-checked:bg-blue-600" in template_source
 

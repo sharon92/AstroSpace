@@ -1013,9 +1013,9 @@
 
 
       <script type="module">
-      import { drawHRDiagram } from "{{ url_for('static', filename='js/plotHR.js') }}";
-      import { renderGuidingPlot, renderCalibrationPlot } from "{{ url_for('static', filename='js/phd2Plotly.js') }}";
-      import { populateAxisSelects, drawVariablePlot, buildPlotPresets } from "{{ url_for('static', filename='js/subFramePlot.js') }}";
+      import { drawHRDiagram } from "{{ static_asset_url('js/plotHR.js') }}";
+      import { renderGuidingPlot, renderCalibrationPlot } from "{{ static_asset_url('js/phd2Plotly.js') }}";
+      import { populateAxisSelects, drawVariablePlot, buildPlotPresets } from "{{ static_asset_url('js/subFramePlot.js') }}";
         (function () {
           const imageId = "{{ il.image.id }}";
 
