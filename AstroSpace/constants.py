@@ -1,4 +1,5 @@
 ALLOWED_IMG_EXTENSIONS = {"jpg", "jpeg", "png"}
+ALLOWED_ANNOTATION_EXTENSIONS = ALLOWED_IMG_EXTENSIONS | {"svg"}
 ALLOWED_RELATED_MEDIA_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif", "mp4", "webm", "ogg"}
 RELATED_MEDIA_VIDEO_EXTENSIONS = {"mp4", "webm", "ogg"}
 ALLOWED_FITS_EXTENSIONS = {"fits", "fit", "xisf"}

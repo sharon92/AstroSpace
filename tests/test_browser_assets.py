@@ -65,7 +65,14 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert "Show uploaded annotated image" in template_source
     assert "Object Annotation" in template_source
     assert "const annotatedImageSrc = {{ annotated_image_src | tojson | safe }};" in template_source
-    assert "elements.image.src = showAnnotatedImage ? annotatedImageSrc : state.activeSource;" in template_source
+    assert "elements.image.src = showRasterAnnotation ? annotatedImageSrc : state.activeSource;" in template_source
+    assert 'const annotatedImageIsSvg = {{ annotated_image_is_svg | tojson }};' in template_source
+    assert 'accept=".svg,.png,.jpg,.jpeg"' in (Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "create.html").read_text(encoding="utf-8")
+    assert "function renderUploadedSvg(target, enabled)" in template_source
+    assert "astro-uploaded-svg-object" in template_source
+    assert "opacity: 0.6" in template_source
+    assert "opacity: 0.9" in template_source
+    assert "if (starlessToggle.checked && !annotatedImageIsSvg)" in template_source
     assert "const wantsOverlayData = state.astroEnabled && (" in template_source
     assert "if (!enabled || !overlayData?.grid_lines)" in template_source
     assert "if (!enabled || !overlayData?.width || !overlayData?.height)" in template_source

@@ -63,6 +63,7 @@ from AstroSpace.services.engagement import (
     submit_image_comment,
 )
 from AstroSpace.services.uploads import allowed_file, ensure_directory, save_user_upload
+from AstroSpace.constants import ALLOWED_ANNOTATION_EXTENSIONS
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import build_plotly_payloads
 from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
@@ -699,13 +700,13 @@ def save_image():
         annotated_path_upload = form.get("prev_annotated_img") or ""
         if annotated_file and annotated_file.filename:
             debug_log("Received annotated image upload filename=%s", annotated_file.filename)
-            if not allowed_file(annotated_file.filename, ALLOWED_IMG_EXTENSIONS):
+            if not allowed_file(annotated_file.filename, ALLOWED_ANNOTATION_EXTENSIONS):
                 debug_log(
                     "Rejected annotated image with unsupported extension: %s",
                     annotated_file.filename,
                     level=logging.WARNING,
                 )
-                return image_form_redirect("Annotated image must be a JPG or PNG file.")
+                return image_form_redirect("Annotated image must be a JPG, PNG, or SVG file.")
 
             stored_annotated = save_user_upload(
                 annotated_file, current_app.config["UPLOAD_PATH"], user_id

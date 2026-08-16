@@ -1,4 +1,5 @@
 from AstroSpace.services.uploads import allowed_file, save_user_upload
+from AstroSpace.constants import ALLOWED_ANNOTATION_EXTENSIONS
 
 
 class DummyStorage:
@@ -14,6 +15,9 @@ class DummyStorage:
 def test_allowed_file_checks_extension():
     assert allowed_file("image.jpg", {"jpg", "png"})
     assert not allowed_file("image.exe", {"jpg", "png"})
+
+def test_annotation_uploads_accept_svg():
+    assert allowed_file("annotation.svg", ALLOWED_ANNOTATION_EXTENSIONS)
 
 
 def test_save_user_upload_stores_file(tmp_path):

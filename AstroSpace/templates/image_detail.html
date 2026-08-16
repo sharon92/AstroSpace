@@ -153,6 +153,7 @@
       {% set primary_image_src = url_for('blog.upload', filename=il.image.image_path|replace('\\', '/')) %}
       {% set starless_image_src = url_for('blog.upload', filename=il.image.starless_image_path|replace('\\', '/')) if il.image.starless_image_path else '' %}
       {% set annotated_image_src = url_for('blog.upload', filename=il.image.annotated_image_path|replace('\\', '/')) if il.image.annotated_image_path else '' %}
+      {% set annotated_image_is_svg = (il.image.annotated_image_path|lower)[-4:] == '.svg' if il.image.annotated_image_path else false %}
       <div class="image-image-panel">
         <div class="image-stage-layout">
           <div class="image-stage">
@@ -175,6 +176,9 @@
               preload="metadata"></video>
             <div id="svg-overlay-{{il.image.id}}"
               class="absolute top-0 left-0 w-full h-full pointer-events-none z-10  duration-300">
+            </div>
+            <div id="uploaded-svg-overlay-{{il.image.id}}"
+              class="absolute top-0 left-0 w-full h-full pointer-events-none z-15 duration-300">
             </div>
             <div id="compare-{{il.image.id}}" class="absolute top-0 left-0 pointer-events-none z-20 w-full h-full">
               {% set moon_width = (1800 / il.image.pixel_scale) | int %}
@@ -272,6 +276,9 @@
                   preload="metadata"></video>
                 <div id="fullscreen-svg-overlay-{{il.image.id}}"
                   class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 duration-300">
+                <div id="fullscreen-uploaded-svg-overlay-{{il.image.id}}"
+                </div>
+                  class="absolute top-0 left-0 w-full h-full pointer-events-none z-15 duration-300">
                 </div>
                 <div id="fullscreen-compare-{{il.image.id}}" class="absolute top-0 left-0 pointer-events-none z-20 w-full h-full">
                   <svg id="fullscreen-comp-wrapper-{{ il.image.id }}"
@@ -1129,9 +1136,180 @@
         const primaryImageSrc = {{ primary_image_src | tojson | safe }};
         const primaryCaption = {{ il.image.title | tojson | safe }};
         const annotatedImageSrc = {{ annotated_image_src | tojson | safe }};
+        const annotatedImageIsSvg = {{ annotated_image_is_svg | tojson }};
         const starlessImageSrc = {{ starless_image_src | tojson | safe }};
         const moonDiameter = {{ moon_width | int }};
+
         const relatedMedia = {{ il.related_media | tojson | safe }};
+        let uploadedSvgMarkup = null;
+        let uploadedSvgPromise = null;
+
+        function sanitizeUploadedSvg(svgText) {
+          const documentRoot = new DOMParser().parseFromString(svgText, "image/svg+xml");
+          if (documentRoot.querySelector("parsererror")) {
+            throw new Error("The uploaded SVG could not be parsed.");
+          }
+
+          const root = documentRoot.documentElement;
+          if (!root || root.localName !== "svg") {
+            throw new Error("The uploaded annotation is not an SVG document.");
+          }
+
+          root.querySelectorAll("script, foreignObject, iframe, object, embed, image, use, a")
+            .forEach(node => node.remove());
+          root.removeAttribute("style");
+          root.querySelectorAll("*").forEach(node => {
+            [...node.attributes].forEach(attribute => {
+              const name = attribute.name.toLowerCase();
+              if (
+                name.startsWith("on") ||
+                name === "href" ||
+                name === "xlink:href" ||
+                name === "style" ||
+                name === "opacity" ||
+                name === "fill-opacity" ||
+                name === "stroke-opacity"
+              ) {
+                node.removeAttribute(attribute.name);
+              }
+            });
+          });
+
+          root.setAttribute("width", "100%");
+          root.setAttribute("height", "100%");
+          root.setAttribute("preserveAspectRatio", root.getAttribute("preserveAspectRatio") || "xMidYMid meet");
+          root.setAttribute(
+            "style",
+            "position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;"
+          );
+
+          const style = documentRoot.createElementNS("http://www.w3.org/2000/svg", "style");
+          style.textContent =
+            ".astro-uploaded-svg-object { opacity: 0.6; transition: opacity 0.15s ease; cursor: pointer; pointer-events: all; }" +
+            ".astro-uploaded-svg-object:hover { opacity: 1; }" +
+            ".astro-uploaded-svg-polyline { opacity: 0.9; cursor: default; pointer-events: all; }";
+          root.insertBefore(style, root.firstChild);
+          return new XMLSerializer().serializeToString(root);
+        }
+
+        async function ensureUploadedSvgMarkup() {
+          if (uploadedSvgMarkup) {
+            return uploadedSvgMarkup;
+          }
+          if (!uploadedSvgPromise) {
+            uploadedSvgPromise = fetch(annotatedImageSrc, { headers: { Accept: "image/svg+xml" } })
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error("SVG annotation request failed (" + response.status + ")");
+                }
+                return response.text();
+              })
+              .then(sanitizeUploadedSvg)
+              .then(markup => {
+                uploadedSvgMarkup = markup;
+                return markup;
+              })
+              .catch(error => {
+                uploadedSvgPromise = null;
+                throw error;
+              });
+          }
+          return uploadedSvgPromise;
+        }
+
+        function nearestUploadedSvgText(node) {
+          const x = Number(node.getAttribute("cx") ?? node.getAttribute("x"));
+          const y = Number(node.getAttribute("cy") ?? node.getAttribute("y"));
+          if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return "";
+          }
+          let nearestText = "";
+          let nearestDistance = Infinity;
+          node.ownerSVGElement?.querySelectorAll("text").forEach(textNode => {
+            if (textNode.closest("defs")) {
+              return;
+            }
+            const textX = Number(textNode.getAttribute("x"));
+            const textY = Number(textNode.getAttribute("y"));
+            if (!Number.isFinite(textX) || !Number.isFinite(textY)) {
+              return;
+            }
+            const distance = Math.hypot(textX - x, textY - y);
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              nearestText = textNode.textContent || "";
+            }
+          });
+          return nearestText;
+        }
+
+        function uploadedSvgSearchName(node) {
+          const explicitName = node.getAttribute("data-name") ||
+            node.getAttribute("aria-label") ||
+            node.getAttribute("id");
+          const textName = node.localName === "text" ? node.textContent : "";
+          const groupName = node.closest("g")?.querySelector("text")?.textContent || "";
+          const nearbyName = nearestUploadedSvgText(node);
+          return String(explicitName || textName || groupName || nearbyName || "").replace(/\s+/g, " ").trim();
+        }
+
+        function enhanceUploadedSvg(target) {
+          target.querySelectorAll("circle, ellipse, text, line, path, polygon, rect, polyline")
+            .forEach(node => {
+              if (node.closest("defs")) {
+                return;
+              }
+              const isPolyline = node.localName === "polyline";
+              node.classList.add(isPolyline ? "astro-uploaded-svg-polyline" : "astro-uploaded-svg-object");
+              const searchName = uploadedSvgSearchName(node);
+              if (!isPolyline) {
+                if (searchName) {
+                  node.dataset.searchName = searchName;
+                }
+                node.addEventListener("dblclick", event => {
+                  const query = node.dataset.searchName;
+                  if (!query) {
+                    return;
+                  }
+                  if (window.confirm("Search Google for:\n\n" + query + "\n\nProceed?")) {
+                    window.open("https://www.google.com/search?q=" + encodeURIComponent(query), "_blank", "noopener");
+                  }
+                  event.preventDefault();
+                  event.stopPropagation();
+                });
+              }
+            });
+        }
+
+        function renderUploadedSvg(target, enabled) {
+          if (!target) {
+            return;
+          }
+          const renderToken = String(Number(target.dataset.renderToken || 0) + 1);
+          target.dataset.renderToken = renderToken;
+          if (!enabled || !annotatedImageIsSvg) {
+            target.innerHTML = "";
+            target.classList.add("hidden");
+            return;
+          }
+
+          target.classList.remove("hidden");
+          ensureUploadedSvgMarkup()
+            .then(markup => {
+              if (target.dataset.renderToken !== renderToken) {
+                return;
+              }
+              target.innerHTML = markup;
+              enhanceUploadedSvg(target);
+            })
+            .catch(error => {
+              if (target.dataset.renderToken === renderToken) {
+                target.innerHTML = "";
+                target.classList.add("hidden");
+              }
+              console.error("Could not load SVG annotation", error);
+            });
+        }
 
         function renderObjectOverlay(target, enabled) {
           if (!enabled) {
@@ -1275,6 +1453,7 @@
             image: document.getElementById(`${prefix}zoomable-image-${imageId}`),
             video: document.getElementById(`${prefix}zoomable-video-${imageId}`),
             overlay: document.getElementById(`${prefix}svg-overlay-${imageId}`),
+            uploadedSvgOverlay: document.getElementById(`${prefix}uploaded-svg-overlay-${imageId}`),
             graticule: document.getElementById(`${prefix}graticule-${imageId}`),
             compareWrapper: document.getElementById(`${prefix}comp-wrapper-${imageId}`),
             overlayToggle: document.getElementById(`${prefix}overlay-toggle-${imageId}`),
@@ -1303,13 +1482,14 @@
 
           const renderAll = () => {
             const astroEnabled = state.astroEnabled;
-            const showAnnotatedImage = astroEnabled && Boolean(annotatedImageSrc) && elements.overlayToggle.checked;
+            const showRasterAnnotation = astroEnabled && Boolean(annotatedImageSrc) && !annotatedImageIsSvg && elements.overlayToggle.checked;
+            const showUploadedSvg = astroEnabled && annotatedImageIsSvg && elements.overlayToggle.checked;
             const showObjects = astroEnabled && elements.overlayToggle.checked && !annotatedImageSrc;
             const showGraticule = astroEnabled && elements.graticuleToggle.checked;
             const showCompare = astroEnabled && elements.compareToggle.checked;
 
             if (state.activeKind === "image") {
-              elements.image.src = showAnnotatedImage ? annotatedImageSrc : state.activeSource;
+              elements.image.src = showRasterAnnotation ? annotatedImageSrc : state.activeSource;
             }
 
             if (overlayData) {
@@ -1321,6 +1501,7 @@
               elements.graticule.innerHTML = "";
               elements.compareWrapper.classList.add("hidden");
             }
+            renderUploadedSvg(elements.uploadedSvgOverlay, showUploadedSvg);
 
             elements.overlay.classList.toggle("hidden", !astroEnabled);
             elements.graticule.classList.toggle("hidden", !astroEnabled);
@@ -1331,7 +1512,7 @@
 
           const requestRenderAll = () => {
             const wantsOverlayData = state.astroEnabled && (
-              elements.overlayToggle.checked ||
+              (!annotatedImageSrc && elements.overlayToggle.checked) ||
               elements.graticuleToggle.checked ||
               elements.compareToggle.checked
             );
@@ -1615,7 +1796,7 @@
             // Initialize the fullscreen panzoom after the modal is visible so reset uses the rendered size.
             fullscreenViewer = createViewer("fullscreen-");
             fullscreenViewer.elements.overlayToggle.addEventListener("change", () => {
-              if (fullscreenViewer.elements.overlayToggle.checked && starlessToggle) {
+              if (fullscreenViewer.elements.overlayToggle.checked && !annotatedImageIsSvg && starlessToggle) {
                 starlessToggle.checked = false;
               }
               renderActiveSlide();
@@ -1801,13 +1982,13 @@
         mediaPrevButton?.addEventListener("click", () => changeSlide(-1));
         mediaNextButton?.addEventListener("click", () => changeSlide(1));
         inlineViewer.elements.overlayToggle.addEventListener("change", () => {
-          if (inlineViewer.elements.overlayToggle.checked && starlessToggle) {
+          if (inlineViewer.elements.overlayToggle.checked && !annotatedImageIsSvg && starlessToggle) {
             starlessToggle.checked = false;
           }
           renderActiveSlide();
         });
         starlessToggle?.addEventListener("change", () => {
-          if (starlessToggle.checked) {
+          if (starlessToggle.checked && !annotatedImageIsSvg) {
             inlineViewer.elements.overlayToggle.checked = false;
           }
           renderActiveSlide();

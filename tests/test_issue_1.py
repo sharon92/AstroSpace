@@ -146,7 +146,7 @@ def test_save_image_persists_annotated_starless_and_related_media(app, monkeypat
             "related_media_store": '[{"existing_path":"","caption":"Setup timelapse"}]',
             "image_path": (BytesIO(b"png-bytes"), "preview.png"),
             "starless_image_path": (BytesIO(b"starless-bytes"), "preview_starless.png"),
-            "annotated_image_path": (BytesIO(b"annotated-bytes"), "preview_annotated.png"),
+            "annotated_image_path": (BytesIO(b"<svg xmlns='http://www.w3.org/2000/svg'/>"), "preview_annotated.svg"),
             "fits_file": (BytesIO(b"fits-bytes"), "capture.fits"),
             "related_media_files": (BytesIO(b"video-bytes"), "setup.mp4"),
         },
@@ -165,7 +165,7 @@ def test_save_image_persists_annotated_starless_and_related_media(app, monkeypat
     assert image_insert[8].startswith("1/")
     assert image_insert[8].endswith("preview_starless.png")
     assert image_insert[9].startswith("1/")
-    assert image_insert[9].endswith("preview_annotated.png")
+    assert image_insert[9].endswith("preview_annotated.svg")
     assert image_insert[14] is None
     assert overlay_calls == []
     related_insert = next(params for query, params in conn.executed if "INSERT INTO related_image_media" in query)
