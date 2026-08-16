@@ -1,5 +1,6 @@
 from io import BytesIO
 from datetime import date
+import json
 
 from flask import g
 
@@ -131,6 +132,13 @@ def test_save_image_persists_annotated_starless_and_related_media(app, monkeypat
     monkeypatch.setattr(
         blog, "get_overlays", lambda header_json: overlay_calls.append(header_json) or {"ok": True}
     )
+    analysis_calls = []
+    monkeypatch.setattr(
+        blog,
+        "get_analysis_overlay",
+        lambda header_json: analysis_calls.append(header_json)
+        or {"overlays": {"name": []}, "plots": {"hr": {"name": ["star"]}}},
+    )
     monkeypatch.setattr(blog, "sanitize_rich_text", lambda value: value)
     monkeypatch.setattr(blog, "parse_meta_store", lambda _value: "{}")
 
@@ -166,12 +174,51 @@ def test_save_image_persists_annotated_starless_and_related_media(app, monkeypat
     assert image_insert[8].endswith("preview_starless.png")
     assert image_insert[9].startswith("1/")
     assert image_insert[9].endswith("preview_annotated.svg")
-    assert image_insert[14] is None
+    assert json.loads(image_insert[14])["plots"]["hr"]["name"] == ["star"]
     assert overlay_calls == []
+    assert analysis_calls == ["HEADER"]
     related_insert = next(params for query, params in conn.executed if "INSERT INTO related_image_media" in query)
     assert related_insert[1].startswith("1/")
     assert related_insert[1].endswith("setup.mp4")
     assert related_insert[2] == "Setup timelapse"
+
+
+def test_image_explore_data_keeps_legacy_empty_hr_payload_without_remote_rebuild(app):
+    from AstroSpace import blog
+
+    tables = (
+        {"header_json": "HEADER"},
+        [],
+        [],
+        [],
+        [],
+        {},
+        {},
+        {"plots": {"hr": {}}},
+        {"variable": {}, "comments": {}},
+        [],
+    )
+    monkeypatch.setattr(blog, "get_image_tables", lambda _image_id: tables)
+    with app.test_request_context("/image/27/explore-data"):
+        response = blog.image_explore_data(27)
+
+    assert response.status_code == 200
+    assert response.get_json()["overlay"]["plots"]["hr"] == {}
+
+
+def test_analysis_overlay_preserves_hr_and_removes_automatic_annotations():
+    from AstroSpace import blog
+
+    payload = {
+        "overlays": {"name": ["NGC 7000"]},
+        "plots": {"hr": {"name": ["star"]}},
+        "grid_lines": {"ra_lines": [], "dec_lines": [], "labels": []},
+    }
+
+    analysis = blog._analysis_overlay_without_annotations(json.dumps(payload))
+
+    assert analysis["plots"]["hr"]["name"] == ["star"]
+    assert analysis["overlays"]["name"] == []
 
 
 def test_render_image_form_includes_light_headers(app, monkeypatch):

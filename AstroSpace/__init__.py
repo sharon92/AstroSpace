@@ -1,5 +1,6 @@
+import logging
 import os
-from flask import Flask, jsonify, g, url_for
+from flask import Flask, jsonify, g, request, url_for
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import RequestEntityTooLarge
 from AstroSpace.logging_utils import configure_app_logging, debug_log
@@ -27,20 +28,48 @@ def create_app(test_config=None):
     
     app.config['root_path'] = os.path.dirname(__file__)
     app.config['MAX_CONTENT_LENGTH'] = 2 *  (1024 ** 3) #about 2GB
+    # Werkzeug also limits each non-file multipart field to 500 KB by default.
+    # Extracted light-frame headers are stored in one compact JSON field, which
+    # can legitimately exceed that default for a few hundred frames.
+    app.config['MAX_FORM_MEMORY_SIZE'] = 16 * (1024 ** 2)
     configure_app_logging(app)
 
     @app.errorhandler(RequestEntityTooLarge)
     def handle_file_too_large(e):
-        return jsonify(error=f"Uploaded File is too large. Max size is {app.config['MAX_CONTENT_LENGTH']/(1024**3)} GB."), 413
+        content_length = request.content_length
+        debug_log(
+            "Rejected oversized request path=%s content_length=%s max_content_length=%s",
+            request.path,
+            content_length,
+            app.config["MAX_CONTENT_LENGTH"],
+            level=logging.WARNING,
+        )
+        if content_length is not None and content_length <= app.config["MAX_CONTENT_LENGTH"]:
+            message = (
+                "Submitted form data is too large. "
+                f"Max non-file field size is {app.config['MAX_FORM_MEMORY_SIZE'] / (1024 ** 2):.0f} MB."
+            )
+        else:
+            message = (
+                "Uploaded File is too large. "
+                f"Max size is {app.config['MAX_CONTENT_LENGTH'] / (1024 ** 3)} GB."
+            )
+        return jsonify(
+            error=message,
+            request_bytes=content_length,
+            max_bytes=app.config["MAX_CONTENT_LENGTH"],
+            max_form_memory_bytes=app.config["MAX_FORM_MEMORY_SIZE"],
+        ), 413
 
     #app.config['UPLOAD_PATH'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_PATH'],exist_ok=True)
     skip_db_init = app.config.get("SKIP_DB_INIT", False)
     debug_log(
-        "Application configured (instance_path=%s, skip_db_init=%s, max_upload_bytes=%s)",
+        "Application configured (instance_path=%s, skip_db_init=%s, max_upload_bytes=%s, max_form_memory_bytes=%s)",
         app.instance_path,
         skip_db_init,
         app.config["MAX_CONTENT_LENGTH"],
+        app.config["MAX_FORM_MEMORY_SIZE"],
     )
 
     # ensure the instance folder exists

@@ -8,7 +8,7 @@ from astropy.wcs import WCS
 
 import numpy as np
 # from astroquery.vizier import Vizier
-from astroquery.simbad import Simbad
+from astroquery.simbad import Simbad, SimbadClass
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from astropy.io.fits import Header
@@ -419,7 +419,8 @@ def rebuild_plate_solve_artifacts(image_path, image_public_path, header_json, in
 
     thumbnail_public_path = os.path.splitext(image_public_path.replace("\\", "/"))[0] + "_thumbnail.jpg"
     updated_header_json = wcs_header.tostring()
-    overlays_json = json.dumps(get_overlays(updated_header_json)) if include_overlays else None
+    overlay_builder = get_overlays if include_overlays else get_analysis_overlay
+    overlays_json = json.dumps(overlay_builder(updated_header_json))
     debug_log(
         "Rebuilt plate-solve artifacts (thumbnail=%s, pixel_scale=%s, display_transform=%s)",
         thumbnail_public_path,
@@ -525,7 +526,18 @@ def get_graticule_overlay(wcs_header):
     return apply_display_transform_to_overlay_payload(payload, display_transform)
 
 def get_overlays(wcs_header):
+    """Build the full image overlay payload, including automatic annotations."""
+    return _build_overlay_payload(wcs_header, include_object_annotations=True)
+
+
+def get_analysis_overlay(wcs_header):
+    """Build analysis data without automatic object annotations."""
+    return _build_overlay_payload(wcs_header, include_object_annotations=False)
+
+
+def _build_overlay_payload(wcs_header, include_object_annotations):
     debug_log("Generating overlays from WCS header.")
+    simbad = Simbad if include_object_annotations else SimbadClass(timeout=15)
     wcs_header, display_transform = annotate_display_transform_metadata(wcs_header)
     wcs = WCS(wcs_header, naxis=2)
     try:
@@ -562,68 +574,81 @@ def get_overlays(wcs_header):
     corners = SkyCoord(ra_vals, dec_vals, unit="deg")
     radius = coord.separation(corners).max()   # accurate angular radius   
 
-    Simbad.reset_votable_fields()  # Reset to default fields
-    Simbad.add_votable_fields(
-        "ids",
-        "galdim_majaxis",
-        "galdim_minaxis",
-        "galdim_angle",
-        "otype",
-    )
-
-    debug_log("Querying SIMBAD for overlay objects within field of view.")
     big_objects = "('G', 'GiC', 'GiG', 'GiP', 'GrG','HII', 'PN', 'SNR', 'Cl*', 'OpC', 'GlC', 'Neb', 'Cld', 'DNe','..27','..28','..30','BiC','CGC','ClG','EmG','flt','GNe','IG', 'LSB','MoC','PaG','PCG','rG','RNe', 'SBG','Sy1','Sy2','SyG')"
-    result = Simbad.query_region(coord, radius=radius)#, criteria=f"otype IN {big_objects}")
+    db = {
+        "name": [],
+        "x": [],
+        "y": [],
+        "rx": [],
+        "ry": [],
+        "angle": [],
+        "otype": [],
+    }
 
-    df = result.to_pandas()
-    df['name'] = df['ids']#.apply(extract_popular_id)
-    df = df[
-        [   
-            "name",
-            "main_id",
-            #"ids",
-            "ra",
-            "dec",
+    if include_object_annotations:
+        simbad.reset_votable_fields()  # Reset to default fields
+        simbad.add_votable_fields(
+            "ids",
             "galdim_majaxis",
             "galdim_minaxis",
             "galdim_angle",
             "otype",
+        )
+
+        debug_log("Querying SIMBAD for overlay objects within field of view.")
+        result = simbad.query_region(coord, radius=radius)#, criteria=f"otype IN {big_objects}")
+
+        df = result.to_pandas()
+        df['name'] = df['ids']#.apply(extract_popular_id)
+        df = df[
+            [
+                "name",
+                "main_id",
+                #"ids",
+                "ra",
+                "dec",
+                "galdim_majaxis",
+                "galdim_minaxis",
+                "galdim_angle",
+                "otype",
+            ]
         ]
-    ]
-    
-    df = df.dropna(subset=["ra", "dec"])#,"name"])
-    box = (df.ra > ra_min) * (df.ra < ra_max) * (df.dec > dec_min) * (df.dec < dec_max)
-    df = df[box]
 
-    df.sort_values(["galdim_majaxis", "galdim_minaxis"], ascending=False, inplace=True)
+        df = df.dropna(subset=["ra", "dec"])#,"name"])
+        box = (df.ra > ra_min) * (df.ra < ra_max) * (df.dec > dec_min) * (df.dec < dec_max)
+        df = df[box]
 
-    df["rx"] = (df["galdim_majaxis"] * 60) / pixel_scale / 2
-    df["ry"] = (df["galdim_minaxis"] * 60) / pixel_scale / 2
+        df.sort_values(["galdim_majaxis", "galdim_minaxis"], ascending=False, inplace=True)
 
-    df = df.dropna(subset=["rx","ry"])
-    df = df[df["rx"] >= 25]
-    df = df[df["ry"] >= 25]
-   
-    x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
-    angle = [
-        pa_world_to_pixel(wcs, ra, dec, pa)
-        if not pd.isna(pa) and pa != 32767 else 0
-        for ra, dec, pa in zip(df["ra"], df["dec"], df["galdim_angle"])
-    ]
+        df["rx"] = (df["galdim_majaxis"] * 60) / pixel_scale / 2
+        df["ry"] = (df["galdim_minaxis"] * 60) / pixel_scale / 2
 
-    db = {
-        "name": df["main_id"].astype(str).tolist(),
-        #"ids": df["name"].astype(str).tolist(),
-        "x": x.round(1).tolist(),
-        "y": y.round(1).tolist(),
-        "rx": [0 if np.isnan(i) else round(i, 1) for i in df.rx],
-        "ry": [0 if np.isnan(i) else round(i, 1) for i in df.ry],
-        "angle": angle,
-        "otype": [chosen_stars.get(o, "Unknown") for o in df["otype"].astype(str)],
-    }
+        df = df.dropna(subset=["rx","ry"])
+        df = df[df["rx"] >= 25]
+        df = df[df["ry"] >= 25]
 
-    Simbad.reset_votable_fields()  # Reset to default fields
-    Simbad.add_votable_fields(
+        x, y = wcs.world_to_pixel_values(df["ra"], df["dec"])
+        angle = [
+            pa_world_to_pixel(wcs, ra, dec, pa)
+            if not pd.isna(pa) and pa != 32767 else 0
+            for ra, dec, pa in zip(df["ra"], df["dec"], df["galdim_angle"])
+        ]
+
+        db = {
+            "name": df["main_id"].astype(str).tolist(),
+            #"ids": df["name"].astype(str).tolist(),
+            "x": x.round(1).tolist(),
+            "y": y.round(1).tolist(),
+            "rx": [0 if np.isnan(i) else round(i, 1) for i in df.rx],
+            "ry": [0 if np.isnan(i) else round(i, 1) for i in df.ry],
+            "angle": angle,
+            "otype": [chosen_stars.get(o, "Unknown") for o in df["otype"].astype(str)],
+        }
+    else:
+        debug_log("Skipping automatic object annotations; generating analysis data only.")
+
+    simbad.reset_votable_fields()  # Reset to default fields
+    simbad.add_votable_fields(
         "otype",
         "plx_value",
         "U",
@@ -633,7 +658,7 @@ def get_overlays(wcs_header):
     )
 
     debug_log("Querying SIMBAD for stellar overlay plot data.")
-    result2 = Simbad.query_region(coord, radius=radius, criteria=f"otype NOT IN {big_objects}")
+    result2 = simbad.query_region(coord, radius=radius, criteria=f"otype NOT IN {big_objects}")
 
     df2 = result2.to_pandas()
     df2= df2[

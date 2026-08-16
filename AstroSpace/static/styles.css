@@ -353,6 +353,9 @@
   .z-10 {
     z-index: 10;
   }
+  .z-15 {
+    z-index: 15;
+  }
   .z-20 {
     z-index: 20;
   }
@@ -457,6 +460,9 @@
   }
   .block {
     display: block;
+  }
+  .contents {
+    display: contents;
   }
   .flex {
     display: flex;
@@ -578,6 +584,9 @@
   .max-w-4xl {
     max-width: var(--container-4xl);
   }
+  .max-w-\[70\%\] {
+    max-width: 70%;
+  }
   .max-w-\[95vw\] {
     max-width: 95vw;
   }
@@ -672,6 +681,9 @@
   }
   .touch-none {
     touch-action: none;
+  }
+  .resize {
+    resize: both;
   }
   .grid-cols-1 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -847,6 +859,10 @@
   .border-2 {
     border-style: var(--tw-border-style);
     border-width: 2px;
+  }
+  .border-t {
+    border-top-style: var(--tw-border-style);
+    border-top-width: 1px;
   }
   .border-b {
     border-bottom-style: var(--tw-border-style);
@@ -1303,6 +1319,9 @@
   }
   .opacity-50 {
     opacity: 50%;
+  }
+  .opacity-90 {
+    opacity: 90%;
   }
   .opacity-100 {
     opacity: 100%;
@@ -2684,6 +2703,113 @@
   .editor-save-button:hover {
     background: rgb(29 78 216);
   }
+  .editor-save-button.is-saving, .editor-save-button.is-saving:hover {
+    color: white;
+    background: rgb(22 101 52);
+    border-color: rgb(21 128 61);
+  }
+  .editor-save-button.is-saving:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .editor-save-button.is-saving::before, .editor-source-extract-button.is-extracting::before {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex: 0 0 auto;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 9999px;
+    content: "";
+    animation: editor-button-spin 700ms linear infinite;
+  }
+  .editor-source-extract-button.is-extracting, .editor-source-extract-button.is-extracting:hover {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    color: white;
+    background: rgb(22 101 52);
+    border-color: rgb(21 128 61);
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+  }
+  @keyframes editor-button-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .editor-source-file-input {
+    min-width: 0;
+    color: rgb(71 85 105);
+    background: rgb(248 250 252);
+    border: 1px solid rgb(203 213 225);
+    border-radius: 0.5rem;
+  }
+  .editor-source-file-input::file-selector-button {
+    margin-right: 0.75rem;
+    padding: 0.5rem 0.9rem;
+    border: 0;
+    border-radius: 999px;
+    color: rgb(29 78 216);
+    background: rgb(239 246 255);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .editor-source-file-input::file-selector-button:hover {
+    background: rgb(219 234 254);
+  }
+  .editor-source-clear-button, .editor-source-add-button, .editor-source-extract-button {
+    flex: 0 0 auto;
+    border: 1px solid rgb(203 213 225);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+  .editor-source-clear-button {
+    padding: 0.5rem 0.75rem;
+    color: rgb(185 28 28);
+    background: rgb(254 226 226);
+  }
+  .editor-source-add-button {
+    padding: 0.35rem 0.8rem;
+    color: rgb(51 65 85);
+    background: rgb(241 245 249);
+    font-size: 1.15rem;
+  }
+  .editor-source-extract-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.5rem 0.9rem;
+    color: white;
+    background: rgb(37 99 235);
+    border-color: rgb(37 99 235);
+  }
+  .editor-source-clear-button:hover:not(:disabled) {
+    background: rgb(254 202 202);
+  }
+  .editor-source-add-button:hover {
+    background: rgb(226 232 240);
+  }
+  .editor-source-extract-button:hover {
+    background: rgb(29 78 216);
+    border-color: rgb(29 78 216);
+  }
+  .editor-source-clear-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .editor-source-status, .editor-source-selection-status {
+    color: rgb(71 85 105);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .dark .editor-source-status, .dark .editor-source-selection-status {
+    color: rgb(191 219 254);
+  }
   .dark .post-editor-header {
     border-color: rgb(96 165 250 / 0.3);
     color: rgb(241 245 249);
@@ -3309,7 +3435,7 @@
     overflow: auto;
     padding-right: 0.25rem;
   }
-  @media (min-width: 1100px) {
+  @media (min-width: 960px) {
     .image-stage-layout {
       grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem);
       gap: 1.15rem;

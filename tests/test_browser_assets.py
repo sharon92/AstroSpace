@@ -109,7 +109,7 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert ".inline-tool-tray {" in tailwind_source
     assert ".inline-tool-tray.is-visible {" in tailwind_source
     assert 'id="inline-tool-tray-{{il.image.id}}"' in template_source
-    assert 'id="inline-media-caption-{{il.image.id}}"' in template_source
+    assert "inline-media-caption-${imageId}" in template_source
     assert 'id="inline-tools-{{il.image.id}}"' in template_source
     assert 'const primaryCaption = {{ il.image.title | tojson | safe }};' in template_source
     assert 'caption: primaryCaption,' in template_source
@@ -128,7 +128,7 @@ def test_image_detail_template_uses_clear_icon_tooltips_and_lazy_fullscreen_view
     assert 'pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between' not in template_source
     assert 'pointer-events-auto flex max-w-[70%] items-center gap-3 rounded-full' not in template_source
     assert 'class="image-meta-strip px-1 text-sm text-gray-600 dark:text-gray-300"' in template_source
-    assert 'class="inline-media-caption-strip min-h-[1.5rem] px-2 text-center text-sm text-gray-600 dark:text-gray-300"' in template_source
+    assert ".inline-media-caption-strip {" in tailwind_source
     assert '@media (max-width: 920px)' not in template_source
     assert ".comment-modal-backdrop {" in tailwind_source
     assert ".engagement-actions {" not in template_source
@@ -178,7 +178,9 @@ def test_image_detail_template_uses_unified_details_and_explore_radio_switch():
     template_source = template_path.read_text(encoding="utf-8")
 
     assert "validMainTabs = ['image', 'details', 'explore'];" in template_source
-    assert "const validExplorePanes = ['hr'" in template_source
+    assert "const validExplorePanes = [" in template_source
+    assert "{% if has_hr_plot %}'hr'{% endif %}" in template_source
+    assert "if (!validExplorePanes.includes(explorePane))" in template_source
     assert "validDetailTabs" not in template_source
     assert "{% set detail_tabs =" not in template_source
     assert "('nights', 'Nights')" not in template_source
@@ -197,6 +199,42 @@ def test_image_detail_template_uses_unified_details_and_explore_radio_switch():
     assert 'aria-label="Calibration session"' in template_source
     assert 'name="guiding-pane-{{il.image.id}}"' not in template_source
     assert "peer-checked:bg-blue-600" in template_source
+
+
+def test_image_detail_explore_panels_use_progressive_disclosure_and_curated_plots():
+    root = Path(__file__).resolve().parents[1] / "AstroSpace"
+    template_source = (root / "templates" / "image_detail.html").read_text(encoding="utf-8")
+    plot_source = (root / "static" / "js" / "subFramePlot.js").read_text(encoding="utf-8")
+
+    assert 'id="plotPresetSelect"' in template_source
+    assert 'id="plotPresetDescription"' in template_source
+    assert 'id="advancedPlotDetails"' in template_source
+    assert "Advanced plot" in template_source
+    assert "Guiding info" in template_source
+    assert "Calibration details" in template_source
+    assert "buildPlotPresets(metaVariable)" in template_source
+    assert "PLOT_PRESET_DEFINITIONS" in plot_source
+    assert "buildPlotPresets" in plot_source
+    assert "buildDateRangeBreaks" in plot_source
+    assert "rangebreaks: dateAxis ? buildDateRangeBreaks(xValues) : undefined" in plot_source
+
+
+def test_image_detail_hides_hr_explore_pane_without_a_valid_plot():
+    template_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html"
+    template_source = template_path.read_text(encoding="utf-8")
+
+    assert "{% set has_hr_plot = hr_plot.get('name') and hr_plot.get('x') and hr_plot.get('y') %}" in template_source
+    assert "{% if has_hr_plot %}\n        <div x-show=\"explorePane === 'hr'\"" in template_source
+
+
+def test_hr_plot_handles_missing_analysis_data_without_breaking_other_explore_panes():
+    plot_source = (
+        Path(__file__).resolve().parents[1] / "AstroSpace" / "static" / "js" / "plotHR.js"
+    ).read_text(encoding="utf-8")
+
+    assert 'const db = overlayData?.plots?.hr;' in plot_source
+    assert 'No stellar HR data is available for this image.' in plot_source
+    assert 'return false;' in plot_source
 
 
 def test_image_detail_template_uses_consistent_details_cards_and_table_exports():
@@ -237,7 +275,15 @@ def test_image_detail_template_keeps_details_tabs_outside_image_panel():
     template_source = template_path.read_text(encoding="utf-8")
 
     assert template_source.count("<div") == template_source.count("</div>")
-    assert '</div>\n\n          <p id="inline-media-caption-{{il.image.id}}"' in template_source
+
+
+def test_image_detail_tab_panels_are_outside_image_viewer():
+    template_path = Path(__file__).resolve().parents[1] / "AstroSpace" / "templates" / "image_detail.html"
+    template_source = template_path.read_text(encoding="utf-8")
+
+    assert '<div class="image-stage-tabs-panel">\n            <div x-show="mainTab === \'details\'"' in template_source
+    assert '<div class="image-stage-layout">\n           <div class="image-stage">' in template_source
+    assert '</div>\n            </div>\n          <aside class="image-inspector">' in template_source
 
 
 def test_templates_no_longer_use_raw_local_storage():
@@ -251,3 +297,62 @@ def test_templates_no_longer_use_raw_local_storage():
     for template_path in template_paths:
         template_source = template_path.read_text(encoding="utf-8")
         assert "localStorage" not in template_source
+
+
+def test_editor_keeps_extractions_separate_and_collapsed_by_default():
+    root = Path(__file__).resolve().parents[1] / "AstroSpace"
+    create_source = (root / "templates" / "create.html").read_text(encoding="utf-8")
+    binds_source = (root / "static" / "js" / "binds.js").read_text(encoding="utf-8")
+    css_source = (root / "static" / "input.css").read_text(encoding="utf-8")
+
+    assert "webkitdirectory" not in create_source
+    assert 'id="lightFramesInputs"' in create_source
+    assert 'id="addLightFramesInput"' in create_source
+    assert 'id="clearWbppFile"' in create_source
+    assert "clear-light-frame-selection" in create_source
+    assert "Extract FITS metadata" in create_source
+    assert "Extract Fits Metadata + WBPP Log and add" not in create_source
+    assert 'id="wbppExtractionStatus"' in create_source
+    assert 'id="clearWbppData"' in create_source
+    assert 'id="lightFrameExtractionStatus"' in create_source
+    assert 'id="clearLightMetadata"' in create_source
+    assert create_source.count("<details") >= 2
+    assert "wbpp_stats" in binds_source
+    assert "light_frame_count" in binds_source
+    assert "const HEADER_BATCH_SIZE = 10;" in binds_source
+    assert "for (let batchStart = 0; batchStart < files.length; batchStart += HEADER_BATCH_SIZE)" in binds_source
+    assert '"meta_store"' in binds_source
+    assert "JSON.stringify(accumulated)" in binds_source
+    assert "A header batch was still too large." in binds_source
+    assert 'analyseBtn.classList.add("is-extracting")' in binds_source
+    assert 'analyseBtn.textContent = "Extracting FITS metadata…"' in binds_source
+    assert 'saveButton.textContent = "Saving changes…"' in create_source
+    assert ".editor-source-extract-button.is-extracting" in css_source
+    assert "editor-button-spin" in css_source
+    assert ".dark .editor-source-status" in css_source
+    assert ".dark .editor-source-selection-status" in css_source
+    assert 'formData.delete("fits_file")' in create_source
+    assert 'formData.delete("wbpp_log_file")' in create_source
+    assert "const allowedSaveFileFields = new Set" in create_source
+    assert "const rawFormData = new FormData(form)" in create_source
+    assert "if (input.name) formData.delete(input.name);" in create_source
+    assert 'if (fitsInput) fitsInput.value = "";' in create_source
+    assert 'The selected FITS image must have a .fits, .fit, or .xisf extension.' in create_source
+    assert "const needsFitsHeaderForSave = !isEditing || hasNewPreview || redoPlateSolve;" in create_source
+    assert "const outgoingFiles = Array.from(formData.entries())" in create_source
+    assert "Light-frame extraction files are not included." in create_source
+    assert "const errorData = await response.json();" in create_source
+    assert "serverMessage ||" in create_source
+    assert 'response.status === 413' in create_source
+    assert "if (headerBytes)" in create_source
+    assert "form.checkValidity()" in create_source
+    assert "form.submit();" not in create_source
+    assert ".editor-save-button.is-saving" in css_source
+
+
+def test_app_allows_extracted_metadata_larger_than_werkzeug_default_field_limit():
+    init_source = (Path(__file__).resolve().parents[1] / "AstroSpace" / "__init__.py").read_text(encoding="utf-8")
+
+    assert "MAX_FORM_MEMORY_SIZE" in init_source
+    assert "16 * (1024 ** 2)" in init_source
+    assert "max_form_memory_bytes" in init_source

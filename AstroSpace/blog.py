@@ -66,7 +66,12 @@ from AstroSpace.services.uploads import allowed_file, ensure_directory, save_use
 from AstroSpace.constants import ALLOWED_ANNOTATION_EXTENSIONS
 from AstroSpace.utils.moon_phase import get_moon_illumination
 from AstroSpace.utils.phd2logparser import build_plotly_payloads
-from AstroSpace.utils.platesolve import platesolve, get_overlays, fits_header_only
+from AstroSpace.utils.platesolve import (
+    fits_header_only,
+    get_analysis_overlay,
+    get_overlays,
+    platesolve,
+)
 from AstroSpace.utils.utils import geocode, slugify
 from AstroSpace.utils.utils import (
     ALLOWED_IMG_EXTENSIONS,
@@ -74,6 +79,34 @@ from AstroSpace.utils.utils import (
 )
 
 bp = Blueprint("blog", __name__)
+
+
+def _analysis_overlay_without_annotations(raw_overlay):
+    """Return a stored overlay payload with automatic object labels removed."""
+    if not raw_overlay:
+        return None
+
+    try:
+        payload = json.loads(raw_overlay) if isinstance(raw_overlay, str) else raw_overlay
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+    plots = payload.get("plots") if isinstance(payload, dict) else None
+    hr = plots.get("hr") if isinstance(plots, dict) else None
+    if not isinstance(hr, dict) or not isinstance(hr.get("name"), list):
+        return None
+
+    payload = dict(payload)
+    payload["overlays"] = {
+        "name": [],
+        "x": [],
+        "y": [],
+        "rx": [],
+        "ry": [],
+        "angle": [],
+        "otype": [],
+    }
+    return payload
 
 
 @bp.context_processor
@@ -143,48 +176,92 @@ def extract_stats():
     file = request.files.get("wbpp_log_file")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
-    
-    # with open(log) as f:
-    #     content = f.readlines()
-    content = file.read().decode("utf-8").splitlines()
 
+    content = file.read().decode("utf-8", errors="replace").splitlines()
     stats = {}
-    wts = []
-    for n,line in enumerate(content):
-        if " FWHM              :" in line:
-            Name = os.path.basename(content[n-2].split(" ")[-1].strip()).replace("_c","").replace("_d","").replace(".xisf","")
-            FWHM = float(line.split(" ")[-2].strip())
-            stats[Name] = {"FWHM": FWHM}
-        elif " Eccentricity      :" in line:
-            stats[Name]["Eccentricity"] = float(line.split(" ")[-1].strip())
-        elif " Number of stars   :" in line:
-            stats[Name]["Number of stars"] = int(line.split(" ")[-1].strip())
-        elif " PSF Signal Weight :" in line:
-            stats[Name]["PSF Signal Weight"] = float(line.split(" ")[-1].strip())   
-        elif " PSF SNR           :" in line:
-            stats[Name]["PSF SNR"] = float(line.split(" ")[-1].strip())
-        elif " SNR               :" in line:
-            stats[Name]["SNR"] = float(line.split(" ")[-1].strip())
-        elif " Median (ADU)      :" in line:
-            stats[Name]["Median (ADU)"] = float(line.split(" ")[-1].strip())
-        elif " MAD (ADU)         : " in line:
-            stats[Name]["MAD (ADU)"] = float(line.split(" ")[-1].strip())
-        elif " Mstar (ADU)       : " in line:
-            stats[Name]["Mstar (ADU)"] = float(line.split(" ")[-1].strip())
-        elif " Normalized image weights:" in line: 
-            wts += [n]
+    normalized_weights_line = None
+    current_name = None
 
-    for line in content[wts[-1]+1:]:
-        if " Integration of " in line:
-            break
-        ls = line.split(" ")
-        if '.xisf' in line:
-            Name = os.path.basename(ls[-1].strip()).replace("_c","").replace("_d","").replace("_r","").replace(".xisf","")
-        elif len(ls) > 3: 
-            weights  = list(map(float, ls[-3:]))
-            stats[Name]["WBPP weight 1"] = weights[0]
-            stats[Name]["WBPP weight 2"] = weights[1]
-            stats[Name]["WBPP weight 3"] = weights[2]
+    def clean_name(value):
+        return (
+            os.path.basename(value)
+            .replace("_c", "")
+            .replace("_d", "")
+            .replace("_r", "")
+            .replace(".xisf", "")
+        )
+
+    def last_number(line):
+        for token in reversed(line.replace(":", " ").split()):
+            try:
+                return float(token.rstrip(","))
+            except ValueError:
+                continue
+        return None
+
+    for index, line in enumerate(content):
+        if " FWHM              :" in line:
+            if index < 2:
+                continue
+            current_name = clean_name(content[index - 2].split()[-1])
+            value = last_number(line)
+            if value is not None:
+                stats[current_name] = {"FWHM": value}
+        elif current_name and " Eccentricity      :" in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["Eccentricity"] = value
+        elif current_name and " Number of stars   :" in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["Number of stars"] = int(value)
+        elif current_name and " PSF Signal Weight :" in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["PSF Signal Weight"] = value
+        elif current_name and " PSF SNR           :" in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["PSF SNR"] = value
+        elif current_name and " SNR               :" in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["SNR"] = value
+        elif current_name and " Median (ADU)      :" in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["Median (ADU)"] = value
+        elif current_name and " MAD (ADU)         : " in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["MAD (ADU)"] = value
+        elif current_name and " Mstar (ADU)       : " in line:
+            value = last_number(line)
+            if value is not None:
+                stats[current_name]["Mstar (ADU)"] = value
+        elif " Normalized image weights:" in line:
+            normalized_weights_line = index
+
+    if normalized_weights_line is not None:
+        current_name = None
+        for line in content[normalized_weights_line + 1:]:
+            if " Integration of " in line:
+                break
+            parts = line.split()
+            if ".xisf" in line:
+                current_name = clean_name(parts[-1])
+                continue
+            if not current_name or len(parts) < 3:
+                continue
+            try:
+                weights = list(map(float, parts[-3:]))
+            except ValueError:
+                continue
+            if current_name not in stats:
+                stats[current_name] = {}
+            stats[current_name]["WBPP weight 1"] = weights[0]
+            stats[current_name]["WBPP weight 2"] = weights[1]
+            stats[current_name]["WBPP weight 3"] = weights[2]
 
     return jsonify(stats)
 
@@ -201,21 +278,14 @@ def extract_keywords():
             meta_store = json.load(request.files['meta_store'])
             all_meta = meta_store.get("meta", [])
             filenames = meta_store.get("filenames", [])
-            wbpp_stats = meta_store.get("wbpp_stats", {})
         else:
             all_meta = []
             filenames = []
-            wbpp_stats = {}
 
         for f in files:
             meta = fits_header_only(f, return_dict=True)
             name = os.path.splitext(f.filename.replace(".header", ""))[0]
             filenames.append(name)
-            for key in wbpp_stats.keys():
-                if key.startswith(name):
-                    for k,v in wbpp_stats[key].items():
-                        if k not in meta:
-                            meta[k] = {"v": v, "c": ""}
             all_meta.append(meta)
 
         if not all_meta:
@@ -733,8 +803,31 @@ def save_image():
         debug_log("Prepared %s related media row(s) for image submission.", len(related_media_rows))
 
         if annotated_path_upload:
-            # The supplied image already contains the desired annotations.
-            svg_image = None
+            # The supplied image already contains the desired object
+            # annotations. Keep the automatic object layer empty, but retain
+            # the stellar analysis data used by Explore/HR.
+            previous_analysis = _analysis_overlay_without_annotations(
+                tmp_img.get("overlays_json") if img_id and tmp_img else None
+            )
+            explicit_analysis_regeneration = (
+                not img_id
+                or form.get("redo_plate_solve") == "on"
+                or form.get("regenerate_overlays") == "on"
+            )
+            if previous_analysis is not None and not explicit_analysis_regeneration:
+                svg_image = json.dumps(previous_analysis)
+            elif header_json and explicit_analysis_regeneration:
+                try:
+                    svg_image = json.dumps(get_analysis_overlay(header_json))
+                except Exception as exc:
+                    debug_log(
+                        "Could not generate analysis data for annotated image: %s",
+                        exc,
+                        level=logging.WARNING,
+                    )
+                    svg_image = None
+            else:
+                svg_image = None
         elif svg_image is None:
             svg_image = json.dumps(get_overlays(header_json))
         guide_logs = request.files.getlist("guide_logs")

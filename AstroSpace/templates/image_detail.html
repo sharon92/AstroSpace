@@ -64,13 +64,15 @@
   </header>
 
   <div class="image-detail-frame">
+    {% set hr_plot = il.svg_image.get('plots', {}).get('hr', {}) if il.svg_image else {} %}
+    {% set has_hr_plot = hr_plot.get('name') and hr_plot.get('x') and hr_plot.get('y') %}
     <!-- Main Card Container -->
     <div x-data="{ mainTab: 'image', explorePane: 'hr', showObjects: false }"
       x-init="
         const storageKey = `image_tabs_{{ il.image.id }}`;
         const consentManager = window.AstroSpaceConsent;
         const validMainTabs = ['image', 'details', 'explore'];
-        const validExplorePanes = ['hr'{% if il.meta_json and 'variable' in il.meta_json %}, 'analyse'{% endif %}{% if il.guiding_plot %}, 'guiding'{% endif %}{% if il.calibration_plot %}, 'calibration'{% endif %}];
+        const validExplorePanes = [{% if has_hr_plot %}'hr'{% endif %}{% if il.meta_json and 'variable' in il.meta_json %}{% if has_hr_plot %}, {% endif %}'analyse'{% endif %}{% if il.guiding_plot %}{% if has_hr_plot or (il.meta_json and 'variable' in il.meta_json) %}, {% endif %}'guiding'{% endif %}{% if il.calibration_plot %}{% if has_hr_plot or (il.meta_json and 'variable' in il.meta_json) or il.guiding_plot %}, {% endif %}'calibration'{% endif %}];
         const requestExploreLoad = () => window.dispatchEvent(
           new CustomEvent('astrospace:load-explore', { detail: { imageId: '{{ il.image.id }}' } })
         );
@@ -118,6 +120,10 @@
           }
         } catch (error) {
           console.warn('Failed to restore image tab state', error);
+        }
+
+        if (!validExplorePanes.includes(explorePane)) {
+          explorePane = validExplorePanes[0] || null;
         }
 
         if (mainTab === 'explore') {
@@ -392,7 +398,9 @@
         </div>
 
             </div>
+            </div>
 
+            <div class="image-stage-tabs-panel">
             <div x-show="mainTab === 'details'" x-cloak class="image-stage-panel p-6 dark:text-white">
         {% set rows = {
           'Lights': 'light_count',
@@ -562,7 +570,10 @@
       </div>
 
             <div x-show="mainTab === 'explore'" x-cloak class="image-stage-panel space-y-4 md:p-4 dark:text-white">
-        {% set explore_tabs = [('hr', 'Hertzsprung Russel Diagram')] %}
+        {% set explore_tabs = [] %}
+        {% if has_hr_plot %}
+        {% set explore_tabs = explore_tabs + [('hr', 'Hertzsprung Russel Diagram')] %}
+        {% endif %}
         {% if il.meta_json and 'variable' in il.meta_json %}
         {% set explore_tabs = explore_tabs + [('analyse', 'Analyse')] %}
         {% endif %}
@@ -586,59 +597,77 @@
         </div>
         {% endif %}
 
+        {% if has_hr_plot %}
         <div x-show="explorePane === 'hr'" class="space-y-2 items-center justify-center dark:text-white display-inline">
           <div id="dist-scatter"
             class="w-full rounded-xl bg-white/70 dark:bg-white/70 mx-auto aspect-[3/4] sm:aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/3] max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px]">
           </div>
         </div>
+        {% endif %}
 
         {% if il.meta_json and 'variable' in il.meta_json %}
         <div x-show="explorePane === 'analyse'" class="detail-card space-y-4">
-          <div class="flex flex-wrap gap-4 items-center text-black dark:text-white">
-            <label for="xAxisSelect">X axis:</label>
-            <select id="xAxisSelect"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white"></select>
-
-            <div class="flex flex-col gap-1">
-              <label>Y axis 1:</label>
-              <select id="yAxisType1"
-                      class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" value="line">
-                <option value="line" selected>Line</option>
-                <option value="scatter">Scatter</option>
-                <option value="bar">Bar</option>
-              </select>
+          <div class="flex flex-col gap-2 text-black dark:text-white">
+            <div class="flex flex-wrap items-center gap-3">
+              <label for="plotPresetSelect" class="font-semibold">Plot:</label>
+              <select id="plotPresetSelect"
+                      class="input_container min-w-[15rem] bg-white dark:bg-gray-700 text-black dark:text-white"></select>
             </div>
-            <select id="yAxisSelect1" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
-            <div class="flex flex-col gap-1">
-              <label>Y axis 2:</label>
-              <select id="yAxisType2"
-                      class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
-                <option value="scatter">Scatter</option>
-                <option value="line">Line</option>
-                <option value="bar">Bar</option>
-              </select>
-            </div>
-            <select id="yAxisSelect2"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
-            <div class="flex flex-col gap-1">
-              <label>Y axis 3:</label>
-              <select id="yAxisType3"
-                      class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
-                <option value="scatter">Scatter</option>
-                <option value="line">Line</option>
-                <option value="bar">Bar</option>
-              </select>
-            </div>
-            <select id="yAxisSelect3"
-                    class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
-
-            <button id="updatePlotBtn"
-                    class="px-4 py-2 bg-blue-500 text-white rounded">
-              Update Plot
-            </button>
+            <p id="plotPresetDescription" class="text-sm text-gray-600 dark:text-gray-300"></p>
           </div>
+
+          <details id="advancedPlotDetails" class="rounded-lg border border-gray-200 dark:border-gray-700">
+            <summary class="cursor-pointer px-3 py-2 font-semibold text-gray-700 dark:text-gray-200">
+              Advanced plot
+            </summary>
+            <div class="mt-3 flex flex-wrap items-end gap-4 border-t border-gray-200 p-3 text-black dark:border-gray-700 dark:text-white">
+              <div class="flex flex-col gap-1">
+                <label for="xAxisSelect">X axis:</label>
+                <select id="xAxisSelect"
+                        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white"></select>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label for="yAxisSelect1">Y axis 1:</label>
+                <select id="yAxisType1"
+                        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" value="line">
+                  <option value="line" selected>Line</option>
+                  <option value="scatter">Scatter</option>
+                  <option value="bar">Bar</option>
+                </select>
+                <select id="yAxisSelect1" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label for="yAxisSelect2">Y axis 2:</label>
+                <select id="yAxisType2"
+                        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+                  <option value="scatter">Scatter</option>
+                  <option value="line">Line</option>
+                  <option value="bar">Bar</option>
+                </select>
+                <select id="yAxisSelect2"
+                        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label for="yAxisSelect3">Y axis 3:</label>
+                <select id="yAxisType3"
+                        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white">
+                  <option value="scatter">Scatter</option>
+                  <option value="line">Line</option>
+                  <option value="bar">Bar</option>
+                </select>
+                <select id="yAxisSelect3"
+                        class="input_container bg-white dark:bg-gray-700 text-black dark:text-white" multiple size="4"></select>
+              </div>
+
+              <button id="updatePlotBtn"
+                      class="px-4 py-2 bg-blue-500 text-white rounded">
+                Update Plot
+              </button>
+            </div>
+          </details>
 
           <div id="framesPlot" class="w-full min-h-[500px]"></div>
         </div>
@@ -649,8 +678,15 @@
           <div class="flex flex-col xl:flex-row gap-4">
             <div class="xl:w-80 space-y-3">
               <select data-role="session" aria-label="Guiding session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full"></select>
-              <div data-role="stats" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3"></div>
-              <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 max-h-64 overflow-auto"></div>
+              <details class="rounded-lg border border-gray-200 dark:border-gray-700">
+                <summary class="cursor-pointer px-3 py-2 font-semibold text-gray-700 dark:text-gray-200">
+                  Guiding info
+                </summary>
+                <div class="space-y-3 border-t border-gray-200 p-3 dark:border-gray-700">
+                  <div data-role="stats"></div>
+                  <div data-role="heading" class="max-h-64 overflow-auto"></div>
+                </div>
+              </details>
             </div>
             <div data-role="plot" class="flex-1"></div>
           </div>
@@ -661,14 +697,20 @@
         <div id="calibration-root-{{il.image.id}}" x-show="explorePane === 'calibration'" class="phd2-plot-shell detail-card">
           <div class="calibration-layout">
             <select data-role="session" aria-label="Calibration session" class="input_container bg-white dark:bg-gray-700 text-black dark:text-white w-full calibration-session"></select>
-            <div data-role="heading" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 overflow-auto w-full calibration-heading"></div>
+            <details class="rounded-lg border border-gray-200 dark:border-gray-700 calibration-heading">
+              <summary class="cursor-pointer px-3 py-2 font-semibold text-gray-700 dark:text-gray-200">
+                Calibration details
+              </summary>
+              <div data-role="heading" class="border-t border-gray-200 p-3 overflow-auto w-full dark:border-gray-700"></div>
+            </details>
             <div data-role="plot" class="w-full calibration-plot"></div>
           </div>
         </div>
         {% endif %}
       </div>
 
-          </div>
+            </div>
+            </div>
           <aside class="image-inspector">
         <div x-cloak class="image-workbench-tabs flex overflow-x-auto whitespace-nowrap" aria-label="Image sections">
           {% set main_tabs = [
@@ -964,8 +1006,6 @@
         </div>
       </div>
 
-    </div>
-
       <div class="relative flex flex-col items-center justify-center">
         <div class="relative w-0 top-0 h-6 border-1 mt-2 border-gray-200 dark:border-gray-400">
         </div>
@@ -975,7 +1015,7 @@
       <script type="module">
       import { drawHRDiagram } from "{{ url_for('static', filename='js/plotHR.js') }}";
       import { renderGuidingPlot, renderCalibrationPlot } from "{{ url_for('static', filename='js/phd2Plotly.js') }}";
-      import { populateAxisSelects, drawVariablePlot } from "{{ url_for('static', filename='js/subFramePlot.js') }}";
+      import { populateAxisSelects, drawVariablePlot, buildPlotPresets } from "{{ url_for('static', filename='js/subFramePlot.js') }}";
         (function () {
           const imageId = "{{ il.image.id }}";
 
@@ -2160,16 +2200,35 @@
 
         function renderVariableExplore(payload) {
           const updateButton = document.getElementById("updatePlotBtn");
+          const presetSelect = document.getElementById("plotPresetSelect");
+          const presetDescription = document.getElementById("plotPresetDescription");
           const metaVariable = payload.meta_variable || {};
           const metaComments = payload.meta_comments || {};
 
-          if (!updateButton || !Object.keys(metaVariable).length) {
+          if (!updateButton || !presetSelect || !Object.keys(metaVariable).length) {
             return;
           }
 
+          const presets = buildPlotPresets(metaVariable);
+          if (!presets.length) {
+            presetSelect.replaceChildren();
+            if (presetDescription) {
+              presetDescription.textContent = "No plottable numeric metadata is available.";
+            }
+            return;
+          }
+
+          presetSelect.replaceChildren();
+          presets.forEach(preset => {
+            const option = document.createElement("option");
+            option.value = preset.id;
+            option.textContent = preset.label;
+            presetSelect.appendChild(option);
+          });
+
           populateAxisSelects(metaVariable);
 
-          const update = () => {
+          const getAdvancedValues = () => {
             const xAxisSelect = document.getElementById("xAxisSelect");
             const yAxisSelects = [
               document.getElementById("yAxisSelect1"),
@@ -2183,21 +2242,54 @@
             ];
 
             if (!xAxisSelect || yAxisSelects.some(select => !select) || yAxisTypes.some(select => !select)) {
-              return;
+              return null;
             }
 
             const getSelectedValues = select => Array.from(select.selectedOptions).map(option => option.value);
+            return {
+              xKey: xAxisSelect.value,
+              yKeys: yAxisSelects.map(getSelectedValues),
+              chartTypes: yAxisTypes.map(select => select.value),
+            };
+          };
+
+          const drawPreset = preset => {
+            if (!preset) return;
+            if (presetDescription) {
+              presetDescription.textContent = preset.description || "Preprocessed metadata view.";
+            }
             drawVariablePlot(
               metaVariable,
               metaComments,
-              xAxisSelect.value,
-              yAxisSelects.map(getSelectedValues),
-              yAxisTypes.map(select => select.value)
+              preset.xKey,
+              preset.yKeys,
+              preset.chartTypes,
+              { title: preset.label }
             );
           };
 
-          updateButton.addEventListener("click", update);
-          update();
+          presetSelect.addEventListener("change", () => {
+            drawPreset(presets.find(preset => preset.id === presetSelect.value) || presets[0]);
+          });
+
+          updateButton.addEventListener("click", () => {
+            const advanced = getAdvancedValues();
+            if (!advanced) return;
+            drawVariablePlot(
+              metaVariable,
+              metaComments,
+              advanced.xKey,
+              advanced.yKeys,
+              advanced.chartTypes,
+              { title: "Advanced plot" }
+            );
+            if (presetDescription) {
+              presetDescription.textContent = "Advanced plot using the selected axes and chart types.";
+            }
+          });
+
+          presetSelect.value = presets[0].id;
+          drawPreset(presets[0]);
         }
 
         async function renderExplore() {

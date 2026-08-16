@@ -1,21 +1,40 @@
 // plotHR.js
 export function drawHRDiagram(overlayData) {
-    //const db1 = overlayData.overlays;
-    const db2 = overlayData.plots;
-    const db = db2["hr"];
+    const db = overlayData?.plots?.hr;
+    const names = Array.isArray(db?.name) ? db.name : [];
+    const xValues = Array.isArray(db?.x) ? db.x : [];
+    const yValues = Array.isArray(db?.y) ? db.y : [];
+    const pointCount = Math.min(names.length, xValues.length, yValues.length);
+    const target = document.getElementById("dist-scatter");
+
+    if (!target || pointCount === 0) {
+        if (target) {
+            target.replaceChildren();
+            const message = document.createElement("p");
+            message.className = "p-6 text-center text-sm text-gray-500 dark:text-gray-300";
+            message.textContent = "No stellar HR data is available for this image.";
+            target.appendChild(message);
+        }
+        return false;
+    }
+
+    const spectralClasses = Array.isArray(db["Spectral Class"]) ? db["Spectral Class"] : [];
+    const colors = Array.isArray(db.color) ? db.color : undefined;
+    const x = xValues.slice(0, pointCount);
+    const y = yValues.slice(0, pointCount);
 
     const trace = {
-        x: db.x,
-        y: db.y,
-        text: db.name.map(
+        x,
+        y,
+        text: names.slice(0, pointCount).map(
             (n, i) =>
-                `${n}<br>B–V: ${db.x[i]}<br>Mv: ${db.y[i]}<br>${db["Spectral Class"][i] || ""}`
+                `${n}<br>B–V: ${x[i]}<br>Mv: ${y[i]}<br>${spectralClasses[i] || ""}`
         ),
         mode: "markers",
         type: "scatter",
         marker: {
             size: 5,
-            color: db.color,
+            color: colors,
             line: {
                 color: 'rgba(0, 0, 0, 1)',
                 width: 1
@@ -32,7 +51,7 @@ export function drawHRDiagram(overlayData) {
         },
         xaxis: {
             title: { text: "Color Index (B–V)  →  Spectral Class" },
-            range: [Math.min(...db.x), Math.max(...db.x)],
+            range: [Math.min(...x), Math.max(...x)],
             showgrid: false,
             zeroline: false,
             showline: true,
@@ -68,4 +87,5 @@ export function drawHRDiagram(overlayData) {
         layout,
         { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['zoom2d', 'toImage', 'pan2d', 'lasso2d', 'zoomin2d', 'zoomOut2d', 'autoscale2d', 'select2d'] }
     );
+    return true;
 }

@@ -50,4 +50,15 @@ def parse_meta_store(raw_meta_store, fallback="{}"):
     if not isinstance(meta_store, dict) or not all(key in meta_store for key in required_keys):
         return fallback
 
-    return json.dumps({key: meta_store[key] for key in required_keys})
+    preserved_keys = (
+        "meta",
+        "filenames",
+        "constant",
+        "variable",
+        "comments",
+        "wbpp_stats",
+        "wbpp_log_name",
+        "light_frame_count",
+        "light_frame_filenames",
+    )
+    return json.dumps({key: meta_store[key] for key in preserved_keys if key in meta_store})

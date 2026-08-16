@@ -187,44 +187,73 @@
                     <p>Upload WBPP log file from Pixinsight [optional]</p>
                 </label>
                 <div class="flex space-x-2 items-center">
-                    <input id="wbppLogInput"name="wbpp_log_file" type="file" accept=".log" class="block w-full text-sm text-gray-500
+                    <input id="wbppLogInput" name="wbpp_log_file" type="file" accept=".log" class="editor-source-file-input block w-full text-sm
                         file:mr-4 file:py-2 file:px-4
                         file:rounded-full file:border-0
                         file:text-sm file:font-semibold
                         file:bg-blue-50 file:text-blue-700
                         hover:file:bg-blue-100"/>
+                    <button id="clearWbppFile" type="button" class="editor-source-clear-button" disabled>
+                        Clear selected log
+                    </button>
                 </div>
+                <div id="wbppExtractionStatus" class="editor-source-status mt-2" aria-live="polite" hidden></div>
+                <button id="clearWbppData" type="button" class="editor-source-clear-button mt-2" hidden>
+                    Clear extracted WBPP data
+                </button>
 
                 <label class="label block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
                     <p>Extract Metadata from Light Frames [optional]</p>
                 </label>
 
-                <div class="flex space-x-2 items-center">
-                    <input
-                        type="file"
-                        id="lightFramesInput"
-                        multiple
-                        accept=".fits,.fit"
-                        class="flex-1 text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-full file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-blue-50 file:text-blue-700
-                            hover:file:bg-blue-100"
-                    />
+                <div id="lightFramesInputs" class="space-y-2">
+                    <div class="light-frame-input-row flex space-x-2 items-center">
+                        <input
+                            type="file"
+                            id="lightFramesInput"
+                            multiple
+                            accept=".fits,.fit,.xisf"
+                            class="light-frame-input editor-source-file-input flex-1 text-sm
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100"
+                        />
+                        <button type="button" class="clear-light-frame-selection editor-source-clear-button" disabled>
+                            Clear selected files
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                        id="addLightFramesInput"
+                        type="button"
+                        class="editor-source-add-button"
+                        aria-label="Add another light-frame file picker"
+                        title="Add another light-frame file picker"
+                    >
+                        +
+                    </button>
                     <button
                         id="analyseLightsBtn"
                         type="button"
-                        class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        class="editor-source-extract-button"
                     >
-                        Extract Fits Metadata + WBPP Log and add
+                        Extract FITS metadata
                     </button>
                 </div>
+                <div id="lightFrameSelectionStatus" class="editor-source-selection-status mt-2" hidden></div>
+                <div id="lightFrameExtractionStatus" class="editor-source-status mt-2" aria-live="polite" hidden></div>
+                <button id="clearLightMetadata" type="button" class="editor-source-clear-button mt-2" hidden>
+                    Clear extracted light-frame metadata
+                </button>
                 <input type="hidden" name="meta_store" id="meta_store_input" value="" />
             </div>
 
-            <h3 class="mt-4 font-semibold text-gray-700 dark:text-white">Constant Keywords</h3>
-            <div class="mt-2 border rounded max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
+            <details class="mt-4 border rounded text-gray-700 dark:text-gray-300">
+                <summary class="cursor-pointer px-3 py-2 font-semibold text-gray-700 dark:text-white">Constant Keywords</summary>
+                <div class="border-t max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
                 <table id="constantsTable" class="min-w-full text-sm border-collapse">
                     <thead class="sticky top-0 bg-gray-100 text-black dark:bg-slate-800 dark:text-slate-100">
                         <tr>
@@ -235,15 +264,18 @@
                     </thead>
                     <tbody></tbody>
                 </table>
-            </div>
+                </div>
+            </details>
 
-            <h3 class="mt-4 font-semibold  text-gray-700 dark:text-gray-300">Variable Keywords</h3>
-            <div class="mt-2 border rounded max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
+            <details class="mt-4 border rounded text-gray-700 dark:text-gray-300">
+                <summary class="cursor-pointer px-3 py-2 font-semibold text-gray-700 dark:text-gray-300">Variable Keywords</summary>
+                <div class="border-t max-h-96 overflow-y-auto text-gray-700 dark:text-gray-300">
                 <table id="variablesTable" class="min-w-full text-sm border-collapse">
                     <thead class="sticky top-0 bg-gray-100 dark:bg-slate-800 dark:text-slate-100"></thead>
                     <tbody></tbody>
                 </table>
-            </div>
+                </div>
+            </details>
         </section>
 
         <!-- Location Row -->
@@ -748,7 +780,7 @@
             }
 
             bindLocationInput();
-            bindLightFramesAnalyse();
+            const prepareMetadataForSave = bindLightFramesAnalyse() || (async () => {});
             restoreMetadata(savedMetadata);
             renderRelatedMediaRows();
 
@@ -818,70 +850,169 @@
             const form = document.querySelector("#postForm"); // or give your form an id
             const fitsInput = document.querySelector("input[name='fits_file']");
 
+            const saveButton = form.querySelector(".editor-save-button");
+            const savePayloadLimit = 2 * (1024 ** 3);
+            const multipartOverheadAllowance = 1024 * 1024;
+
+            function formatFileSize(bytes) {
+                if (!Number.isFinite(bytes)) return "unknown size";
+                if (bytes < 1024) return `${bytes} B`;
+                const units = ["KB", "MB", "GB", "TB"];
+                let value = bytes;
+                let unitIndex = -1;
+                do {
+                    value /= 1024;
+                    unitIndex += 1;
+                } while (value >= 1024 && unitIndex < units.length - 1);
+                return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+            }
+
             form.addEventListener("submit", async function (e) {
+                e.preventDefault();
 
-                const lightFramesInput = document.getElementById("lightFramesInput");
-                const wbppLogInput = document.getElementById("wbppLogInput");
-                // After you intercept/prepare FormData:
-                if (lightFramesInput) {
-                    lightFramesInput.value = "";  // clears all selected files
-                }
-                if (wbppLogInput) {
-                    wbppLogInput.value = "";  // clears all selected files
-                }
-                
-                // If user didn’t pick a fits/xif file → normal submit
-                if (!fitsInput || fitsInput.files.length === 0) return;
-
-                const file = fitsInput.files[0];
-                const ext = file.name.toLowerCase();
-
-                // Only intercept for XISF/FITS
-                if (!(ext.endsWith(".xisf") || ext.endsWith(".fits") || ext.endsWith(".fit"))) return;
-
-                e.preventDefault(); // Stop default full-file upload
-
-                // --- Header extraction ---
-                let headerBytes;
-                let newName;
-                if (ext.endsWith(".xisf")) {
-                    headerBytes = await fitsUtils.readXISFHeader(file);
-                    newName = file.name + ".header.xisf";
-                } else {
-                    // FITS: Header ends with "END" padded to 2880-byte blocks
-                    headerBytes = await fitsUtils.readFITSHeader(file);
-                    newName = file.name + ".header.fits";
-                }
-
-                // --- Build modified FormData with header only ---
-                const formData = new FormData(form);
-
-                // Replace full file with small header blob
-                formData.set(
-                    "fits_file",
-                    new Blob([headerBytes], { type: "application/octet-stream" }),
-                    newName   // keep filename distinct
-                );
-
-                fitsInput.value = "";
-
-                // Submit using fetch
-                const response = await fetch(form.action, {
-                    method: form.method,
-                    body: formData
-                });
-
-                if (response.redirected) {
-                    window.location.href = response.url;
+                if (!form.checkValidity()) {
+                    form.reportValidity();
                     return;
                 }
 
-                if (!response.ok) {
-                    alert("Failed to save the post.");
-                    return;
+                if (saveButton) {
+                    saveButton.dataset.idleLabel = saveButton.dataset.idleLabel || saveButton.textContent.trim();
+                    saveButton.classList.add("is-saving");
+                    saveButton.setAttribute("aria-busy", "true");
+                    saveButton.disabled = true;
+                    saveButton.textContent = "Saving changes…";
                 }
 
-                window.location.reload();
+                try {
+                    await prepareMetadataForSave();
+
+                    const lightFramesInputs = document.querySelectorAll(".light-frame-input");
+                    const wbppLogInput = document.getElementById("wbppLogInput");
+                    const file = fitsInput?.files?.[0];
+                    const ext = file?.name.toLowerCase() || "";
+                    const isEditing = Boolean(form.querySelector("input[name='image_id']")?.value);
+                    const previewInput = form.querySelector("input[name='image_path']");
+                    const hasNewPreview = Boolean(previewInput?.files?.length);
+                    const redoPlateSolve = Boolean(form.querySelector("input[name='redo_plate_solve']")?.checked);
+                    // On an edit, a FITS selected only for light-frame extraction is not a
+                    // save input. The existing WCS is reused unless the preview is replaced
+                    // or the user explicitly requests a new plate solve.
+                    const needsFitsHeaderForSave = !isEditing || hasNewPreview || redoPlateSolve;
+                    let headerBytes;
+                    let newName;
+
+                    if (file && !(ext.endsWith(".xisf") || ext.endsWith(".fits") || ext.endsWith(".fit"))) {
+                        throw new Error("The selected FITS image must have a .fits, .fit, or .xisf extension.");
+                    }
+
+                    if (file && needsFitsHeaderForSave) {
+                        if (ext.endsWith(".xisf")) {
+                            headerBytes = await fitsUtils.readXISFHeader(file);
+                            newName = file.name + ".header.xisf";
+                        } else {
+                            headerBytes = await fitsUtils.readFITSHeader(file);
+                            newName = file.name + ".header.fits";
+                        }
+                    }
+
+                    // Optional source files have already been extracted into meta_store.
+                    lightFramesInputs.forEach((input) => { input.value = ""; });
+                    if (wbppLogInput) wbppLogInput.value = "";
+
+                    // Never send the full primary image in the save request. The server only needs
+                    // the compact header extracted above, which avoids 413 errors for large FITS files.
+                    if (fitsInput) fitsInput.value = "";
+
+                    // Build the save payload from an explicit file allowlist. This keeps any
+                    // extraction-only source file out even if a browser retains its FileList.
+                    const rawFormData = new FormData(form);
+                    const formData = new FormData();
+                    const allowedSaveFileFields = new Set([
+                        "image_path",
+                        "starless_image_path",
+                        "annotated_image_path",
+                        "related_media_files",
+                        "guide_logs",
+                    ]);
+                    for (const [name, value] of rawFormData.entries()) {
+                        if (typeof value === "string") {
+                            formData.append(name, value);
+                        } else if (allowedSaveFileFields.has(name) && value.name) {
+                            formData.append(name, value, value.name);
+                        }
+                    }
+                    formData.delete("fits_file");
+                    formData.delete("wbpp_log_file");
+                    lightFramesInputs.forEach((input) => {
+                        if (input.name) formData.delete(input.name);
+                    });
+                    if (headerBytes) {
+                        formData.set(
+                            "fits_file",
+                            new Blob([headerBytes], { type: "application/octet-stream" }),
+                            newName
+                        );
+                    }
+
+                    const outgoingFiles = Array.from(formData.entries())
+                        .filter(([, value]) => typeof value !== "string" && value.name)
+                        .map(([name, value]) => ({ name, filename: value.name, size: value.size }));
+                    const outgoingFileBytes = outgoingFiles.reduce((total, item) => total + (item.size || 0), 0);
+                    const outgoingFileSummary = outgoingFiles.length
+                        ? outgoingFiles
+                            .map((item) => `${item.name}=${item.filename} (${formatFileSize(item.size)})`)
+                            .join(", ")
+                        : "no file uploads";
+
+                    // FormData adds multipart boundaries on top of the file bytes. Stop
+                    // before a request that Flask will reject, and identify the real file
+                    // responsible instead of blaming the extraction-only FITS picker.
+                    if (outgoingFileBytes + multipartOverheadAllowance > savePayloadLimit) {
+                        throw new Error(
+                            `Save payload is too large (${formatFileSize(outgoingFileBytes)} of files): ${outgoingFileSummary}. ` +
+                            "Remove or reduce the oversized save file and try again. Light-frame extraction files are not included."
+                        );
+                    }
+                    console.debug("Save file payload", outgoingFiles);
+
+                    const response = await fetch(form.action, {
+                        method: form.method,
+                        body: formData
+                    });
+
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        if (response.status === 413) {
+                            let serverMessage = "";
+                            try {
+                                const errorData = await response.json();
+                                serverMessage = errorData.error || "";
+                            } catch (_error) {
+                                // Keep the client-side explanation when the response is not JSON.
+                            }
+                            throw new Error(
+                                serverMessage ||
+                                (`Save request is too large. Outgoing files: ${outgoingFileSummary}. ` +
+                                    "The light-frame FITS files are excluded; remove or reduce the listed save file and try again.")
+                            );
+                        }
+                        throw new Error("Failed to save the post.");
+                    }
+
+                    window.location.reload();
+                } catch (error) {
+                    alert(error.message || "Failed to save the post.");
+                    if (saveButton) {
+                        saveButton.classList.remove("is-saving");
+                        saveButton.removeAttribute("aria-busy");
+                        saveButton.disabled = false;
+                        saveButton.textContent = saveButton.dataset.idleLabel || "Save changes";
+                    }
+                }
             });
         });
 

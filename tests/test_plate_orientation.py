@@ -129,3 +129,42 @@ def test_rebuild_plate_solve_artifacts_persists_display_transform_for_reuse(tmp_
     assert captured["header_json"] == updated_header_json
     assert "ASDISP" in updated_header_json
     assert "flipud" in updated_header_json.lower()
+
+
+def test_rebuild_plate_solve_artifacts_keeps_analysis_without_annotations(tmp_path, monkeypatch):
+    from AstroSpace.utils import platesolve
+
+    image_path = tmp_path / "image.png"
+    image_path.write_bytes(b"image")
+
+    header = Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = 120
+    header["NAXIS2"] = 80
+    header["CTYPE1"] = "RA---TAN"
+    header["CTYPE2"] = "DEC--TAN"
+    header["CRVAL1"] = 79.03
+    header["CRVAL2"] = 34.07
+    header["CRPIX1"] = 60
+    header["CRPIX2"] = 40
+    header["CDELT1"] = -0.0004496322
+    header["CDELT2"] = 0.0004496388
+
+    captured = {}
+    monkeypatch.setattr(platesolve, "resize_image", lambda *_args, **_kwargs: None)
+
+    def fake_get_analysis_overlay(header_json):
+        captured["header_json"] = header_json
+        return {"overlays": {"name": []}, "plots": {"hr": {"name": ["star"]}}}
+
+    monkeypatch.setattr(platesolve, "get_analysis_overlay", fake_get_analysis_overlay)
+
+    _thumbnail_path, _pixel_scale, overlays_json, updated_header_json = platesolve.rebuild_plate_solve_artifacts(
+        str(image_path),
+        "1/image.png",
+        header.tostring(),
+        include_overlays=False,
+    )
+
+    assert '"star"' in overlays_json
+    assert captured["header_json"] == updated_header_json
